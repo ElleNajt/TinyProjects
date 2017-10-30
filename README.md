@@ -19,3 +19,7 @@ Beroulli -- A tool to play with and visualize bernoulli shifts / dyadic transfor
 Exercises:
 
 Merge Lists -- A exercise from leetcode.com. Merges K sorted lists into one sorted list.
+
+Upcoming:
+
+Shift register sequences, Reed-Solomon codes and error correction for Binary Symmetric Channels, Gerrymandering project (MCMC method and social choice function -- joint with McKenzie Lamb)
