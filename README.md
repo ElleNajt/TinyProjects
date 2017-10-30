@@ -1,5 +1,3 @@
-s
-
 # TinyProjects
 
 Machine Learning:
@@ -22,6 +20,6 @@ Merge Lists -- A exercise from leetcode.com. Merges K sorted lists into one sort
 
 ---------------------
 ---------------------
-Planned or partially complete projects:
+Planned or partially complete projects, not yet uploaded:
 
 Shift register sequences, Reed-Solomon codes and error correction for Binary Symmetric Channels, Gerrymandering project (MCMC method and social choice function -- joint with McKenzie Lamb), Clustering Senators.
