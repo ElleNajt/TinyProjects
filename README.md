@@ -1,4 +1,4 @@
-
+s
 
 # TinyProjects
 
@@ -20,6 +20,8 @@ Exercises:
 
 Merge Lists -- A exercise from leetcode.com. Merges K sorted lists into one sorted list.
 
-Upcoming:
+---------------------
+---------------------
+Planned or partially complete projects:
 
-Shift register sequences, Reed-Solomon codes and error correction for Binary Symmetric Channels, Gerrymandering project (MCMC method and social choice function -- joint with McKenzie Lamb)
+Shift register sequences, Reed-Solomon codes and error correction for Binary Symmetric Channels, Gerrymandering project (MCMC method and social choice function -- joint with McKenzie Lamb), Clustering Senators.
