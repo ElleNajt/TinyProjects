@@ -1,0 +1,32 @@
+import random
+import copy
+set = {1,2,3,4,5,6,7,8}
+xvals = []
+samples = []
+current = {1}
+while len(samples) < 10000:
+	#print(len(samples))
+	
+	k = 0
+	#n = random.sample(range(50,100),1)[0]
+	n = 1
+	while k < n:
+		x = random.sample(set,1)[0]
+		xvals.append(x)
+		if x in current:
+			current.remove(x)
+		else:
+			current.add(x)
+		k += 1
+	#print(current)
+	#print(samples)
+	samples.append(copy.deepcopy(current))
+	
+sizes = []
+for x in samples:
+	sizes.append(len(x))
+	
+import matplotlib.pyplot as plt
+plt.hist(sizes, bins='auto')
+plt.show() 
+
