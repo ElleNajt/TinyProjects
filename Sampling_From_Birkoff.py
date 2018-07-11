@@ -6,6 +6,11 @@ Some comments:
     A better place to start it is from the doubly stochastic matrix which 
     has the same value for each entry.
     
+How to use:
+    
+    To use this, run build_samples(dimension, steps)
+    and input n for dimension if matrices are nxn
+    and steps is number of steps to run
     
     '''
 
@@ -123,6 +128,8 @@ def build_samples(dimension, steps, starting_matrix = "center"):
         matrix = np.identity(dimension)
     delta = .005 / np.sqrt(dimension)
     return markov_chain(matrix, delta, steps)
+
+##Validating code:
 
 def check_doubly_stochastic(matrix):
     '''Returns false if the matrix is not (close to) doubly stochastic
