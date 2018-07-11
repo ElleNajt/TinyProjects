@@ -2,15 +2,18 @@
 '''
 Some comments:
     
-    The algorithm starts very slowly from the identity matrix. 
+    - The algorithm starts very slowly from the identity matrix. 
     A better place to start it is from the doubly stochastic matrix which 
     has the same value for each entry.
+    
+    - I'm not sure what the right delta is. Following the paper, I set it around 1/ sqrt(n)
     
 How to use:
     
     To use this, run build_samples(dimension, steps)
     and input n for dimension if matrices are nxn
     and steps is number of steps to run
+    
     
     '''
 
