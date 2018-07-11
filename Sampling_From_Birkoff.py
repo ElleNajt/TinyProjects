@@ -96,7 +96,15 @@ def propose_step(matrix, delta):
     n = matrix.shape[0]
     ambient_dimension = n**2 - 2*n + 1
     alpha = np.power(np.random.uniform(), 1/ambient_dimension)
-    #Does this actually work?
+    '''
+    If U is a uniform([0,1]), and alpha = U^{1/d}
+    then P( alpha <= x) = P(U^{1/d} <= x) = P(U <= x^d) = x^d
+    So the probability that the sampled vector lies in a sphere of 
+    radius x is proportional to x^d, which is correct, since the volume
+    of a ball of radius x is C*x^d. 
+    
+    
+    '''
     
     step_vector = alpha* delta* direction
     
