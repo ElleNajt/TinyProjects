@@ -1,68 +1,14 @@
 # -*- coding: utf-8 -*-
-
 '''
-Let $V \subset M_n(\mathbb{R})$ be the affinespace of matrices $M$ so that $M 1 = 1$ and $1^T M = 1$, where $1$ is the all ones matrix. (I.e. that the row and column sums are all one.)
-
-Let $V^0$ be the vector space so that $V^0 + I = V$. I.e., $V^0$ is the kernel of $M \to (M1, 1^T M)$.
-
-Now $B = V \cap \{ M \geq 0\}$, where $M \geq 0$ means that all of the entries of $M$ are greater than zero.
-
-$B$ is a polytope of full dimension inside of $V$. Therefore, we can sample a random bistochastic matrix using the following algorithm:
-
-0) Initialize a list $L$.
-
-1) Start with a seed matrix $M \in B$.
-
-2) Pick a random vector $v$ in the the $\delta$-ball of $V^0$. 
-
-3) Consider the matrix $M + v$.
-
-4) If $M + v \in B$: add $M + v$ to $L$, and set $M = M + v$.
-Else: Go back to 2.
-
-A proof that this algorithm is efficient (along with information on choosing $\delta$) is given here: http://web.cs.elte.hu/~lovasz/vol5.pdf
-
-Here is a simple proof that the stationary distribution of this algorithm is uniform over the partition. (Hopefully this will also clarify what the algorithm is doing)
-
-
-
-
-
-
-
----------------
-
-To do step 2, it suffices to find an orthogonal projector from $M_n(\mathbb{R})$ onto $V^0$. Let $T$ be the map $T(M) = (M1, 1^TM)$. Then $V^0$ is the kernel of $T$. If $T^{+}$ is the pseudoinverse of $T$, then $I - T^{+}T$ is an orthogonal projector onto $V^0$. (See: https://en.wikipedia.org/wiki/Moore%E2%80%93Penrose_inverse#Projectors )
-
-Thus, if $Y$ is a chosen from a standard Gausssian in $M_n(\mathbb{R})$, $(I - T^{+}T)Y$, is a standard Gaussian in $V^0$. Hence $\hat{a} = \frac{ (I - T^{+}T)Y } {|| (I - T^{+}T)Y || }$ is a random direction in $V^0$, and we can pick a number $\alpha$ from $[0,\delta]$ s that $\alpha \hat{a}$ is a random vector in the unit ball of $V^0$.
-
-Working out the distribution with which to draw $\alpha$ depends on computing that the dimension of $V^0$ is $n^2 - 2n + 1$. (See https://en.wikipedia.org/wiki/N-sphere#Volume_and_surface_area for the formulas...)
-
-Computing this dimension is a nice exercise, but for completeness I'll sketch the argument: 
-
-First, you should show that the rank of $T$ is at most $2n - 1$. To do this, observe that the equations describing doubly stochastic matrices have one redundancy -- namely, if I add up the equations that say that the columns sum to zero, and subtract away the equations that say that the rows sum to zero, except for the last row, the equation that says the last row sums to zero follows.
-
-Next, you can show that the rank of $T$ is at least $2n - 1$. To do this, observe that $T ( e_{ij}) = (e_j, e_i)$.  So, within the image we have the set of $2n - 1$ vectors that are $\{ (e_i, e_1), (e_1, e_j) : i = 1, \ldots, n, j = 1, \ldots n \}$. We can check that these are linearly independent: If $a (e_1, e_1) + \Sigma_{i > 1} a_i (e_i, e_1) + \Sigma_{j > 1} b_j (e_1, e_j) = 0$, then we get the following equations:
-
-$a_i e_i = 0$ for $i > 1$, $b_j e_j = 0$ for $j > 1$, and $a (e_1 , e_1) = 0$, which implies that $a = 0 = a_i = 0 = \ldots = b_j = 0$.
-
----
-
-One remaining book-keeping point for implementation is computing $T$ and $T^{+}$. numpy has a good toolkit for computing the pseudo inverse, so all that's necessary is to write down the matrix $T$. 
-
----
-
-On the selection of parameters for the algorithm:
-
----
-
-Here is some python code that implements this:  
-
----
-
-We can sanity check this code by using it to estimate the volume of the Birkoff polytope, which is known in small dimension:
+Some comments:
     
-'''
+    The algorithm starts very slowly from the identity matrix. 
+    A better place to start it is from the doubly stochastic matrix which 
+    has the same value for each entry.
+    
+    
+    '''
+
 
   
 import numpy as np
@@ -163,7 +109,7 @@ def markov_chain(matrix, delta, steps):
             samples.append(matrix)
     return samples
     
-def build_samples(dimension, steps):
+def build_samples(dimension, steps, starting_matrix = "center"):
     '''This runs the build samples method using the constants in the Lovasz paper
     
     :dimension: the dimension of the matrices, i.e. they will be dimension by dimension
@@ -171,8 +117,11 @@ def build_samples(dimension, steps):
     
     
     '''
-    matrix = np.ones([dimension, dimension]) / dimension
-    delta = .05 / np.sqrt(dimension)
+    if starting_matrix == "center":
+        matrix = np.ones([dimension, dimension]) / dimension
+    if starting_matrix == "identity":
+        matrix = np.identity(dimension)
+    delta = .005 / np.sqrt(dimension)
     return markov_chain(matrix, delta, steps)
 
 def check_doubly_stochastic(matrix):
@@ -198,3 +147,68 @@ def testing_code():
         truth, rows, columns = check_doubly_stochastic(samples[i])
         if not truth:
             print(i, rows, columns)
+            
+            
+'''
+Let $V \subset M_n(\mathbb{R})$ be the affinespace of matrices $M$ so that $M 1 = 1$ and $1^T M = 1$, where $1$ is the all ones matrix. (I.e. that the row and column sums are all one.)
+
+Let $V^0$ be the vector space so that $V^0 + I = V$. I.e., $V^0$ is the kernel of $M \to (M1, 1^T M)$.
+
+Now $B = V \cap \{ M \geq 0\}$, where $M \geq 0$ means that all of the entries of $M$ are greater than zero.
+
+$B$ is a polytope of full dimension inside of $V$. Therefore, we can sample a random bistochastic matrix using the following algorithm:
+
+0) Initialize a list $L$.
+
+1) Start with a seed matrix $M \in B$.
+
+2) Pick a random vector $v$ in the the $\delta$-ball of $V^0$. 
+
+3) Consider the matrix $M + v$.
+
+4) If $M + v \in B$: add $M + v$ to $L$, and set $M = M + v$.
+Else: Go back to 2.
+
+A proof that this algorithm is efficient (along with information on choosing $\delta$) is given here: http://web.cs.elte.hu/~lovasz/vol5.pdf
+
+Here is a simple proof that the stationary distribution of this algorithm is uniform over the partition. (Hopefully this will also clarify what the algorithm is doing)
+
+
+
+
+
+
+
+---------------
+
+To do step 2, it suffices to find an orthogonal projector from $M_n(\mathbb{R})$ onto $V^0$. Let $T$ be the map $T(M) = (M1, 1^TM)$. Then $V^0$ is the kernel of $T$. If $T^{+}$ is the pseudoinverse of $T$, then $I - T^{+}T$ is an orthogonal projector onto $V^0$. (See: https://en.wikipedia.org/wiki/Moore%E2%80%93Penrose_inverse#Projectors )
+
+Thus, if $Y$ is a chosen from a standard Gausssian in $M_n(\mathbb{R})$, $(I - T^{+}T)Y$, is a standard Gaussian in $V^0$. Hence $\hat{a} = \frac{ (I - T^{+}T)Y } {|| (I - T^{+}T)Y || }$ is a random direction in $V^0$, and we can pick a number $\alpha$ from $[0,\delta]$ s that $\alpha \hat{a}$ is a random vector in the unit ball of $V^0$.
+
+Working out the distribution with which to draw $\alpha$ depends on computing that the dimension of $V^0$ is $n^2 - 2n + 1$. (See https://en.wikipedia.org/wiki/N-sphere#Volume_and_surface_area for the formulas...)
+
+Computing this dimension is a nice exercise, but for completeness I'll sketch the argument: 
+
+First, you should show that the rank of $T$ is at most $2n - 1$. To do this, observe that the equations describing doubly stochastic matrices have one redundancy -- namely, if I add up the equations that say that the columns sum to zero, and subtract away the equations that say that the rows sum to zero, except for the last row, the equation that says the last row sums to zero follows.
+
+Next, you can show that the rank of $T$ is at least $2n - 1$. To do this, observe that $T ( e_{ij}) = (e_j, e_i)$.  So, within the image we have the set of $2n - 1$ vectors that are $\{ (e_i, e_1), (e_1, e_j) : i = 1, \ldots, n, j = 1, \ldots n \}$. We can check that these are linearly independent: If $a (e_1, e_1) + \Sigma_{i > 1} a_i (e_i, e_1) + \Sigma_{j > 1} b_j (e_1, e_j) = 0$, then we get the following equations:
+
+$a_i e_i = 0$ for $i > 1$, $b_j e_j = 0$ for $j > 1$, and $a (e_1 , e_1) = 0$, which implies that $a = 0 = a_i = 0 = \ldots = b_j = 0$.
+
+---
+
+One remaining book-keeping point for implementation is computing $T$ and $T^{+}$. numpy has a good toolkit for computing the pseudo inverse, so all that's necessary is to write down the matrix $T$. 
+
+---
+
+On the selection of parameters for the algorithm:
+
+---
+
+Here is some python code that implements this:  
+
+---
+
+We can sanity check this code by using it to estimate the volume of the Birkoff polytope, which is known in small dimension:
+    
+'''
