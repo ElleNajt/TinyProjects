@@ -163,9 +163,38 @@ def markov_chain(matrix, delta, steps):
             samples.append(matrix)
     return samples
     
-def test(n, steps):
+def build_samples(dimension, steps):
+    '''This runs the build samples method using the constants in the Lovasz paper
+    
+    :dimension: the dimension of the matrices, i.e. they will be dimension by dimension
+    :steps: number of steps to take
+    
+    
+    '''
     matrix = np.ones([dimension, dimension]) / dimension
-    delta = .05 / np.sqrt(n)
+    delta = .05 / np.sqrt(dimension)
     return markov_chain(matrix, delta, steps)
 
-    
+def check_doubly_stochastic(matrix):
+    '''Returns false if the matrix is not (close to) doubly stochastic
+    '''
+    n = matrix.shape[0]
+    ones = np.ones(n)
+    rows = np.matmul(matrix, ones)
+    columns = np.matmul(matrix.T, ones)
+    if not in_polytope(matrix):
+        return (False, "was not in polytope", 0)
+    if not np.allclose(rows, ones):
+        return (False, rows, columns)
+    if not np.allclose(columns, ones):
+        return (False, rows, columns)
+    return (True, rows, columns)
+
+def testing_code():
+    '''This is just to make sure the code is doing what it is supposed to be doing
+    '''
+    samples = build_samples(4, 1000)
+    for i in range(len(samples)):
+        truth, rows, columns = check_doubly_stochastic(samples[i])
+        if not truth:
+            print(i, rows, columns)
