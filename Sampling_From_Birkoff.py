@@ -14,12 +14,14 @@ How to use:
     and input n for dimension if matrices are nxn
     and steps is number of steps to run
     
-    
+Made in response to stack exchange question here: https://math.stackexchange.com/questions/12584/how-do-i-generate-doubly-stochastic-matrices-uniform-randomly
     '''
 
 
   
 import numpy as np
+from scipy.spatial import ConvexHull
+import random
 
 def project_to_birkoff(matrix):
     '''This projects a matrix to the linear space that the Birkoff polytope spans
@@ -64,10 +66,10 @@ def T_map(matrix):
     output_vector = np.concatenate((first_coordinate, second_coordinate), 0)
     return output_vector
 
-dimension = 4
-list_of_matrices = []
-matrix = np.ones([dimension, dimension]) / dimension
-project_to_birkoff(matrix) + matrix
+#dimension = 4
+#list_of_matrices = []
+#matrix = np.ones([dimension, dimension]) / dimension
+#project_to_birkoff(matrix) + matrix
 #Sanity check: The matrix with the same entry in each row projects to the zero 
 #matrix... since both are the unique fixued points under permuting  rows and colums arbirarily...
 
@@ -137,7 +139,7 @@ def build_samples(dimension, steps, starting_matrix = "center"):
         matrix = np.ones([dimension, dimension]) / dimension
     if starting_matrix == "identity":
         matrix = np.identity(dimension)
-    delta = .005 / np.sqrt(dimension)
+    delta = .5 / np.sqrt(dimension)
     return markov_chain(matrix, delta, steps)
 
 ##Validating code:
@@ -166,6 +168,15 @@ def testing_code():
         if not truth:
             print(i, rows, columns)
             
+def compare_volume(dimension, steps):
+    '''Compares the estimated volume to the true volume in small dimensions'''
+    dimension = 2
+    steps = 10000
+    samples = build_samples(dimension, steps)
+    samples_as_points = [list(matrix.flatten()) for matrix in samples]
+    sub_samples = random.sample(samples_as_points,4000)
+    MLE_polytope = ConvexHull(sub_samples)
+    print(MLE_polytope.volume)
             
 '''
 Let $V \subset M_n(\mathbb{R})$ be the affinespace of matrices $M$ so that $M 1 = 1$ and $1^T M = 1$, where $1$ is the all ones matrix. (I.e. that the row and column sums are all one.)
@@ -187,11 +198,18 @@ $B$ is a polytope of full dimension inside of $V$. Therefore, we can sample a ra
 4) If $M + v \in B$: add $M + v$ to $L$, and set $M = M + v$.
 Else: Go back to 2.
 
-A proof that this algorithm is efficient (along with information on choosing $\delta$) is given here: http://web.cs.elte.hu/~lovasz/vol5.pdf
+
 
 Here is a simple proof that the stationary distribution of this algorithm is uniform over the partition. (Hopefully this will also clarify what the algorithm is doing)
 
 
+The algorithm as it is may not be that efficient. For example, if delta is 
+too large, and we are in a corner of our polytope, we may spend a lot of time 
+rejecting steps. On the other hand, if delta is to small, we will have a hard
+time moving around the polytope.
+
+In this paper, http://web.cs.elte.hu/~lovasz/vol5.pdf , Lovasz et. al. describe
+an algorithm that speeds up this process considerably.
 
 
 
@@ -215,18 +233,17 @@ $a_i e_i = 0$ for $i > 1$, $b_j e_j = 0$ for $j > 1$, and $a (e_1 , e_1) = 0$, w
 
 ---
 
-One remaining book-keeping point for implementation is computing $T$ and $T^{+}$. numpy has a good toolkit for computing the pseudo inverse, so all that's necessary is to write down the matrix $T$. 
+On the selection of parameters for the algorithm: 
+    We lok at algorihtm 4.11
 
 ---
 
-On the selection of parameters for the algorithm:
-
----
-
-Here is some python code that implements this:  
+Here is some python code that implements this:  https://github.com/LorenzoNajt/TinyProjects/blob/master/Sampling_From_Birkoff.py
 
 ---
 
 We can sanity check this code by using it to estimate the volume of the Birkoff polytope, which is known in small dimension:
+    
+To do this, we will use algorithm 6.1 from the Lovasz paper.
     
 '''
