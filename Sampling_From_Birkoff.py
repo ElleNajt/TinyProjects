@@ -191,7 +191,7 @@ def build_samples(dimension, steps, starting_matrix = "center", sample_type = "u
     if starting_matrix == "identity":
         matrix = np.identity(dimension)
         
-    if sample_type == "ballhop":
+    if method == "ballhop":
         delta = .5 / np.sqrt(dimension)
         if sample_type == "uniform":
             return ball_hop_markov_chain(matrix, delta, steps)
@@ -232,6 +232,23 @@ def testing_code():
         if not truth:
             print(i, rows, columns)
             
+def get_statistics():
+    dimension = 3
+    steps = 10000
+    samples = build_samples(dimension, steps)
+    sample_matrix =np.asarray(  [matrix.flatten() for matrix in samples])
+    print([ np.mean([ v[k ] for v in sample_matrix ]) for k in range(dimension**2)])
+    samples = build_samples(dimension, steps, method = "ballhop")
+    sample_matrix =np.asarray(  [matrix.flatten() for matrix in samples])
+    print([ np.mean([ v[k ] for v in sample_matrix ]) for k in range(dimension**2)])
+    
+    samples = build_samples(dimension, steps, starting_matrix="identity")
+    sample_matrix =np.asarray(  [matrix.flatten() for matrix in samples])
+    print([ np.mean([ v[k ] for v in sample_matrix ]) for k in range(dimension**2)])
+    samples = build_samples(dimension, steps, starting_matrix="identity",method = "ballhop")
+    sample_matrix =np.asarray(  [matrix.flatten() for matrix in samples])
+    print([ np.mean([ v[k ] for v in sample_matrix ]) for k in range(dimension**2)])
+    
 def compare_volume(dimension, steps):
     '''Compares the estimated volume to the true volume in small dimensions'''
     dimension = 2
@@ -257,6 +274,14 @@ def compare_volume(dimension, steps):
         MLE_polytope = ConvexHull(coordinates)
         print(MLE_polytope.volume)
             
+        
+        
+        '''On hit and run:
+            
+            https://pdfs.semanticscholar.org/1fdd/84ffb88fe03512f39ccc16b591fc521e40c8.pdf
+        
+        
+        '''
 '''
 Let $V \subset M_n(\mathbb{R})$ be the affinespace of matrices $M$ so that $M 1 = 1$ and $1^T M = 1$, where $1$ is the all ones matrix. (I.e. that the row and column sums are all one.)
 
