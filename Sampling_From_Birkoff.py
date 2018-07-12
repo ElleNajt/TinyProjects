@@ -6,13 +6,16 @@ Some comments:
     A better place to start it is from the doubly stochastic matrix which 
     has the same value for each entry.
     
-    - I'm not sure what the right delta is. Following the paper, I set it around 1/ sqrt(n)
+    - For ball hopping ... I'm not sure what the right delta is. Following the paper, I set it around 1/ sqrt(n)
+    - I also implemented hit and run...
     
 How to use:
     
     To use this, run build_samples(dimension, steps)
     and input n for dimension if matrices are nxn
     and steps is number of steps to run
+    
+    defaults are starting_matrix = "center", sample_type = "uniform", method = "hitandrun"
     
 Made in response to stack exchange question here: https://math.stackexchange.com/questions/12584/how-do-i-generate-doubly-stochastic-matrices-uniform-randomly
     '''
@@ -22,6 +25,8 @@ Made in response to stack exchange question here: https://math.stackexchange.com
 import numpy as np
 from scipy.spatial import ConvexHull
 import random
+
+###Linear algebra tools:
 
 def project_to_birkoff(matrix):
     '''This projects a matrix to the linear space that the Birkoff polytope spans
@@ -90,7 +95,37 @@ def in_polytope(matrix):
     
     return True
 
-def propose_step(matrix, delta):
+###Hit and run:
+    
+
+def hit_and_run_step(matrix, a_priori_lower, a_priori_upper):
+    direction = project_to_birkoff(np.random.normal(0,1,matrix.shape))
+    direction = direction / np.linalg.norm(direction)
+    lower = a_priori_lower
+    upper = a_priori_upper
+    while True:
+        a = np.random.uniform(lower, upper)
+        new_matrix = matrix + a * direction
+        if in_polytope(new_matrix):
+            return new_matrix
+        else:
+            if a > 0:
+                upper = a
+            if a < 0:
+                lower = a
+
+def hit_and_run_chain(matrix, steps, a_priori_lower, a_priori_upper):
+    samples = []
+    samples.append(matrix)
+    for i in range(steps):
+        new_matrix = hit_and_run_step(matrix, a_priori_lower, a_priori_upper)
+        matrix = new_matrix
+        samples.append(new_matrix)
+    return samples
+
+###Ball hopping tools:
+
+def ball_hop_propose_step(matrix, delta):
     '''This takes a Birkoff matrix, and proposes a delta step...
     
     We are going to ignore the problems with round off by never checking the 
@@ -115,19 +150,33 @@ def propose_step(matrix, delta):
     
     return matrix + step_vector
 
-def markov_chain(matrix, delta, steps):
+def ball_hop_markov_chain(matrix, delta, steps):
     samples = []
     samples.append(matrix)
     for i in range(steps):
-        new_matrix = propose_step(matrix, delta)
+        new_matrix = ball_hop_propose_step(matrix, delta)
         if in_polytope(new_matrix):
             matrix = new_matrix
             samples.append(matrix)
         else:
             samples.append(matrix)
     return samples
+
+def ball_hop_only_new_samples(matrix, delta, steps):
+    samples = []
+    samples.append(matrix)
+    i= 0
+    while i < steps:
+        new_matrix = ball_hop_propose_step(matrix, delta)
+        if in_polytope(new_matrix):
+            matrix = new_matrix
+            samples.append(matrix)
+            i += 1
+    return samples
+
+######
     
-def build_samples(dimension, steps, starting_matrix = "center"):
+def build_samples(dimension, steps, starting_matrix = "center", sample_type = "uniform", method = "hitandrun"):
     '''This runs the build samples method using the constants in the Lovasz paper
     
     :dimension: the dimension of the matrices, i.e. they will be dimension by dimension
@@ -139,8 +188,21 @@ def build_samples(dimension, steps, starting_matrix = "center"):
         matrix = np.ones([dimension, dimension]) / dimension
     if starting_matrix == "identity":
         matrix = np.identity(dimension)
-    delta = .5 / np.sqrt(dimension)
-    return markov_chain(matrix, delta, steps)
+        
+    if sample_type == "ballhop":
+        delta = .5 / np.sqrt(dimension)
+        if sample_type == "uniform":
+            return ball_hop_markov_chain(matrix, delta, steps)
+        if sample_type == "only new":
+            return ball_hop_only_new_samples(matrix, delta, steps)
+        
+    if method == "hitandrun":
+        '''since the Birkoff polytope is contained in [0,1]^n
+        and upper bound on the diameter is sqrt(n)
+        
+        '''
+        samples = hit_and_run_chain(matrix, steps, -1 * np.sqrt(dimension), np.sqrt(dimension))
+        return samples
 
 ##Validating code:
 
@@ -171,11 +233,14 @@ def testing_code():
 def compare_volume(dimension, steps):
     '''Compares the estimated volume to the true volume in small dimensions'''
     dimension = 2
-    steps = 10000
+    steps = 1000000
     samples = build_samples(dimension, steps)
     samples_as_points = [list(matrix.flatten()) for matrix in samples]
-    sub_samples = random.sample(samples_as_points,4000)
-    MLE_polytope = ConvexHull(sub_samples)
+    #sub_samples = random.sample(samples_as_points,500)
+    sub_samples = samples_as_points
+    mean = np.mean(sub_samples)
+    samples_for_qhull = sub_samples - mean
+    MLE_polytope = ConvexHull(samples_for_qhull)
     print(MLE_polytope.volume)
             
 '''
@@ -211,7 +276,7 @@ time moving around the polytope.
 In this paper, http://web.cs.elte.hu/~lovasz/vol5.pdf , Lovasz et. al. describe
 an algorithm that speeds up this process considerably.
 
-
+...
 
 
 
