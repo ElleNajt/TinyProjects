@@ -25,6 +25,7 @@ Made in response to stack exchange question here: https://math.stackexchange.com
 import numpy as np
 from scipy.spatial import ConvexHull
 import random
+import scipy
 
 ###Linear algebra tools:
 
@@ -70,6 +71,7 @@ def T_map(matrix):
     second_coordinate = np.matmul(matrix.T, ones)
     output_vector = np.concatenate((first_coordinate, second_coordinate), 0)
     return output_vector
+
 
 #dimension = 4
 #list_of_matrices = []
@@ -233,15 +235,27 @@ def testing_code():
 def compare_volume(dimension, steps):
     '''Compares the estimated volume to the true volume in small dimensions'''
     dimension = 2
-    steps = 1000000
-    samples = build_samples(dimension, steps)
-    samples_as_points = [list(matrix.flatten()) for matrix in samples]
-    #sub_samples = random.sample(samples_as_points,500)
-    sub_samples = samples_as_points
-    mean = np.mean(sub_samples)
-    samples_for_qhull = sub_samples - mean
-    MLE_polytope = ConvexHull(samples_for_qhull)
-    print(MLE_polytope.volume)
+    steps = 200000
+    samples = build_samples(dimension, steps, starting_matrix="center")
+    
+    center_matrix = (np.ones([dimension, dimension]) / dimension).flatten()
+    sample_matrix =np.asarray(  [list(matrix.flatten()) - center_matrix for matrix in samples])
+    while np.linalg.matrix_rank(sample_matrix) != dimension**2 - 2 * dimension + 1:
+        #Make sure we get the right dimension...        
+        samples = build_samples(dimension, steps, starting_matrix="center")
+        center_matrix = (np.ones([dimension, dimension]) / dimension).flatten()
+        sample_matrix =np.asarray(  [list(matrix.flatten()) - center_matrix for matrix in samples])
+    print(    np.linalg.matrix_rank(sample_matrix))
+    #We subtract center_matrix to make this linear algebra...
+    basis = scipy.linalg.orth(sample_matrix.T).T
+    coordinates = np.linalg.lstsq(sample_matrix.T, basis.T)[0]
+    maxim = max(coordinates)
+    minim = min(coordinates)
+    if dimension == 2:
+        print(maxim - minim)
+    if dimension >= 3:
+        MLE_polytope = ConvexHull(coordinates)
+        print(MLE_polytope.volume)
             
 '''
 Let $V \subset M_n(\mathbb{R})$ be the affinespace of matrices $M$ so that $M 1 = 1$ and $1^T M = 1$, where $1$ is the all ones matrix. (I.e. that the row and column sums are all one.)
