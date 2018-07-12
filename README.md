@@ -23,7 +23,9 @@ Brownian Motion Simulator -- A tool I wrote to experiment with brownian motion.
 
 Beroulli -- A tool to play with and visualize bernoulli shifts / dyadic transformation.
 
-Markov Sample Subset -- Samples a subset of a set by random walk.
+Markov Sample Subset -- Samples a subset of a set by random walk
+
+Sample From Birkoff -- This samples from Birkoff polytope of doubly stochastic matrices using ball hop and hit and run.
 
 Exercises:
 
