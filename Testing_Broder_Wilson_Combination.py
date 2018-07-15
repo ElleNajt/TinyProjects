@@ -83,10 +83,7 @@ def random_tree_variable_length(graph, walk_length):
     tree_edges, wet = forward_tree_variable_length(graph, random.choice(list(graph.nodes())), walk_length)
     tree = nx.DiGraph()
     for node in list(wet):
-        node_attributes = list(graph.nodes[node].keys())
-        tree.add_node(node)
-        for attr in node_attributes:
-            tree.nodes[node][attr] = graph.nodes[node][attr]
+        tree.add_node(node) 
 
     tree.add_edges_from(tree_edges)
     return tree
@@ -186,6 +183,6 @@ def statistics(graph, alpha,  samples = 2000):
         
     return np.asarray(edge_probs_BW) - np.asarray(edge_probs_W)
 
-graph = nx.grid_graph([100,100])
+graph = nx.grid_graph([300,300])
     
-statistics(graph, .1, 10)
+statistics(graph, .5, 1)
