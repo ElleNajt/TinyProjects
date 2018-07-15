@@ -185,7 +185,7 @@ def build_samples(dimension, steps, starting_matrix = "center", sample_type = "u
     :steps: number of steps to take
     
     
-    '''
+    '''  
     if starting_matrix == "center":
         matrix = np.ones([dimension, dimension]) / dimension
     if starting_matrix == "identity":
