@@ -186,3 +186,12 @@ def statistics(graph, alpha,  samples = 2000):
 graph = nx.grid_graph([300,300])
     
 statistics(graph, .5, 1)
+
+'''Let $G$ be a finite graph. I want to generate a uniformly random spanning tree.
+Wilsons algorithm and Broder's algorithm can both be used to sample trees uniformly. 
+
+Wilson's algorithm tends to be slow in the beginning of it's run time (in terms of the number of edges added to the tree per step), but speeds up dramatically towards the end. 
+
+Broder's algorithm adds a lot of edges very quickly, but becomes very slow later on, when we are waiting to cover the remaining nodes of the graph.
+
+Can we combine the advantages of the two?'''
