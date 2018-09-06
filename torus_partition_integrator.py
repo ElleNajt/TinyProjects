@@ -2,7 +2,7 @@
 """
 Created on Mon Sep  3 19:14:25 2018
 
-@author: Temporary
+@author: Lorenzo Najt
 """
 
 import networkx as nx
@@ -141,8 +141,11 @@ def create_torus(n):
 def generate_tiling(torus, size):
     
     pentomino = pentomino_object(torus)
-    while len(pentomino.nodes) < size:
+    i = 1
+    while i < size:
+        i += 1
         pentomino.grow()
+    #Necessary to stop it regardless of whether the pentomino got stuck or not
     return pentomino
 
 def integrate_from_samples(function, samples):
