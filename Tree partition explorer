@@ -1,0 +1,262 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Sep 27 15:20:30 2018
+
+@author: lnajt
+"""
+import random
+import networkx as nx
+import math
+import copy
+from itertools import chain, combinations
+import matplotlib.pyplot as plt
+import numpy as np
+
+#Got this code from stack exchange:
+def powerset(iterable):
+    """
+    powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3)
+    """
+    xs = list(iterable)
+    # note we return an iterator rather than a list
+    return chain.from_iterable(combinations(xs,n) for n in range(len(xs)+1))
+
+alphabet = [0,1]
+
+#levels = 2
+#strings = [str(x) for x in alphabet]
+#strings.append ( '')
+#current_level = [str(x) for x in alphabet]
+#for level in range(2):
+#    next_level = [ t + str(x) for x in alphabet for t in current_level]
+#    strings = strings + next_level
+#    current_level = next_level
+#
+#G = nx.prefix_tree(strings)[0]
+
+def construct_doubled_tree(k  = 3):
+    G = nx.balanced_tree(2,k)
+    H = nx.balanced_tree(2,k)
+    
+    G_leaves = []
+    for x in G.nodes:
+        if G.degree(x) == 1:
+           G_leaves.append(x)
+    H_leaves = []
+    for x in H.nodes:
+        if H.degree(x) == 1:
+            H_leaves.append(x)
+    
+    G_not_leaves = []
+    for y in G.nodes():
+        if y not in G_leaves:
+            G_not_leaves.append(y)
+    
+    H.add_nodes_from([str(y) + "G" for y in G_not_leaves])
+    
+    for y in G_not_leaves:
+        for x in G.neighbors(y):
+            if x in G_leaves:
+                H.add_edge( x, str(y) + "G")
+            else:
+                H.add_edge(str(x) + "G", str(y) + "G")
+    return H
+
+def build_metagraph_for_doubled_tree(k = 1):
+    
+
+    H = construct_doubled_tree(k)
+    
+    
+    feasible_points = powerset(H.nodes)
+    metagraph_points = []
+    nodes = set(H.nodes)
+    n = len(nodes)
+    for x in feasible_points:
+        if len(x) < math.ceil(n/2):
+            xtemp = set(x)
+            if xtemp != set():
+                y = nodes - xtemp
+                if y != set():
+                    A = nx.subgraph(H, x)
+                    B = nx.subgraph(H, y)
+                    if nx.is_connected(A) and nx.is_connected(B):
+                        metagraph_points.append(frozenset(xtemp))
+                        #Choice to store point sin the metagraph by the set of the first block
+        if len(x) == n/2:
+            if 0 in x:
+                #As a way to throw away half of them...
+                xtemp = set(x)
+                if xtemp != set():
+                    y = nodes - xtemp
+                    if y != set():
+                        A = nx.subgraph(H, x)
+                        B = nx.subgraph(H, y)
+                        if nx.is_connected(A) and nx.is_connected(B):
+                            metagraph_points.append(frozenset(xtemp))
+                            #Choice to store point sin the metagraph by the set of the first block
+    metagraph = nx.Graph()
+    metagraph.add_nodes_from(metagraph_points)
+    
+    metagraph.add_node( frozenset())
+    #metagraph.add_node( frozenset(nodes))
+    for x in metagraph.nodes():
+        for y in metagraph.nodes():
+            if len(x - y) + len(y - x) == 1:
+                metagraph.add_edge(frozenset(x), frozenset(y))
+    return [metagraph, H]
+
+def get_neighbors(nodes, subset):
+    #returns the n neighbors in the hypercube.
+    neighbors = []
+    for x in nodes:
+        if x in subset:
+            new_set = copy.deepcopy(subset)
+            new_set.remove(x)
+            neighbors.append(frozenset(new_set))
+        if x not in subset:
+            new_set = copy.deepcopy(subset)
+            new_set.add(x)
+            neighbors.append(frozenset(new_set))
+    return neighbors
+            
+def random_walk(graph, length):
+    path = []
+    current = frozenset(graph.nodes())
+    graph_size = len(current)
+    nodes = set(graph.nodes())
+    path.append(current)
+    for i in range(length):
+        neighbors = get_neighbors(nodes, set(current))
+        legal_neighbors = []
+        for n in neighbors:
+            if len(n) != 0 and len(n) != graph_size:
+                y = nodes - n
+                A = nx.subgraph(graph, n)
+                B = nx.subgraph(graph, y)
+                if nx.is_connected(A) and nx.is_connected(B):
+                    legal_neighbors.append(n)
+            else:
+                legal_neighbors.append(n)
+        
+        current = random.choice(legal_neighbors)
+        path.append(current)
+    return path
+                
+def build_metagraph_BFS(graph):
+    ##Since the metagraph is growing MUCH slower than 2^{2^k}, a BFS should be able to build it more efficiently
+    wet_set = set()
+    nodes = set(graph.nodes())
+    dry_set = set()
+    wet_set.add(frozenset(graph.nodes))
+    seen_set = wet_set.union( dry_set)
+    edges = []
+    while wet_set != set():
+        new_wets = set()
+        for processing_set in wet_set:
+            neighbors = get_neighbors(nodes, set(processing_set))
+            for n in neighbors:
+                if n not in seen_set:
+                    y = nodes - n
+                    A = nx.subgraph(graph, n)
+                    B = nx.subgraph(graph, y)
+                    if len(A) == 0 or len(B) == 0:
+                        new_wets.add(n)
+                        edges.append((frozenset(processing_set),frozenset(n)) )
+                    else:
+                        if nx.is_connected(A) and nx.is_connected(B):
+                            new_wets.add(n)
+                            edges.append((frozenset(processing_set),frozenset(n)) )
+        wet_set = new_wets
+        seen_set = seen_set.union(wet_set)
+    
+    nodes = [frozenset(x) for x in seen_set]
+    metagraph = nx.Graph()
+    metagraph.add_edges_from(edges)
+    return metagraph
+
+def down_neighbors(nodes, subset):
+    #returns the n neighbors that come by removing an element
+    neighbors = []
+    for x in nodes:
+        if x in subset:
+            new_set = copy.deepcopy(subset)
+            new_set.remove(x)
+            neighbors.append(frozenset(new_set))
+    return neighbors
+            
+
+
+def just_count(graph, f1):
+    #It's too large to keep in memory for k = 4.
+    #Instead we observe that if we start from the $G$, then we only need to keep track of the wet set
+    
+    #There is already something interesting in the fact that this works ... because it says that we never need to go down and then back up to cover the set
+    wet_set = set()
+    nodes = set(graph.nodes())
+    wet_set.add(frozenset(graph.nodes))
+    size = 1
+    len_new_wets = 1
+    while wet_set != set():
+        boundary_size = 0
+        new_wets = set()
+        for processing_set in wet_set:
+            neighbors = down_neighbors(nodes, set(processing_set))
+            for n in neighbors:
+                y = nodes - n
+                A = nx.subgraph(graph, n)
+                B = nx.subgraph(graph, y)
+                if len(A) > 0:
+                    if nx.is_connected(A) and nx.is_connected(B):
+                        boundary_size += 1
+                        new_wets.add(n)
+        old_len = len_new_wets
+        len_new_wets = len(new_wets)
+        #We computed the edges and new nodes right below the current level ... those are new_wets
+        #print("level size: ", len_new_wets, "size so far: ", size , " boundary_edges: ", boundary_size, "ratio: ", boundary_size / size, "difference :", len_new_wets - old_len, file = f1)
+        print("level size: ", len_new_wets, "size so far: ", size , " boundary_edges: ", boundary_size, "ratio: ", boundary_size / size, "difference :", len_new_wets - old_len)
+        size += len_new_wets
+        wet_set = new_wets
+    
+    size += 1
+    #To account for the empty partition
+    return size
+
+
+#M, T = build_metagraph_for_doubled_tree(3)
+#len(M)
+
+def make_histogram(list_of_samples):
+    values = {}
+    for sample in list_of_samples:
+        values[sample] = 0
+    for sample in list_of_samples:
+        values[sample] += 1
+    return values
+
+
+T = construct_doubled_tree(6)
+path = random_walk(T, 10000)
+#if you can compute the correct distribution and display it, that will measure failure to mix. Deviation from symmetry also does this.
+
+hist = make_histogram([len(x) for x in path])
+plt.bar(list(hist.keys()), hist.values(), color='g')
+np.mean([len(x) for x in path])
+print(len(T))
+plt.show()
+
+def count_downward():
+    
+    sizes = []
+    for k in [5]  :
+        filename = './records' + str(k)
+        f1=open(filename, 'w+')
+        T = construct_doubled_tree(k)
+        #M = build_metagraph_BFS(T)
+        #print(len(M))
+        value = just_count(T,f1)
+        sizes.append(value)
+        #print("SIZE WAS:" , value, file = f1)
+        print("SIZE WAS", value)
+        f1.close()
