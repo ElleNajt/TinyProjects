@@ -356,8 +356,9 @@ def make_hist(path, function = len):
 #if you can compute the correct distribution and display it, that will measure failure to mix. Deviation from symmetry also does this.
 
 global T
-path, T = make_path(4,1000)
-
+for k in range(5,10):
+    path, T = make_path(k,10000)
+#Be cautious that the graph size is already growing exponentially -- what we are really looking for is double exponential growth in the cut off
 make_time_series(path, len)
 def count_downward():
     
