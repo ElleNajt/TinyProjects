@@ -304,21 +304,6 @@ def make_path(size, steps):
 
 
 
-#if you can compute the correct distribution and display it, that will measure failure to mix. Deviation from symmetry also does this.
-
-hist = make_histogram([len(x) for x in path])
-
-lengths = [len(x) for x in path]
-x_values = list(range(len(path)))
-plt.scatter(x_values, lengths)
-plt.show()
-
-plt.bar(list(hist.keys()), hist.values(), color='g')
-np.mean([len(x) for x in path])
-print(len(T))
-plt.show()
-
-
 def count_downward():
     
     sizes = []
@@ -333,3 +318,18 @@ def count_downward():
         #print("SIZE WAS:" , value, file = f1)
         print("SIZE WAS", value)
         f1.close()
+        
+#if you can compute the correct distribution and display it, that will measure failure to mix. Deviation from symmetry also does this.
+path = make_path(3,1000)
+hist = make_histogram([len(x) for x in path])
+
+lengths = [len(x) for x in path]
+x_values = list(range(len(path)))
+plt.scatter(x_values, lengths)
+plt.show()
+
+plt.bar(list(hist.keys()), hist.values(), color='g')
+np.mean([len(x) for x in path])
+print(len(T))
+plt.show()
+
