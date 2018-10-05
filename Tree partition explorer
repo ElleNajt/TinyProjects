@@ -12,7 +12,7 @@ import copy
 from itertools import chain, combinations
 import matplotlib.pyplot as plt
 import numpy as np
-
+import pickle
 #Got this code from stack exchange:
 def powerset(iterable):
     """
@@ -186,8 +186,55 @@ def down_neighbors(nodes, subset):
             neighbors.append(frozenset(new_set))
     return neighbors
             
-
-
+def assign_heights(T,k):
+    #this is to make T easier to visualize
+    roots = [0,'0G']
+    for x in T.nodes:
+        T.node[x]["touched"] = False
+    root = roots[0]
+    T.node[root]["Y"] = k
+    T.node[root]["X"] = 0
+    level = k
+    wet_set = set()
+    wet_set.add(root)
+    while level > 0:
+        level += -1
+        new_wets = set()
+        for point in wet_set:
+            sign = 1
+            neighbors = T.neighbors(point)
+            for n in neighbors:
+                if T.node[n]["touched"] == False:
+                    if T.node[point]["Y"] > 0:
+                        T.node[n]["X"] = T.node[point]["X"] + sign * (1/2)**( k - T.node[point]["Y"] )
+                        sign = -1 * sign
+                        T.node[n]["Y"] = T.node[point]["Y"] - 1
+                        new_wets.add(n)
+        wet_set = new_wets                    
+            
+    root = roots[1]
+    T.node[root]["Y"] = -1* k
+    T.node[root]["X"] = 0
+    wet_set = set()
+    wet_set.add(root)
+    level = k
+    while level > 0:
+        level += -1
+        new_wets = set()
+        for point in wet_set:
+            sign = 1
+            neighbors = T.neighbors(point)
+            for n in neighbors:
+                if T.node[n]["touched"] == False:
+                    if T.node[point]["Y"] < 0:
+                        T.node[n]["X"] = T.node[point]["X"] + sign * (1/2)**( k - T.node[point]["Y"] )
+                        sign = -1 * sign
+                        T.node[n]["Y"] = T.node[point]["Y"] - 1
+                        new_wets.add(n)
+        wet_set = new_wets
+    return T
+                        
+                        
 def just_count(graph, f1):
     #It's too large to keep in memory for k = 4.
     #Instead we observe that if we start from the $G$, then we only need to keep track of the wet set
@@ -235,16 +282,42 @@ def make_histogram(list_of_samples):
         values[sample] += 1
     return values
 
+def reload_path(size, steps):
+    
+    name = "path_for_size: " + str(size) + " steps: " + str(steps)
+    filename = './' + name
+    
+    with open(filename, "rb") as fp:   # Unpickling
+        path = pickle.load(fp)
+    return path
 
-T = construct_doubled_tree(6)
-path = random_walk(T, 10000)
+def make_path(size, steps):
+    T = construct_doubled_tree(size)
+    #T = assign_heights(T,2)
+    path = random_walk(T, steps)
+    name = "path_for_size: " + str(size) + " steps: " + str(steps)
+    filename = './' + name
+    with open(filename, "wb") as fp:
+        pickle.dump(path, fp)
+    return path
+
+
+
+
 #if you can compute the correct distribution and display it, that will measure failure to mix. Deviation from symmetry also does this.
 
 hist = make_histogram([len(x) for x in path])
+
+lengths = [len(x) for x in path]
+x_values = list(range(len(path)))
+plt.scatter(x_values, lengths)
+plt.show()
+
 plt.bar(list(hist.keys()), hist.values(), color='g')
 np.mean([len(x) for x in path])
 print(len(T))
 plt.show()
+
 
 def count_downward():
     
