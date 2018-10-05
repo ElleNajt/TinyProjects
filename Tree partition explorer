@@ -13,6 +13,7 @@ from itertools import chain, combinations
 import matplotlib.pyplot as plt
 import numpy as np
 import pickle
+from pathlib import Path as FilePath
 #Got this code from stack exchange:
 def powerset(iterable):
     """
@@ -35,10 +36,32 @@ alphabet = [0,1]
 #
 #G = nx.prefix_tree(strings)[0]
 
+def add_level_data(tree):
+    roots = []
+    for n in tree.nodes():
+        if tree.degree(n) == 2:
+            roots.append(n)
+    wet_set = set([roots[0]])
+    dry_set = set()
+    level = 0
+    while wet_set != set():
+        new_wets = set()
+        for node in wet_set:
+            dry_set.add(node)
+            tree.nodes[node]["level"] = level
+            neighbors = tree.neighbors(node)
+            for n in neighbors:
+                if n not in dry_set:
+                    new_wets.add(n)
+        level += 1
+        wet_set = new_wets
+    return tree
+
 def construct_doubled_tree(k  = 3):
     G = nx.balanced_tree(2,k)
     H = nx.balanced_tree(2,k)
-    
+    G = add_level_data(G)
+    H = add_level_data(H)
     G_leaves = []
     for x in G.nodes:
         if G.degree(x) == 1:
@@ -53,7 +76,11 @@ def construct_doubled_tree(k  = 3):
         if y not in G_leaves:
             G_not_leaves.append(y)
     
-    H.add_nodes_from([str(y) + "G" for y in G_not_leaves])
+    nodes_to_add = [str(y) + "G" for y in G_not_leaves]
+    H.add_nodes_from(nodes_to_add)
+    for n in G_not_leaves:
+        H.node[str(n) + "G"]["level"] = G.node[n]["level"]
+        
     
     for y in G_not_leaves:
         for x in G.neighbors(y):
@@ -292,18 +319,46 @@ def reload_path(size, steps):
     return path
 
 def make_path(size, steps):
-    T = construct_doubled_tree(size)
-    #T = assign_heights(T,2)
-    path = random_walk(T, steps)
+    #First check to see if there is a file 
     name = "path_for_size: " + str(size) + " steps: " + str(steps)
     filename = './' + name
+    myfile = FilePath(filename)
+    T = construct_doubled_tree(size)
+    if myfile.is_file():
+        print("found in directory")
+        return reload_path(size, steps), T
+
+    #T = assign_heights(T,2)
+    path = random_walk(T, steps)
+
     with open(filename, "wb") as fp:
         pickle.dump(path, fp)
-    return path
+    return path, T
 
+def depth_weighted(n):
+    running_sum = 0
+    for x in n:
+        running_sum += T.node[x]["level"]
+    return running_sum
 
+def make_time_series(path, function = len):
 
+    lengths = [function(x) for x in path]
+    x_values = list(range(len(path)))
+    plt.scatter(x_values, lengths)
+    plt.show()
 
+def make_hist(path, function = len):
+    hist = make_histogram([function(x) for x in path])
+
+    plt.bar(list(hist.keys()), hist.values(), color='g')
+    plt.show()
+#if you can compute the correct distribution and display it, that will measure failure to mix. Deviation from symmetry also does this.
+
+global T
+path, T = make_path(4,1000)
+
+make_time_series(path, len)
 def count_downward():
     
     sizes = []
@@ -318,18 +373,3 @@ def count_downward():
         #print("SIZE WAS:" , value, file = f1)
         print("SIZE WAS", value)
         f1.close()
-        
-#if you can compute the correct distribution and display it, that will measure failure to mix. Deviation from symmetry also does this.
-path = make_path(3,1000)
-hist = make_histogram([len(x) for x in path])
-
-lengths = [len(x) for x in path]
-x_values = list(range(len(path)))
-plt.scatter(x_values, lengths)
-plt.show()
-
-plt.bar(list(hist.keys()), hist.values(), color='g')
-np.mean([len(x) for x in path])
-print(len(T))
-plt.show()
-
