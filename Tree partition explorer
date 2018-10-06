@@ -9,6 +9,7 @@ import random
 import networkx as nx
 import math
 import copy
+import os
 from itertools import chain, combinations
 import matplotlib.pyplot as plt
 import numpy as np
@@ -70,6 +71,7 @@ def construct_doubled_tree(k  = 3):
     for x in H.nodes:
         if H.degree(x) == 1:
             H_leaves.append(x)
+        H.node[x]["half"] = "H"
     
     G_not_leaves = []
     for y in G.nodes():
@@ -80,7 +82,7 @@ def construct_doubled_tree(k  = 3):
     H.add_nodes_from(nodes_to_add)
     for n in G_not_leaves:
         H.node[str(n) + "G"]["level"] = G.node[n]["level"]
-        
+        H.node[str(n) + "G"]["half"] = "G"
     
     for y in G_not_leaves:
         for x in G.neighbors(y):
@@ -311,19 +313,21 @@ def make_histogram(list_of_samples):
 
 def reload_path(size, steps):
     
-    name = "path_for_size: " + str(size) + " steps: " + str(steps)
+    name = "path_for_size" + str(size) + "steps" + str(steps)
     filename = './' + name
     
-    with open(filename, "rb") as fp:   # Unpickling
+    with open(name, "rb") as fp:   # Unpickling
         path = pickle.load(fp)
     return path
 
 def make_path(size, steps):
     #First check to see if there is a file 
-    name = "path_for_size: " + str(size) + " steps: " + str(steps)
-    filename = './' + name
-    myfile = FilePath(filename)
     T = construct_doubled_tree(size)
+    name = "path_for_size" + str(size) + "steps" + str(steps)
+    mydir = os.curdir
+    filename = os.path.join(mydir, name)
+    myfile = FilePath(filename)
+
     if myfile.is_file():
         print("found in directory")
         return reload_path(size, steps), T
@@ -331,7 +335,7 @@ def make_path(size, steps):
     #T = assign_heights(T,2)
     path = random_walk(T, steps)
 
-    with open(filename, "wb") as fp:
+    with open(name, "wb") as fp:
         pickle.dump(path, fp)
     return path, T
 
@@ -341,6 +345,24 @@ def depth_weighted(n):
         running_sum += T.node[x]["level"]
     return running_sum
 
+def middle(n):
+    running_sum = 0
+    for x in n:
+        if T.node[x]["level"] == k:
+            running_sum += 1
+    return running_sum
+
+def balance(n):
+    #ignores middle, returns balance ratio between top and bottom halves
+    #The intuition for this is to find a bottleneck similar to that describes for independent sets in Jerrum chapter 7...
+    running_sum = 0
+    for x in n:
+        if T.node[x]["level"] != k:
+            if T.node[x]["half"] == "H":
+                running_sum += 1
+            if T.node[x]["half"] == "G":
+                running_sum += -1
+    return running_sum
 def make_time_series(path, function = len):
 
     lengths = [function(x) for x in path]
@@ -356,10 +378,10 @@ def make_hist(path, function = len):
 #if you can compute the correct distribution and display it, that will measure failure to mix. Deviation from symmetry also does this.
 
 global T
-for k in range(5,10):
+for k in range(5,6):
     path, T = make_path(k,10000)
 #Be cautious that the graph size is already growing exponentially -- what we are really looking for is double exponential growth in the cut off
-make_time_series(path, len)
+make_time_series(path, balance)
 def count_downward():
     
     sizes = []
