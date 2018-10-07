@@ -42,6 +42,7 @@ def add_level_data(tree):
     for n in tree.nodes():
         if tree.degree(n) == 2:
             roots.append(n)
+            tree.graph["root"] = roots[0]
     wet_set = set([roots[0]])
     dry_set = set()
     level = 0
@@ -90,6 +91,10 @@ def construct_doubled_tree(k  = 3):
                 H.add_edge( x, str(y) + "G")
             else:
                 H.add_edge(str(x) + "G", str(y) + "G")
+    H.graph["depth"] = k
+    H.name = "doubled_tree"
+    roots = [H.graph["root"], str(G.graph["root"]) + "G"]
+    H.graph["roots"] = roots
     return H
 
 def build_metagraph_for_doubled_tree(k = 1):
@@ -217,12 +222,13 @@ def down_neighbors(nodes, subset):
             
 def assign_heights(T,k):
     #this is to make T easier to visualize
-    roots = [0,'0G']
+    roots = T.graph["roots"]
     for x in T.nodes:
         T.node[x]["touched"] = False
     root = roots[0]
     T.node[root]["Y"] = k
     T.node[root]["X"] = 0
+    T.node[root]["touched"] = True
     level = k
     wet_set = set()
     wet_set.add(root)
@@ -231,19 +237,21 @@ def assign_heights(T,k):
         new_wets = set()
         for point in wet_set:
             sign = 1
-            neighbors = T.neighbors(point)
+            neighbors = list(T.neighbors(point))
             for n in neighbors:
                 if T.node[n]["touched"] == False:
-                    if T.node[point]["Y"] > 0:
+                    T.node[n]["touched"] = True
+                    if level >= 0:
                         T.node[n]["X"] = T.node[point]["X"] + sign * (1/2)**( k - T.node[point]["Y"] )
                         sign = -1 * sign
-                        T.node[n]["Y"] = T.node[point]["Y"] - 1
+                        T.node[n]["Y"] = level
                         new_wets.add(n)
         wet_set = new_wets                    
             
     root = roots[1]
     T.node[root]["Y"] = -1* k
     T.node[root]["X"] = 0
+    T.node[root]["touched"] = True
     wet_set = set()
     wet_set.add(root)
     level = k
@@ -255,10 +263,11 @@ def assign_heights(T,k):
             neighbors = T.neighbors(point)
             for n in neighbors:
                 if T.node[n]["touched"] == False:
+                    T.node[n]["touched"] = True
                     if T.node[point]["Y"] < 0:
-                        T.node[n]["X"] = T.node[point]["X"] + sign * (1/2)**( k - T.node[point]["Y"] )
+                        T.node[n]["X"] = T.node[point]["X"] + sign * (1/2)**( k + T.node[point]["Y"] )
                         sign = -1 * sign
-                        T.node[n]["Y"] = T.node[point]["Y"] - 1
+                        T.node[n]["Y"] = T.node[point]["Y"] + 1
                         new_wets.add(n)
         wet_set = new_wets
     return T
@@ -311,26 +320,26 @@ def make_histogram(list_of_samples):
         values[sample] += 1
     return values
 
-def reload_path(size, steps):
-    
-    name = "path_for_size" + str(size) + "steps" + str(steps)
-    filename = './' + name
-    
+def reload_path(size, steps, graph):
+    name = str(graph.name) + "path_for_size" + str(size) + "steps" + str(steps)
     with open(name, "rb") as fp:   # Unpickling
         path = pickle.load(fp)
     return path
 
-def make_path(size, steps):
+def make_path(size, steps, graph = 0):
     #First check to see if there is a file 
-    T = construct_doubled_tree(size)
-    name = "path_for_size" + str(size) + "steps" + str(steps)
+    if graph == 0:
+        T = construct_doubled_tree(size)
+    else:
+        T = graph
+    name = str(T.name) + "path_for_size" + str(size) + "steps" + str(steps)
     mydir = os.curdir
     filename = os.path.join(mydir, name)
     myfile = FilePath(filename)
 
     if myfile.is_file():
         print("found in directory")
-        return reload_path(size, steps), T
+        return reload_path(size, steps, T), T
 
     #T = assign_heights(T,2)
     path = random_walk(T, steps)
@@ -357,11 +366,32 @@ def balance(n):
     #The intuition for this is to find a bottleneck similar to that describes for independent sets in Jerrum chapter 7...
     running_sum = 0
     for x in n:
-        if T.node[x]["level"] != k:
+        if T.node[x]["level"] != T.graph["depth"]:
             if T.node[x]["half"] == "H":
                 running_sum += 1
             if T.node[x]["half"] == "G":
                 running_sum += -1
+    return running_sum
+
+def weighted_balance(n):
+    running_sum = 0
+    for x in n:
+        weight = 10**(k - T.node[x]["level"])
+        if T.node[x]["level"] != T.graph["depth"]:
+            if T.node[x]["half"] == "H":
+                running_sum += weight
+            if T.node[x]["half"] == "G":
+                running_sum += -1 * weight
+    return running_sum
+
+def top_bottom(n):
+    running_sum = 0
+    for x in n:
+        if T.node[x]["level"] == 0:
+            if T.node[x]["half"] == "H":
+                running_sum += 1
+            if T.node[x]["half"] == "G":
+                running_sum += -10
     return running_sum
 def make_time_series(path, function = len):
 
@@ -377,11 +407,39 @@ def make_hist(path, function = len):
     plt.show()
 #if you can compute the correct distribution and display it, that will measure failure to mix. Deviation from symmetry also does this.
 
+def make_grid(k):
+    
+    G = nx.grid_graph([k*2 + 1,k*2 + 1])
+    for x in G:
+        G.node[x]["level"] = x[1]
+        if x[1] == k:
+            G.node[x]["half"] = "M"
+        if x[1] > k:
+            G.node[x]["half"] = "H"
+        if x[1] < k:
+            G.node[x]["half"] = "G"
+        G.name = "gridgraph"
+        G.graph["depth"]= k
+    return G
 global T
-for k in range(5,6):
-    path, T = make_path(k,10000)
+k = 4
+G = make_grid(k)
+
+path, T = make_path(k,100000, 0)
 #Be cautious that the graph size is already growing exponentially -- what we are really looking for is double exponential growth in the cut off
-make_time_series(path, balance)
+
+
+#stat = top_bottom
+#stat_list = [stat(x) for x in path]
+#make_time_series(path, stat)
+
+
+def viz(T,k):
+    T = assign_heights(T,k)
+    for x in T.nodes():
+        T.node[x]["pos"] = [T.node[x]["X"], T.node[x]["Y"]]
+    nx.draw(T, pos=nx.get_node_attributes(T, 'pos'), node_size = 20, width = .5)
+    
 def count_downward():
     
     sizes = []
