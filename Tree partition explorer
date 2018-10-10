@@ -490,13 +490,13 @@ def replace_edges(G,k):
     
     T = construct_doubled_tree(k)
     T = assign_heights(T,k)
+
     #can also add the spokes construction
     H = copy.deepcopy(G)
 
     edge_list = list(H.edges())
     for e in edge_list:
         H.remove_edge(e[0], e[1])
-        print(e)
         H = glue(H,T, e[0], e[1])
     return H
     
@@ -514,6 +514,7 @@ def glue(G,S,a,b):
     #print([ G.node[b]["X"], G.node[b]["Y"]])
     mapping = {0 : a, '0G' : b}
     S = nx.relabel_nodes(S, mapping)
+
     vertex_set = set()
     edge_label = "(" + str(a) + ","+ str(b) + ")" + ":"
     label_mapping = {}
@@ -540,7 +541,7 @@ def glue(G,S,a,b):
         
         
         
-        relative = np.array([S.node[x]["X"], S.node[x]["Y"]]) - np.array(top)
+        relative = np.array([S.node[x]["X"]/gadget_width, S.node[x]["Y"]]) - np.array(top)
         
         
         
@@ -555,16 +556,14 @@ def glue(G,S,a,b):
         #print(height_scaling)
         
         
-        rotation = np.array([normalized_edge_vector,[ normalized_edge_vector[1], -1* normalized_edge_vector[0]]])
+        rotation = np.array([ [-1* normalized_edge_vector[1], normalized_edge_vector[0]], [ normalized_edge_vector[0],  normalized_edge_vector[1]]]) * -1
         
-        print(rotation)
-        print("normalized", normalized_edge_vector)
-        print("relative", relative)
 
-        absolute = (np.matmul(rotation, relative)) * height_scaling + edge_base
-        print("absolute", absolute)
+        rotated_vector = np.matmul(rotation, relative)
+
+        absolute = (rotated_vector) * height_scaling + edge_base
         absolute = list(absolute)
-        location_dictionary[x] = [ absolute[1], absolute[0]]
+        location_dictionary[x] = [ absolute[0], absolute[1]]
         #sanity check -- top and bottom should end up with location the same as the original a and b ... this might be what is going wrong, and the error is propagating.
         
         
@@ -592,15 +591,23 @@ def glue(G,S,a,b):
 
     inverse_mapping = {a : 0, b : '0G'}
     S= nx.relabel_nodes(S, inverse_mapping)
-    print(" ")
     return H
         
     
 
 global T
 k = 1
+#G = make_grid()
+#G = nx.Graph()
+#G.add_node(-1)
+#G.add_node(-2)
+#G.add_edge(-1,-2)
+#G.node[-1]["X"] = 0
+#G.node[-1]["Y"] = 0
+#G.node[-2]["X"] = -1
+#G.node[-2]["Y"] = 1
 G = make_grid(0)
-H = replace_edges(G,1)
+H = replace_edges(G,3)
 
 
 def draw_with_location(graph):
@@ -611,7 +618,7 @@ def draw_with_location(graph):
     
 draw_with_location(H)
 
-#path, T = make_path(k,100000, 0)
+path, T = make_path(k,100, H)
 #Be cautious that the graph size is already growing exponentially -- what we are really looking for is double exponential growth in the cut off
 
 
