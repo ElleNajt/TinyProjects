@@ -423,31 +423,33 @@ def viz(T,k,n):
     values = [T.node[x]["col"] for x in T.nodes()]
     nx.draw(T, pos=nx.get_node_attributes(T, 'pos'), node_size = 200/k, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
     
+
+def update(num):
+    ax.clear()
+
+    for x in T.nodes():
+        T.node[x]["pos"] = [T.node[x]["X"], T.node[x]["Y"]]
+    for x in T.nodes():
+        if x in path[num]:
+            T.node[x]["col"] = 1
+        else:
+            T.node[x]["col"] = 0
+    values = [T.node[x]["col"] for x in T.nodes()]
+    nx.draw(T, pos=nx.get_node_attributes(T, 'pos'), node_size = 200/k, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
+
+
+    ax.set_xticks([])
+    ax.set_yticks([])
   
 def animate(T,k,path, num_frames = 2000, delay = 10):
     fig, ax = plt.subplots(figsize=(6,4))
     
     T = assign_heights(T,k)
-    def update(num):
-        ax.clear()
-    
-        for x in T.nodes():
-            T.node[x]["pos"] = [T.node[x]["X"], T.node[x]["Y"]]
-        for x in T.nodes():
-            if x in path[num]:
-                T.node[x]["col"] = 1
-            else:
-                T.node[x]["col"] = 0
-        values = [T.node[x]["col"] for x in T.nodes()]
-        nx.draw(T, pos=nx.get_node_attributes(T, 'pos'), node_size = 200/k, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
-    
-    
-        ax.set_xticks([])
-        ax.set_yticks([])
+
     
     
     ani = matplotlib.animation.FuncAnimation(fig, update, frames=num_frames, interval=delay, repeat=True)
-    plt.show()  
+    plt.show()
     
 def count_downward():
     
@@ -467,7 +469,7 @@ def count_downward():
 
 def make_grid(k):
     
-    G = nx.grid_graph([k*2 + 1,k*2 + 1])
+    G = nx.grid_graph([k*2 + 2,k*2 + 2])
     for x in G:
         G.node[x]["level"] = x[1]
         if x[1] == k:
@@ -478,15 +480,117 @@ def make_grid(k):
             G.node[x]["half"] = "G"
         G.name = "gridgraph"
         G.graph["depth"]= k
+        G.node[x]["X"] = x[0]
+        G.node[x]["Y"] = x[1]
     return G
 
+def replace_edges(G,k):
+    #takes a graph G and replaces the edges with depth k doubled trees.
+    #This is to investigate the observation that because these doubled trees have an attractor at the maximally unbalanced partition, it is unlikely that that they produce a link through which connectivity can flow.
+    
+    T = construct_doubled_tree(k)
+    T = assign_heights(T,k)
+    #can also add the spokes construction
+    H = copy.deepcopy(G)
 
+    edge_list = list(H.edges())
+    for e in edge_list:
+        H.remove_edge(e[0], e[1])
+        print(e)
+        H = glue(H,T, e[0], e[1])
+    return H
+    
+    
+    
+def glue(G,S,a,b):
+    #G and S have vertices named a and b, we glue them together along these vertices. The nodes in the copy of S have a label that identifies the edge they came from.
+    #We also compute X and Y coordinates for visualization
+    y_values = [S.node[x]["Y"] for x in S.nodes()]
+    x_values = [S.node[x]["X"] for x in S.nodes()]
+    gadget_height = abs( max(y_values) - min(y_values) )
+    gadget_width = abs( max(x_values) - min(x_values))
+    top = [0, max(y_values)]
+    
+    print([ G.node[b]["X"], G.node[b]["Y"]])
+    mapping = {0 : a, '0G' : b}
+    S = nx.relabel_nodes(S, mapping)
+    vertex_set = set()
+    edge_label = "(" + str(a) + ","+ str(b) + ")" + ":"
+    label_mapping = {}
+    for x in S.nodes():
+        if x in [a,b]:
+            label_mapping[x] = x
+        else:
+            label_mapping[x] = edge_label + str(x)
+    inv_label_map = {v: k for k, v in label_mapping.items()}
+    location_dictionary = {}
+    for x in G.nodes():
+        vertex_set.add(x)
+        location_dictionary[x] = [ G.node[x]["X"], G.node[x]["Y"]]
+    for x in S.nodes():
+        vertex_set.add( label_mapping[x])
+        a_coord = np.array([ G.node[a]["X"], G.node[a]["Y"]])
+        b_coord = np.array([ G.node[b]["X"], G.node[b]["Y"]])
+        relative = np.array([S.node[x]["X"], S.node[x]["Y"]]) - np.array(top)
+        edge_base = a_coord
+        print(a_coord, b_coord)
+        edge_vector = b_coord - a_coord
+        edge_length = np.linalg.norm(edge_vector)
+        normalized_edge_vector = edge_vector / edge_length
+        height_scaling = edge_length / gadget_height 
+        rotation = np.array([ normalized_edge_vector, [ normalized_edge_vector[1], -1* normalized_edge_vector[0]]])
+        absolute = (np.matmul(rotation, relative) * height_scaling + edge_base)
+        absolute = list(absolute)
+        location_dictionary[x] = [ absolute[0], absolute[1]]
+    H = nx.Graph()
+    H.add_nodes_from(vertex_set)
+    for e in G.edges():
+        H.add_edge(e[0], e[1])
+    for e in S.edges():
+        H.add_edge(label_mapping[e[0]], label_mapping[e[1]])
+#    print(location_dictionary)
+#    print(label_mapping)
+#    print(H.nodes())
+    for x in H.nodes():
+        if x in inv_label_map.keys():
+            location = location_dictionary[inv_label_map[x]]
+        else:
+            location = location_dictionary[x]
+        H.node[x]["X"] = location[0]
+        H.node[x]["Y"] = location[1]
+#        a_coord = np.array([ G.node[a]["X"], G.node[a]["Y"]])
+#        b_coord = np.array([ G.node[b]["X"], G.node[b]["Y"]])
+#        relative = np.array([S.node[inv_label_map[x]]["X"], S.node[inv_label_map[x]]["Y"]])
+#        edge_base = a_coord
+#        edge_vector = b_coord - a_coord
+#        edge_length = np.norm(edge_vector)
+#        normalized_edge_vector = edge_vector / edge_length
+#        height_scaling = edge_length / gadget_height 
+#        rotation = np.asmatrix([ normalized_edge_vector, [ normalized_edge_vector[1], -1* normalized_edge_vector[0]]])
+#        absolute = np.matmul(rotation, relative) * height_scaling + edge_base
+#        H.node[x]["X"] = absolute[0]
+#        H.node[x]["Y"] = absolute[1]
+    inverse_mapping = {a : 0, b : '0G'}
+    S= nx.relabel_nodes(S, inverse_mapping)
+    return H
+        
+    
 
 global T
-k = 4
-G = make_grid(k)
+k = 1
+G = make_grid(0)
+H = replace_edges(G,1)
 
-path, T = make_path(k,100000, 0)
+
+def draw_with_location(graph):
+    for x in graph.nodes():
+        graph.node[x]["pos"] = [graph.node[x]["X"], graph.node[x]["Y"]]
+
+    nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 200/k, width = .5, cmap=plt.get_cmap('jet'))
+    
+draw_with_location(H)
+
+#path, T = make_path(k,100000, 0)
 #Be cautious that the graph size is already growing exponentially -- what we are really looking for is double exponential growth in the cut off
 
 
@@ -496,8 +600,35 @@ path, T = make_path(k,100000, 0)
 
 #viz(T,k, path[1000])
 
-animate(T,k,path,2000,10)
+#
+#Pre animation speculation -- I suspect it wavers in balance until it grabs some crucial connector nodes, at which point the bias becomes hard to change...]
+#
+#Okay, it's not the connector nodes which are important -- it's a kind of stable configuration.
 
+#animate(T,k,path,2000,10)
 
-
-
+#fig, ax = plt.subplots(figsize=(3,3))
+#
+#T = assign_heights(T,k)
+#def update(num):
+#    ax.clear()
+#
+#    for x in T.nodes():
+#        T.node[x]["pos"] = [T.node[x]["X"], T.node[x]["Y"]]
+#    for x in T.nodes():
+#        if x in path[num]:
+#            T.node[x]["col"] = 1
+#        else:
+#            T.node[x]["col"] = 0
+#    values = [T.node[x]["col"] for x in T.nodes()]
+#    nx.draw(T, pos=nx.get_node_attributes(T, 'pos'), node_size = 200/k, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
+#
+#
+#    ax.set_xticks([])
+#    ax.set_yticks([])
+#
+#
+#ani = matplotlib.animation.FuncAnimation(fig, update, frames=num_frames, interval=delay, repeat=True)
+#plt.show()
+#
+#ani.save('animation.gif', writer='ffmpeg', fps=60)
