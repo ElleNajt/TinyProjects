@@ -424,32 +424,52 @@ def viz(T,k,n):
     nx.draw(T, pos=nx.get_node_attributes(T, 'pos'), node_size = 200/k, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
     
 
-def update(num):
-    ax.clear()
-
-    for x in T.nodes():
-        T.node[x]["pos"] = [T.node[x]["X"], T.node[x]["Y"]]
-    for x in T.nodes():
-        if x in path[num]:
-            T.node[x]["col"] = 1
-        else:
-            T.node[x]["col"] = 0
-    values = [T.node[x]["col"] for x in T.nodes()]
-    nx.draw(T, pos=nx.get_node_attributes(T, 'pos'), node_size = 200/k, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
-
-
-    ax.set_xticks([])
-    ax.set_yticks([])
+#def update(num):
+#    ax.clear()
+#
+#    for x in T.nodes():
+#        T.node[x]["pos"] = [T.node[x]["X"], T.node[x]["Y"]]
+#    for x in T.nodes():
+#        if x in path[num]:
+#            T.node[x]["col"] = 1
+#        else:
+#            T.node[x]["col"] = 0
+#    values = [T.node[x]["col"] for x in T.nodes()]
+#    nx.draw(T, pos=nx.get_node_attributes(T, 'pos'), node_size = 200/k, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
+#
+#
+#    ax.set_xticks([])
+#    ax.set_yticks([])
+#  
   
-def animate(T,k,path, num_frames = 2000, delay = 10):
+def animate(T,k,path, size, num_frames = 2000, delay = 10):
+    num_frames = 2000
+    delay = 30
     fig, ax = plt.subplots(figsize=(6,4))
     
     T = assign_heights(T,k)
-
+    def update(num):
+        ax.clear()
+    
+        for x in T.nodes():
+            T.node[x]["pos"] = [T.node[x]["X"], T.node[x]["Y"]]
+        for x in T.nodes():
+            if x in path[num]:
+                T.node[x]["col"] = 1
+            else:
+                T.node[x]["col"] = 0
+        values = [T.node[x]["col"] for x in T.nodes()]
+        nx.draw(T, pos=nx.get_node_attributes(T, 'pos'), node_size = 200/k, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
+    
+    
+        ax.set_xticks([])
+        ax.set_yticks([])
     
     
     ani = matplotlib.animation.FuncAnimation(fig, update, frames=num_frames, interval=delay, repeat=True)
-    plt.show()
+    #plt.show()  
+    name = str(T.name) + "path_for_size" + str(T.graph["size"]) + "steps" + str(T.graph["steps"]) + '.mp4'
+    ani.save(name, writer="ffmpeg")
     
 def count_downward():
     
@@ -618,7 +638,7 @@ def draw_with_location(graph):
     
 draw_with_location(H)
 
-path, T = make_path(k,100, H)
+path, T = make_path(k,10000, H)
 #Be cautious that the graph size is already growing exponentially -- what we are really looking for is double exponential growth in the cut off
 
 
@@ -628,35 +648,32 @@ path, T = make_path(k,100, H)
 
 #viz(T,k, path[1000])
 
-#
-#Pre animation speculation -- I suspect it wavers in balance until it grabs some crucial connector nodes, at which point the bias becomes hard to change...]
-#
-#Okay, it's not the connector nodes which are important -- it's a kind of stable configuration.
 
-#animate(T,k,path,2000,10)
 
-#fig, ax = plt.subplots(figsize=(3,3))
-#
-#T = assign_heights(T,k)
-#def update(num):
-#    ax.clear()
-#
-#    for x in T.nodes():
-#        T.node[x]["pos"] = [T.node[x]["X"], T.node[x]["Y"]]
-#    for x in T.nodes():
-#        if x in path[num]:
-#            T.node[x]["col"] = 1
-#        else:
-#            T.node[x]["col"] = 0
-#    values = [T.node[x]["col"] for x in T.nodes()]
-#    nx.draw(T, pos=nx.get_node_attributes(T, 'pos'), node_size = 200/k, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
-#
-#
-#    ax.set_xticks([])
-#    ax.set_yticks([])
-#
-#
-#ani = matplotlib.animation.FuncAnimation(fig, update, frames=num_frames, interval=delay, repeat=True)
-#plt.show()
-#
-#ani.save('animation.gif', writer='ffmpeg', fps=60)
+num_frames = 100
+delay = 30
+fig, ax = plt.subplots(figsize=(6,4))
+
+def update(num):
+    ax.clear()
+
+    for x in T.nodes():
+        T.node[x]["pos"] = [T.node[x]["X"], T.node[x]["Y"]]
+    for x in T.nodes():
+        if x in path[num]:
+            T.node[x]["col"] = 1
+        else:
+            T.node[x]["col"] = 0
+    values = [T.node[x]["col"] for x in T.nodes()]
+    nx.draw(T, pos=nx.get_node_attributes(T, 'pos'), node_size = 200/k, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
+
+
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+
+ani = matplotlib.animation.FuncAnimation(fig, update, frames=num_frames, interval=delay, repeat=True)
+plt.show()  
+
+
+
