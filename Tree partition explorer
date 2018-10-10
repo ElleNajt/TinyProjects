@@ -443,11 +443,8 @@ def viz(T,k,n):
 #  
   
 def animate(T,k,path, size, num_frames = 2000, delay = 10):
-    num_frames = 2000
-    delay = 30
+
     fig, ax = plt.subplots(figsize=(6,4))
-    
-    T = assign_heights(T,k)
     def update(num):
         ax.clear()
     
@@ -636,9 +633,9 @@ def draw_with_location(graph):
 
     nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 200/k, width = .5, cmap=plt.get_cmap('jet'))
     
-draw_with_location(H)
+#draw_with_location(H)
 
-path, T = make_path(k,10000, H)
+
 #Be cautious that the graph size is already growing exponentially -- what we are really looking for is double exponential growth in the cut off
 
 
@@ -647,11 +644,12 @@ path, T = make_path(k,10000, H)
 #make_time_series(path, stat)
 
 #viz(T,k, path[1000])
-
-
-
-num_frames = 100
+#
+num_frames = 2000
 delay = 30
+
+path, T = make_path(k,num_frames, H)
+
 fig, ax = plt.subplots(figsize=(6,4))
 
 def update(num):
@@ -673,7 +671,10 @@ def update(num):
 
 
 ani = matplotlib.animation.FuncAnimation(fig, update, frames=num_frames, interval=delay, repeat=True)
-plt.show()  
+#plt.show()  
 
+name = "steps" + str(num_frames) + '.mp4'
+ani.save(name, writer="ffmpeg")
 
+#animate(T,k,path,1000,10)
 
