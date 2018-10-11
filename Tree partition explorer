@@ -336,7 +336,8 @@ def make_path(size, steps, graph = 0):
         T = construct_doubled_tree(size)
     else:
         T = graph
-    name = str(T.name) + "path_for_size" + str(size) + "steps" + str(steps)
+    name = str(T.name) + "steps" + str(steps)
+    print(name)
     mydir = os.curdir
     filename = os.path.join(mydir, name)
     myfile = FilePath(filename)
@@ -624,8 +625,8 @@ k = 1
 #G.node[-2]["X"] = -1
 #G.node[-2]["Y"] = 
 
-grid_size = 1
-gadget_depth = 3
+grid_size = 0
+gadget_depth = 4
 G = make_grid(grid_size)
 H = replace_edges(G,gadget_depth)
 H.name = str(G.name) + "_gadgetdepth:" + str(gadget_depth)
