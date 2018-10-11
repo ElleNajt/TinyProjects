@@ -495,7 +495,7 @@ def make_grid(k):
             G.node[x]["half"] = "H"
         if x[1] < k:
             G.node[x]["half"] = "G"
-        G.name = "gridgraph"
+        G.name = "gridgraph_size:" + str(k*2 + 2) +"_"
         G.graph["depth"]= k
         G.node[x]["X"] = x[0]
         G.node[x]["Y"] = x[1]
@@ -622,10 +622,13 @@ k = 1
 #G.node[-1]["X"] = 0
 #G.node[-1]["Y"] = 0
 #G.node[-2]["X"] = -1
-#G.node[-2]["Y"] = 1
-G = make_grid(0)
-H = replace_edges(G,3)
+#G.node[-2]["Y"] = 
 
+grid_size = 1
+gadget_depth = 3
+G = make_grid(grid_size)
+H = replace_edges(G,gadget_depth)
+H.name = str(G.name) + "_gadgetdepth:" + str(gadget_depth)
 
 def draw_with_location(graph):
     for x in graph.nodes():
@@ -645,7 +648,7 @@ def draw_with_location(graph):
 
 #viz(T,k, path[1000])
 #
-num_frames = 2000
+num_frames = 10000
 delay = 30
 
 path, T = make_path(k,num_frames, H)
@@ -663,7 +666,7 @@ def update(num):
         else:
             T.node[x]["col"] = 0
     values = [T.node[x]["col"] for x in T.nodes()]
-    nx.draw(T, pos=nx.get_node_attributes(T, 'pos'), node_size = 200/k, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
+    nx.draw(T, pos=nx.get_node_attributes(T, 'pos'), node_size = 200/gadget_depth, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
 
 
     ax.set_xticks([])
@@ -673,7 +676,7 @@ def update(num):
 ani = matplotlib.animation.FuncAnimation(fig, update, frames=num_frames, interval=delay, repeat=True)
 #plt.show()  
 
-name = "steps" + str(num_frames) + '.mp4'
+name = str(H.name) +  "_steps:" + str(num_frames) + '.mp4'
 ani.save(name, writer="ffmpeg")
 
 #animate(T,k,path,1000,10)
