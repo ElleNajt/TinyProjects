@@ -517,44 +517,45 @@ draw_with_location(H)
 
 
 #Be cautious that the graph size is already growing exponentially -- what we are really looking for is double exponential growth in the cut off
+num_frames = 1000
+delay = 30
+
+path, T = make_path(k,num_frames, H)
+
+stat = balance
+stat_list = [stat(x) for x in path]
+make_time_series(path, stat)
+
+#viz(T,gadget_depth, path[1000],gadget_width)
+#
 
 
-#stat = balance
-#stat_list = [stat(x) for x in path]
-#make_time_series(path, stat)
 
-#viz(T,k, path[1000])
-##
-#num_frames = 1000
-#delay = 30
-#
-#path, T = make_path(k,num_frames, H)
-#
-#fig, ax = plt.subplots(figsize=(6,4))
-#
-#def update(num):
-#    ax.clear()
-#
-#    for x in T.nodes():
-#        T.node[x]["pos"] = [T.node[x]["X"], T.node[x]["Y"]]
-#    for x in T.nodes():
-#        if x in path[num]:
-#            T.node[x]["col"] = 1
-#        else:
-#            T.node[x]["col"] = 0
-#    values = [T.node[x]["col"] for x in T.nodes()]
-#    nx.draw(T, pos=nx.get_node_attributes(T, 'pos'), node_size = 200/gadget_depth, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
-#
-#
-#    ax.set_xticks([])
-#    ax.set_yticks([])
-#
-#
-#ani = matplotlib.animation.FuncAnimation(fig, update, frames=num_frames, interval=delay, repeat=True)
-##plt.show()  
-#
-#name = str(H.name) +  "_steps:" + str(num_frames) + '.mp4'
-#ani.save(name, writer="ffmpeg")
+fig, ax = plt.subplots(figsize=(6,4))
 
-#animate(T,k,path,1000,10)
+def update(num):
+    ax.clear()
+
+    for x in T.nodes():
+        T.node[x]["pos"] = [T.node[x]["X"], T.node[x]["Y"]]
+    for x in T.nodes():
+        if x in path[num]:
+            T.node[x]["col"] = 1
+        else:
+            T.node[x]["col"] = 0
+    values = [T.node[x]["col"] for x in T.nodes()]
+    nx.draw(T, pos=nx.get_node_attributes(T, 'pos'), node_size = 200/gadget_depth, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
+
+
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+
+ani = matplotlib.animation.FuncAnimation(fig, update, frames=num_frames, interval=delay, repeat=True)
+#plt.show()  
+
+name = str(H.name) +  "_steps:" + str(num_frames) + '.mp4'
+ani.save(name, writer="ffmpeg")
+
+animate(T,k,path,1000,10)
 
