@@ -533,9 +533,9 @@ k = 1
 grid_size = 2
 global gadget_depth
 global gadget_width
-gadget_depth = 3
-gadget_width = 2
-bal = True
+gadget_depth = 1
+gadget_width = 5
+bal = False
 G = make_grid(grid_size)
 H = replace_edges(G,gadget_depth, gadget_width)
 H.name = str(G.name) + "_gadgetdepth:" + str(gadget_depth) + "_gadgetwidth:" + str(gadget_width) + "bal:" + str(bal)
