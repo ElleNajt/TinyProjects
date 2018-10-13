@@ -116,25 +116,56 @@ def get_neighbors(nodes, subset):
             new_set.add(x)
             neighbors.append(frozenset(new_set))
     return neighbors
+
+def min_choice(keys, function):
+    #returns the key that minimizes the function
+    running_min =  np.inf
+    current_best = keys[0]
+    for key in keys:
+        if function[key] < running_min:
+            running_min = function[key]
+            current_best = key
+    return current_best
             
-def random_walk(graph, length):
+def random_walk(graph, length, bal):
     path = []
     current = frozenset(graph.nodes())
     graph_size = len(current)
     nodes = set(graph.nodes())
+    if bal == True:
+        balanced_achieved = False
+        while not balanced_achieved:
+            neighbors = get_neighbors(nodes, set(current))
+            legal_neighbors = []
+            bal_score = {}
+            for n in neighbors:
+                if len(n) != 0 and len(n) != graph_size:
+                    y = nodes - n
+                    A = nx.subgraph(graph, n)
+                    B = nx.subgraph(graph, y)
+                    if nx.is_connected(A) and nx.is_connected(B):
+                        legal_neighbors.append(n)
+                        bal_score[n] = abs( len(y) - len(n))
+            current = min_choice(legal_neighbors, bal_score)
+            print(bal_score[current])
+            if bal_score[current] < 4:
+                balanced_achieved = True
     path.append(current)
     for i in range(length):
         neighbors = get_neighbors(nodes, set(current))
         legal_neighbors = []
         for n in neighbors:
             if len(n) != 0 and len(n) != graph_size:
+                
                 y = nodes - n
-                A = nx.subgraph(graph, n)
-                B = nx.subgraph(graph, y)
-                if nx.is_connected(A) and nx.is_connected(B):
-                    legal_neighbors.append(n)
+                if abs(len(y) - len(n)) < 4 or not bal:
+                    A = nx.subgraph(graph, n)
+                    B = nx.subgraph(graph, y)
+                    if nx.is_connected(A) and nx.is_connected(B):
+                        legal_neighbors.append(n)
             else:
-                legal_neighbors.append(n)
+                if not bal:
+                    legal_neighbors.append(n)
         
         current = random.choice(legal_neighbors)
         path.append(current)
@@ -173,8 +204,8 @@ def assign_heights(T,k,m):
                 if T.node[n]["touched"] == False:
                     T.node[n]["touched"] = True
                     if level >= 0:
-                        T.node[n]["X"] = T.node[point]["X"] + sign * (1/m)**( 3 +  k - T.node[point]["Y"] )
-                        sign = sign + 2/m
+                        T.node[n]["X"] = T.node[point]["X"] + sign * (1/m)**(  k - T.node[point]["Y"] )
+                        sign = sign + 2/(m-1)
                         T.node[n]["Y"] = level
                         new_wets.add(n)
         wet_set = new_wets                    
@@ -190,14 +221,14 @@ def assign_heights(T,k,m):
         level += -1
         new_wets = set()
         for point in wet_set:
-            sign = 1
+            sign = -1
             neighbors = T.neighbors(point)
             for n in neighbors:
                 if T.node[n]["touched"] == False:
                     T.node[n]["touched"] = True
                     if T.node[point]["Y"] < 0:
-                        T.node[n]["X"] = T.node[point]["X"] + sign * (1/m)**( 3 +  k + T.node[point]["Y"] )
-                        sign = sign + 2/m
+                        T.node[n]["X"] = T.node[point]["X"] + sign * (1/m)**( k + T.node[point]["Y"] )
+                        sign = sign + 2/(m-1)
                         T.node[n]["Y"] = T.node[point]["Y"] + 1
                         new_wets.add(n)
         wet_set = new_wets
@@ -213,13 +244,12 @@ def make_histogram(list_of_samples):
         values[sample] += 1
     return values
 
-def reload_path(size, steps, graph):
-    name = str(graph.name) + "path_for_size" + str(size) + "steps" + str(steps)
+def reload_path(name):
     with open(name, "rb") as fp:   # Unpickling
         path = pickle.load(fp)
     return path
 
-def make_path(size, steps, graph = 0):
+def make_path(size, steps, graph = 0, bal = False):
     #First check to see if there is a file 
     if graph == 0:
         T = construct_doubled_tree(size)
@@ -233,10 +263,10 @@ def make_path(size, steps, graph = 0):
 
     if myfile.is_file():
         print("found in directory")
-        return reload_path(size, steps, T), T
+        return reload_path(name), T
 
     #T = assign_heights(T,2)
-    path = random_walk(T, steps)
+    path = random_walk(T, steps, bal)
 
     with open(name, "wb") as fp:
         pickle.dump(path, fp)
@@ -362,7 +392,7 @@ def animate(T,k,path, size, num_frames = 2000, delay = 10):
 
 def make_grid(k):
     
-    G = nx.grid_graph([k*2 + 2,k*2 + 2])
+    G = nx.grid_graph([k,k])
     for x in G:
         G.node[x]["level"] = x[1]
         if x[1] == k:
@@ -371,7 +401,7 @@ def make_grid(k):
             G.node[x]["half"] = "H"
         if x[1] < k:
             G.node[x]["half"] = "G"
-        G.name = "gridgraph_size:" + str(k*2 + 2) +"_"
+        G.name = "gridgraph_size:" + str(k) +"_"
         G.graph["depth"]= k
         G.node[x]["X"] = x[0]
         G.node[x]["Y"] = x[1]
@@ -500,12 +530,15 @@ k = 1
 #G.node[-2]["X"] = -1
 #G.node[-2]["Y"] = 
 
-grid_size = 0
-gadget_depth = 1
-gadget_width = 5
+grid_size = 2
+global gadget_depth
+global gadget_width
+gadget_depth = 3
+gadget_width = 2
+bal = True
 G = make_grid(grid_size)
 H = replace_edges(G,gadget_depth, gadget_width)
-H.name = str(G.name) + "_gadgetdepth:" + str(gadget_depth) + "_gadgetwidth:" + str(gadget_width)
+H.name = str(G.name) + "_gadgetdepth:" + str(gadget_depth) + "_gadgetwidth:" + str(gadget_width) + "bal:" + str(bal)
 
 def draw_with_location(graph):
     for x in graph.nodes():
@@ -516,15 +549,15 @@ def draw_with_location(graph):
 draw_with_location(H)
 
 
-#Be cautious that the graph size is already growing exponentially -- what we are really looking for is double exponential growth in the cut off
+
 num_frames = 1000
 delay = 30
 
-path, T = make_path(k,num_frames, H)
+path, T = make_path(k,num_frames, H, bal)
 
-stat = balance
-stat_list = [stat(x) for x in path]
-make_time_series(path, stat)
+#stat = balance
+#stat_list = [stat(x) for x in path]
+#make_time_series(path, stat)
 
 #viz(T,gadget_depth, path[1000],gadget_width)
 #
@@ -544,7 +577,7 @@ def update(num):
         else:
             T.node[x]["col"] = 0
     values = [T.node[x]["col"] for x in T.nodes()]
-    nx.draw(T, pos=nx.get_node_attributes(T, 'pos'), node_size = 200/gadget_depth, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
+    nx.draw(T, pos=nx.get_node_attributes(T, 'pos'), node_size = 50/gadget_depth*gadget_width, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
 
 
     ax.set_xticks([])
@@ -552,10 +585,10 @@ def update(num):
 
 
 ani = matplotlib.animation.FuncAnimation(fig, update, frames=num_frames, interval=delay, repeat=True)
-#plt.show()  
+plt.show()  
 
 name = str(H.name) +  "_steps:" + str(num_frames) + '.mp4'
 ani.save(name, writer="ffmpeg")
 
-animate(T,k,path,1000,10)
+#animate(T,k,path,1000,10)
 
