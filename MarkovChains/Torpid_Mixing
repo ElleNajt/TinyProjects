@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pickle
 from pathlib import Path as FilePath
+from Facefinder import depth_k_refine
     
 import matplotlib.animation
 
@@ -519,76 +520,86 @@ def glue(G,S,a,b):
     
 
 global T
-k = 1
-#G = make_grid()
-#G = nx.Graph()
-#G.add_node(-1)
-#G.add_node(-2)
-#G.add_edge(-1,-2)
-#G.node[-1]["X"] = 0
-#G.node[-1]["Y"] = 0
-#G.node[-2]["X"] = -1
-#G.node[-2]["Y"] = 
 
-grid_size = 2
-global gadget_depth
-global gadget_width
-gadget_depth = 1
-gadget_width = 5
-bal = False
-G = make_grid(grid_size)
-H = replace_edges(G,gadget_depth, gadget_width)
-H.name = str(G.name) + "_gadgetdepth:" + str(gadget_depth) + "_gadgetwidth:" + str(gadget_width) + "bal:" + str(bal)
 
 def draw_with_location(graph):
-    for x in graph.nodes():
-        graph.node[x]["pos"] = [graph.node[x]["X"], graph.node[x]["Y"]]
+#    for x in graph.nodes():
+#        graph.node[x]["pos"] = [graph.node[x]["X"], graph.node[x]["Y"]]
 
     nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 200/k, width = .5, cmap=plt.get_cmap('jet'))
+
+
+def face_gadget():
+    m = 3
+    depth = 4
+    graph = nx.grid_graph([m,m])
+    graph.name = "grid_size:" + str(m)
+    for x in graph.nodes():
+        
+        graph.node[x]["pos"] = np.array([x[0], x[1]])
     
-draw_with_location(H)
+    graph = depth_k_refine(graph,depth)
+    
+    draw_with_location(graph)
 
 
+def edge_gadget():
+    k = 1
+    grid_size = 2
+    global gadget_depth
+    global gadget_width
+    gadget_depth = 1
+    gadget_width = 5
+    bal = False
+    G = make_grid(grid_size)
+    H = replace_edges(G,gadget_depth, gadget_width)
+    H.name = str(G.name) + "_gadgetdepth:" + str(gadget_depth) + "_gadgetwidth:" + str(gadget_width) + "bal:" + str(bal)
+    
 
-num_frames = 1000
-delay = 30
-
-path, T = make_path(k,num_frames, H, bal)
-
-#stat = balance
-#stat_list = [stat(x) for x in path]
-#make_time_series(path, stat)
-
-#viz(T,gadget_depth, path[1000],gadget_width)
-#
-
-
-
-fig, ax = plt.subplots(figsize=(6,4))
-
-def update(num):
-    ax.clear()
-
-    for x in T.nodes():
-        T.node[x]["pos"] = [T.node[x]["X"], T.node[x]["Y"]]
-    for x in T.nodes():
-        if x in path[num]:
-            T.node[x]["col"] = 1
-        else:
-            T.node[x]["col"] = 0
-    values = [T.node[x]["col"] for x in T.nodes()]
-    nx.draw(T, pos=nx.get_node_attributes(T, 'pos'), node_size = 50/gadget_depth*gadget_width, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
-
-
-    ax.set_xticks([])
-    ax.set_yticks([])
-
-
-ani = matplotlib.animation.FuncAnimation(fig, update, frames=num_frames, interval=delay, repeat=True)
-plt.show()  
-
-name = str(H.name) +  "_steps:" + str(num_frames) + '.mp4'
-ani.save(name, writer="ffmpeg")
-
-#animate(T,k,path,1000,10)
+        
+    draw_with_location(H)
+    
+    
+    
+    num_frames = 400
+    delay = 30
+    graph.name = "refined_grid"
+    
+    path, T = make_path(k,num_frames, graph, bal)
+    
+    #stat = balance
+    #stat_list = [stat(x) for x in path]
+    #make_time_series(path, stat)
+    
+    #viz(T,gadget_depth, path[1000],gadget_width)
+    #
+    
+    
+    
+    fig, ax = plt.subplots(figsize=(6,4))
+    
+    def update(num):
+        ax.clear()
+    
+    
+        for x in T.nodes():
+            if x in path[num]:
+                T.node[x]["col"] = 1
+            else:
+                T.node[x]["col"] = 0
+        values = [T.node[x]["col"] for x in T.nodes()]
+        nx.draw(T, pos=nx.get_node_attributes(T, 'pos'), node_size = 50/gadget_depth*gadget_width, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
+    
+    
+        ax.set_xticks([])
+        ax.set_yticks([])
+    
+    
+    ani = matplotlib.animation.FuncAnimation(fig, update, frames=num_frames, interval=delay, repeat=True)
+    plt.show()  
+    
+    #name = str(H.name) +  "_steps:" + str(num_frames) + '.mp4'
+    #ani.save(name, writer="ffmpeg")
+    
+    #animate(T,k,path,1000,10)
 
