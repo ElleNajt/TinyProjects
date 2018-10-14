@@ -32,6 +32,17 @@ def compute_rotation_system(graph):
     return graph
 
 
+def cycle_around_face(graph, e):
+    face = set([e[0], e[1]])
+    last_point = e[1]
+    current_point = graph.node[e[1]]["rotation"][e[0]]
+    next_point = current_point
+    while next_point != e[0]:
+        face.add(current_point)
+        next_point = graph.node[current_point]["rotation"][last_point]
+        last_point = current_point
+        current_point = next_point
+    return face
 
 
 def compute_face_data(graph):
@@ -40,16 +51,18 @@ def compute_face_data(graph):
     #faces will stored as sets of vertices
 
     for e in graph.edges():
-        face = set([e[0], e[1]])
-        last_point = e[1]
-        current_point = graph.node[e[1]]["rotation"][e[0]]
-        next_point = current_point
-        while next_point != e[0]:
-            face.add(current_point)
-            next_point = graph.node[current_point]["rotation"][last_point]
-            last_point = current_point
-            current_point = next_point
+        #need to make sure you get both possible directions for each edge..
+        
+        face = cycle_around_face(graph, e)
         faces.append(frozenset(face))
+        
+        #how to detect if face is the unbounded face...
+    
+
+        face = cycle_around_face(graph, [ e[1], e[0]])
+        faces.append(frozenset(face))
+        
+        
         
     #Insert remove outer face
     print("reminder that you still have the outer face -- which might be okay, because maybe it also counts the inner face... ifthe graph is a single fae")
@@ -60,6 +73,7 @@ def compute_face_data(graph):
 
 def face_refine(graph):
     #graph must already have the face data computed
+    #this adds a vetex in the middle of each face, and connects that vertex to the edges of that face...
     
     for face in graph.graph["faces"]:
         graph.add_node(face)
@@ -77,7 +91,7 @@ def refine(graph):
     return graph
 
 def depth_k_refine(graph,k):
-    graph.name = graph.name + str("refined_depth:") + str(k)
+    graph.name = graph.name + str("refined_depth") + str(k)
     for i in range(k):
         graph = refine(graph)
     return graph
@@ -86,15 +100,16 @@ def draw_with_location(graph):
 #    for x in graph.nodes():
 #        graph.node[x]["pos"] = [graph.node[x]["X"], graph.node[x]["Y"]]
 
-    nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 10, width = .5, cmap=plt.get_cmap('jet'))
-    
+    nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 0, width = .5, cmap=plt.get_cmap('jet'))
+# 
+m= 2
 graph = nx.grid_graph([m,m])
 graph.name = "grid_size:" + str(m)
 for x in graph.nodes():
     
     graph.node[x]["pos"] = np.array([x[0], x[1]])
 
-graph = depth_k_refine(graph,4)
+graph = depth_k_refine(graph,10)
 
 draw_with_location(graph)
 
