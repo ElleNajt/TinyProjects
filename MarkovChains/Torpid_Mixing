@@ -542,6 +542,10 @@ def face_gadget():
     
     draw_with_location(graph)
 
+def set_pos(graph):
+    for x in graph.nodes():
+        graph.node[x]["pos"] = [graph.node[x]["X"], graph.node[x]["Y"]]
+    return graph 
 
 def edge_gadget():
     k = 1
@@ -555,7 +559,7 @@ def edge_gadget():
     H = replace_edges(G,gadget_depth, gadget_width)
     H.name = str(G.name) + "_gadgetdepth:" + str(gadget_depth) + "_gadgetwidth:" + str(gadget_width) + "bal:" + str(bal)
     
-
+    H = set_pos(H)
         
     draw_with_location(H)
     
