@@ -44,17 +44,14 @@ def transform(x):
 
 def is_clockwise(graph,face, average):
     #given a face (with respect to the rotation system computed), determine if it belongs to a the orientation assigned to bounded faces
-    untransformed = [float(np.arctan2(graph.node[x]["pos"][0] - average[0], graph.node[x]["pos"][1] - average[1]))  for x in face]
     angles = [transform(float(np.arctan2(graph.node[x]["pos"][0] - average[0], graph.node[x]["pos"][1] - average[1])))  for x in face]
     first = min(angles)
     rotated = [x - first for x in angles]
     next_smallest = min([x for x in rotated if x != 0])
     ind = rotated.index(0)
     if rotated[(ind + 1)% len(rotated)] == next_smallest:
-        print(False)
         return False
     else:
-        print(True)
         return True
 
 def cycle_around_face(graph, e):
@@ -121,20 +118,40 @@ def depth_k_refine(graph,k):
         graph = refine(graph)
     return graph
 
+def restricted_planar_dual(graph):
+    #computes dual without unbounded face
+    graph = compute_rotation_system(graph)
+    graph = compute_face_data(graph)
+    dual_graph = nx.Graph()
+    for face in graph.graph["faces"]:
+        dual_graph.add_node(face)
+        location = np.array([0,0]).astype("float64")
+        for v in face:
+            graph.add_edge(face, v)
+            location += graph.node[v]["pos"].astype("float64")
+        dual_graph.node[face]["pos"] = location / len(face)
+    ##handle edges
+    for e in graph.edges():
+        for face in graph.graph["faces"]:
+            for face2 in graph.graph["faces"]:
+                if (e[0] in face) and (e[1] in face) and (e[0] in face2) and (e[1] in face2):
+                    dual_graph.add_edge(face, face2)
+    return dual_graph
+    
 def draw_with_location(graph):
 #    for x in graph.nodes():
 #        graph.node[x]["pos"] = [graph.node[x]["X"], graph.node[x]["Y"]]
 
     nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 100, width = .5, cmap=plt.get_cmap('jet'))
 # 
-m= 2
+m= 3
 graph = nx.grid_graph([m,m])
 graph.name = "grid_size:" + str(m)
 for x in graph.nodes():
     
     graph.node[x]["pos"] = np.array([x[0], x[1]])
 
-graph = depth_k_refine(graph,2)
+graph = depth_k_refine(graph,3)
 
 draw_with_location(graph)
 graph = compute_rotation_system(graph)
