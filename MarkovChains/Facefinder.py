@@ -127,7 +127,6 @@ def restricted_planar_dual(graph):
         dual_graph.add_node(face)
         location = np.array([0,0]).astype("float64")
         for v in face:
-            graph.add_edge(face, v)
             location += graph.node[v]["pos"].astype("float64")
         dual_graph.node[face]["pos"] = location / len(face)
     ##handle edges
@@ -137,7 +136,9 @@ def restricted_planar_dual(graph):
                 if (e[0] in face) and (e[1] in face) and (e[0] in face2) and (e[1] in face2):
                     dual_graph.add_edge(face, face2)
     return dual_graph
-    
+
+
+
 def draw_with_location(graph):
 #    for x in graph.nodes():
 #        graph.node[x]["pos"] = [graph.node[x]["X"], graph.node[x]["Y"]]
@@ -157,3 +158,5 @@ draw_with_location(graph)
 graph = compute_rotation_system(graph)
 graph = compute_face_data(graph) 
 print(len(graph.graph["faces"]))
+dual = restricted_planar_dual(graph)
+draw_with_location(dual)
