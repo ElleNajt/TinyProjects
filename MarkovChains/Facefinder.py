@@ -9,11 +9,13 @@ Created on Sat Oct 13 19:39:52 2018
 
 import networkx as nx
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 
 def compute_rotation_system(graph):
     #Graph nodes must have "pos"
+    #The rotation system is  clockwise (0,2) -> (1,1) -> (0,0) around (0,1)
     for v in graph.nodes():
         graph.node[v]["pos"] = np.array(graph.node[v]["pos"])
     
@@ -31,14 +33,37 @@ def compute_rotation_system(graph):
         graph.node[v]["rotation"] = rotation_system
     return graph
 
+def transform(x):
+    #takes x from [-pi, pi] and puts it in [0,pi]
+    if x >= 0:
+        return x
+    if x < 0:
+        return 2 * np.pi + x
+    
+
+
+def is_clockwise(graph,face, average):
+    #given a face (with respect to the rotation system computed), determine if it belongs to a the orientation assigned to bounded faces
+    untransformed = [float(np.arctan2(graph.node[x]["pos"][0] - average[0], graph.node[x]["pos"][1] - average[1]))  for x in face]
+    angles = [transform(float(np.arctan2(graph.node[x]["pos"][0] - average[0], graph.node[x]["pos"][1] - average[1])))  for x in face]
+    first = min(angles)
+    rotated = [x - first for x in angles]
+    next_smallest = min([x for x in rotated if x != 0])
+    ind = rotated.index(0)
+    if rotated[(ind + 1)% len(rotated)] == next_smallest:
+        print(False)
+        return False
+    else:
+        print(True)
+        return True
 
 def cycle_around_face(graph, e):
-    face = set([e[0], e[1]])
+    face = list([e[0], e[1]])
     last_point = e[1]
     current_point = graph.node[e[1]]["rotation"][e[0]]
     next_point = current_point
     while next_point != e[0]:
-        face.add(current_point)
+        face.append(current_point)
         next_point = graph.node[current_point]["rotation"][last_point]
         last_point = current_point
         current_point = next_point
@@ -54,22 +79,22 @@ def compute_face_data(graph):
         #need to make sure you get both possible directions for each edge..
         
         face = cycle_around_face(graph, e)
-        faces.append(frozenset(face))
-        
-        #how to detect if face is the unbounded face...
-    
-
+        faces.append(tuple(face))
         face = cycle_around_face(graph, [ e[1], e[0]])
-        faces.append(frozenset(face))
-        
-        
-        
-    #Insert remove outer face
-    print("reminder that you still have the outer face -- which might be okay, because maybe it also counts the inner face... ifthe graph is a single fae")
-    graph.graph["faces"] = set(faces)
+        faces.append(tuple(face))
+    #detect the unbounded face based on orientation
+    bounded_faces = []
+    for face in faces:
+        run_sum = np.array([0,0]).astype('float64')
+        for x in face:
+            run_sum += np.array(graph.node[x]["pos"]).astype('float64')
+        average = run_sum / len(face)
+        if is_clockwise(graph,face, average):
+            bounded_faces.append(face)
+    faces_set = [frozenset(face) for face in bounded_faces]
+    graph.graph["faces"] = set(faces_set)
     return graph
-            
-
+        
 
 def face_refine(graph):
     #graph must already have the face data computed
@@ -100,7 +125,7 @@ def draw_with_location(graph):
 #    for x in graph.nodes():
 #        graph.node[x]["pos"] = [graph.node[x]["X"], graph.node[x]["Y"]]
 
-    nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 0, width = .5, cmap=plt.get_cmap('jet'))
+    nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 100, width = .5, cmap=plt.get_cmap('jet'))
 # 
 m= 2
 graph = nx.grid_graph([m,m])
@@ -109,8 +134,9 @@ for x in graph.nodes():
     
     graph.node[x]["pos"] = np.array([x[0], x[1]])
 
-graph = depth_k_refine(graph,10)
+graph = depth_k_refine(graph,2)
 
 draw_with_location(graph)
-
-
+graph = compute_rotation_system(graph)
+graph = compute_face_data(graph) 
+print(len(graph.graph["faces"]))
