@@ -106,6 +106,18 @@ def face_refine(graph):
         graph.node[face]["pos"] = location / len(face)
     return graph
 
+def edge_refine(graph):
+    edge_list = list(graph.edges())
+    for e in edge_list:
+        graph.remove_edge(e[0],e[1])
+        graph.add_node(str(e))
+        location = np.array([0,0]).astype("float64")
+        for v in e:
+            graph.add_edge(str(e), v)
+            location += graph.node[v]["pos"].astype("float64")
+        graph.node[str(e)]["pos"] = location / 2
+    return graph
+
 def refine(graph):
     graph = compute_rotation_system(graph)
     graph = compute_face_data(graph)
@@ -117,6 +129,14 @@ def depth_k_refine(graph,k):
     for i in range(k):
         graph = refine(graph)
     return graph
+
+def barycentric_subdivision(graph):
+    #graph must already have the face data computed
+    #this adds a vetex in the middle of each face, and connects that vertex to the edges of that face...
+    graph = edge_refine(graph)
+    graph = refine(graph)
+    return graph
+    
 
 def restricted_planar_dual(graph):
     #computes dual without unbounded face
@@ -152,11 +172,12 @@ for x in graph.nodes():
     
     graph.node[x]["pos"] = np.array([x[0], x[1]])
 
-graph = depth_k_refine(graph,3)
+graph = depth_k_refine(graph,0)
 
 draw_with_location(graph)
 graph = compute_rotation_system(graph)
 graph = compute_face_data(graph) 
 print(len(graph.graph["faces"]))
-dual = restricted_planar_dual(graph)
-draw_with_location(dual)
+#
+#dual = restricted_planar_dual(graph)
+#draw_with_location(dual)
