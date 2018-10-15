@@ -130,6 +130,12 @@ def depth_k_refine(graph,k):
         graph = refine(graph)
     return graph
 
+def depth_k_barycentric(graph, k):
+    graph.name = graph.name + str("refined_depth") + str(k)
+    for i in range(k):
+        graph = barycentric_subdivision(graph)
+    return graph
+
 def barycentric_subdivision(graph):
     #graph must already have the face data computed
     #this adds a vetex in the middle of each face, and connects that vertex to the edges of that face...
@@ -163,17 +169,17 @@ def draw_with_location(graph):
 #    for x in graph.nodes():
 #        graph.node[x]["pos"] = [graph.node[x]["X"], graph.node[x]["Y"]]
 
-    nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 100, width = .5, cmap=plt.get_cmap('jet'))
+    nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 20, width = .5, cmap=plt.get_cmap('jet'))
 # 
-m= 3
+m= 2
 graph = nx.grid_graph([m,m])
 graph.name = "grid_size:" + str(m)
 for x in graph.nodes():
     
     graph.node[x]["pos"] = np.array([x[0], x[1]])
 
-graph = depth_k_refine(graph,0)
-
+#graph = depth_k_refine(graph,0)
+graph = depth_k_barycentric(graph, 4)
 draw_with_location(graph)
 graph = compute_rotation_system(graph)
 graph = compute_face_data(graph) 
