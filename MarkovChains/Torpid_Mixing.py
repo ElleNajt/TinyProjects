@@ -385,9 +385,9 @@ def animate(T,k,path, size, num_frames = 2000, delay = 10):
     
     
     ani = matplotlib.animation.FuncAnimation(fig, update, frames=num_frames, interval=delay, repeat=True)
-    #plt.show()  
+    plt.show()  
     name = str(T.name) + "path_for_size" + str(T.graph["size"]) + "steps" + str(T.graph["steps"]) + '.mp4'
-    ani.save(name, writer="ffmpeg")
+    #ani.save(name, writer="ffmpeg")
     
 #if you can compute the correct distribution and display it, that will measure failure to mix. Deviation from symmetry also does this.
 
@@ -587,7 +587,7 @@ def set_pos(graph):
 
 def edge_gadget():
     k = 1
-    grid_size = 2
+    grid_size = 4
     global gadget_depth
     global gadget_width
     gadget_depth = 1
