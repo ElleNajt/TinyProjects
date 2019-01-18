@@ -2,7 +2,7 @@
 """
 Created on Thu Jan 17 14:05:20 2019
 
-@author: LorenzoNajt
+@author: Lorenzo Najt
 """
 
 from Torpid_Mixing import random_walk
@@ -164,21 +164,45 @@ def entire_workflow(m, steps, evaluate_function, weight_function):
     weight_function(boundary)
     
     series = create_time_series(boundary, restricted_path, evaluate_function)
-    return [series, restricted_path]
+    return [series, restricted_path, boundary]
 
-m = 20
-steps = 10000
-#evaluate_function = sum_evaluate_block
-#weight_function = assign_weights
+m = 10
+steps = 100
+
 evaluate_function = smooth_evaluate_SAW
 weight_function = assign_smooth_weights
-series, restricted_path = entire_workflow(m,steps, evaluate_function, weight_function)
+series, restricted_path, boundary = entire_workflow(m,steps, evaluate_function, weight_function)
 
-#weight_function(boundary)
-#series = create_time_series(boundary, restricted_path, evaluate_function)
 print(series)
 print(np.mean(series))
 
 times = list(range(len(series)))
 plt.plot(times, series)
 plt.show()
+
+
+evaluate_function = evaluate_SAW
+weight_function = assign_weights
+
+weight_function(boundary)
+series = create_time_series(boundary, restricted_path, evaluate_function)
+print(series)
+print(np.mean(series))
+
+times = list(range(len(series)))
+plt.plot(times, series)
+plt.show()
+
+#The statistic used here is not invariant of the ordering.
+
+#evaluate_function = sum_evaluate_block
+#weight_function = assign_weights
+#
+#weight_function(boundary)
+#series = create_time_series(boundary, restricted_path, evaluate_function)
+#print(series)
+#print(np.mean(series))
+#
+#times = list(range(len(series)))
+#plt.plot(times, series)
+#plt.show()
