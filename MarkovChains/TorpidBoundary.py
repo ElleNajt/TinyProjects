@@ -11,6 +11,7 @@ import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 
+
 def viz(T,k,n):
     for x in T.nodes():
         T.node[x]["pos"] = [T.node[x]["X"], T.node[x]["Y"]]
@@ -56,7 +57,20 @@ def assign_weights(boundary):
         if x[1] == 0 or x[1] == m - 1:
             boundary.node[x]["score"] += -1
             
-    
+def assign_complex_weights(boundary):
+    m = (len(boundary.nodes()) + 4) / 4
+    for x in boundary.nodes():
+        boundary.node[x]["score"] = 0
+    for x in boundary.nodes():
+        if x[0] == 0:
+            boundary.node[x]["score"] += 1           
+        if x[0] == m - 1:
+            boundary.node[x]["score"] += -1
+    for x in boundary.nodes():
+        if x[1] == 0:
+            boundary.node[x]["score"] += 0+1j
+        if x[1] == m - 1:
+            boundary.node[x]["score"] += 0-1j
     #To test an make sure it assigned the scores correctly:
 #    
 #    
@@ -75,6 +89,20 @@ def assign_smooth_weights(boundary):
         if x[1] == 0 or x[1] == m - 1:
             boundary.node[x]["score"] += -1 *  np.exp( - (1/m)*( x[0] - m/2)**2)
             
+def assign_smooth_complex_weights(boundary):
+    m = (len(boundary.nodes()) + 4) / 4
+    for x in boundary.nodes():
+        boundary.node[x]["score"] = 0
+    for x in boundary.nodes():
+        if x[0] == 0:
+            boundary.node[x]["score"] += 1*np.exp( - (1/m)*( x[0] - m/2)**2)      
+        if x[0] == m - 1:
+            boundary.node[x]["score"] += -1*np.exp( - (1/m)*( x[0] - m/2)**2)
+    for x in boundary.nodes():
+        if x[1] == 0:
+            boundary.node[x]["score"] += (0+1j)*np.exp( - (1/m)*( x[1] - m/2)**2)
+        if x[1] == m - 1:
+            boundary.node[x]["score"] += (0-1j)*np.exp( - (1/m)*( x[1] - m/2)**2)
         
 ######################################
 
@@ -97,10 +125,11 @@ def evaluate_endpoints(boundary, endpoints):
         subtotal = 0
         for y in e:
             subtotal += boundary.node[y]["score"]
-        if subtotal > 0:
-            total += 1
-        if subtotal < 0:
-            total += -1
+        total += subtotal
+#        if subtotal > 0:
+#            total += 1
+#        if subtotal < 0:
+#            total += -1
     return total
         
 def smooth_evaluate_endpoints(boundary, endpoints):
@@ -133,6 +162,13 @@ def create_time_series(boundary, restricted_path, function):
     for block in restricted_path:
         series.append(function(boundary, block))
     return series
+
+def create_time_series_means(boundary, restricted_path, function):
+    series = []
+    for block in restricted_path:
+        series.append(function(boundary, block))
+    mean_series = [ np.mean( series[0:n]) for n in range(1,len(series))]
+    return mean_series
 
 ###############################################
 
@@ -167,30 +203,52 @@ def entire_workflow(m, steps, evaluate_function, weight_function):
     return [series, restricted_path, boundary]
 
 m = 10
-steps = 100
+steps = 1000
 
 evaluate_function = smooth_evaluate_SAW
-weight_function = assign_smooth_weights
+weight_function = assign_smooth_complex_weights
 series, restricted_path, boundary = entire_workflow(m,steps, evaluate_function, weight_function)
 
-print(series)
+##
+
+evaluate_function = smooth_evaluate_SAW
+weight_function = assign_smooth_complex_weights
+weight_function(boundary)
+series = create_time_series(boundary, restricted_path, evaluate_function)
+
 print(np.mean(series))
 
 times = list(range(len(series)))
-plt.plot(times, series)
+plt.plot(times, [x.imag for x in series])
+plt.plot(times, [x.real for x in series])
 plt.show()
 
 
-evaluate_function = evaluate_SAW
-weight_function = assign_weights
 
-weight_function(boundary)
-series = create_time_series(boundary, restricted_path, evaluate_function)
-print(series)
+
+evaluate_function = evaluate_SAW
+weight_function = assign_complex_weights
+series = create_time_series_means(boundary, restricted_path, evaluate_function)
 print(np.mean(series))
 
 times = list(range(len(series)))
-plt.plot(times, series)
+plt.plot(times, [x.imag for x in series])
+plt.plot(times, [x.real for x in series])
+plt.show()
+
+
+
+evaluate_function = evaluate_SAW
+weight_function = assign_complex_weights
+
+weight_function(boundary)
+series = create_time_series(boundary, restricted_path, evaluate_function)
+#print(series)
+print(np.mean(series))
+
+times = list(range(len(series)))
+plt.plot(times, [x.imag for x in series])
+plt.plot(times, [x.real for x in series])
 plt.show()
 
 #The statistic used here is not invariant of the ordering.
