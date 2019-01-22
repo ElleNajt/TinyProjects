@@ -74,7 +74,7 @@ def assign_complex_weights(boundary):
     #To test an make sure it assigned the scores correctly:
 #    
 #    
-#values = [boundary.node[x]["score"] for x in boundary.nodes()]
+#values = [boundary.node[x]["score"].imag for x in boundary.nodes()]
 #nx.draw(boundary, pos=nx.get_node_attributes(boundary, 'pos'), node_size = 10, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
 #                
 
@@ -202,8 +202,8 @@ def entire_workflow(m, steps, evaluate_function, weight_function):
     series = create_time_series(boundary, restricted_path, evaluate_function)
     return [series, restricted_path, boundary]
 
-m = 10
-steps = 1000
+m = 20
+steps = 100000
 
 evaluate_function = smooth_evaluate_SAW
 weight_function = assign_smooth_complex_weights
@@ -211,17 +211,17 @@ series, restricted_path, boundary = entire_workflow(m,steps, evaluate_function, 
 
 ##
 
-evaluate_function = smooth_evaluate_SAW
-weight_function = assign_smooth_complex_weights
-weight_function(boundary)
-series = create_time_series(boundary, restricted_path, evaluate_function)
-
-print(np.mean(series))
-
-times = list(range(len(series)))
-plt.plot(times, [x.imag for x in series])
-plt.plot(times, [x.real for x in series])
-plt.show()
+#evaluate_function = smooth_evaluate_SAW
+#weight_function = assign_smooth_complex_weights
+#weight_function(boundary)
+#series = create_time_series(boundary, restricted_path, evaluate_function)
+#
+#print(np.mean(series))
+#
+#times = list(range(len(series)))
+#plt.plot(times, [x.imag for x in series])
+#plt.plot(times, [x.real for x in series])
+#plt.show()
 
 
 
@@ -237,7 +237,7 @@ plt.plot(times, [x.real for x in series])
 plt.show()
 
 
-
+#
 evaluate_function = evaluate_SAW
 weight_function = assign_complex_weights
 
