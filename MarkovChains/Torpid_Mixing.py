@@ -3,7 +3,7 @@
 """
 Created on Thu Sep 27 15:20:30 2018
 
-@author: lnajt
+@author: Lorenzo Najt
 """
 import random
 import networkx as nx
@@ -170,6 +170,8 @@ def random_walk(graph, length, bal):
         
         current = random.choice(legal_neighbors)
         path.append(current)
+        if i % 1000 == 0:
+            print(i)
     return path
                 
 
