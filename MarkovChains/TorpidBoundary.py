@@ -111,13 +111,35 @@ def assign_smooth_complex_weights(boundary):
     
 def find_endpoints(boundary, block):
     #These are the endpoints of the induced SAW in the dual (or empty if SAP)
+    #Note that there is asubtle bug here -- the order of the endpoints is not determined
+    #uniquely as it was written originally. That is, they are organized to be continuous.
     endpoints = []
     for x in block:
         for y in boundary.neighbors(x):
             if y not in block:
                 endpoints.append([x,y])
     #NB: endpoints might be empty -- this is the case of the trivial partition. 
+
     return endpoints
+
+### To make endpoints outputs continuous:
+    #TODO -- this still won't handle trivial partitions without throwing an error.
+    
+def contiguify(series):
+    ordered_series = []
+    for i in range(len(series)):
+        if i == 0:
+            current_a = np.array(series[i][0])
+            current_b = np.array(series[i][1])
+        if i > 0:
+            if np.linalg.norm( np.array(series[i][1]) - current_a) <= 1:
+                current_a = np.array(series[i][1])
+                current_b = np.array(series[i][0])
+            else:
+                current_a = np.array(series[i][0])
+                current_b = np.array(series[i][1])
+        ordered_series.append( [list(current_a), list(current_b)])
+    return ordered_series
 
 def evaluate_endpoints(boundary, endpoints):
     total = 0
@@ -139,7 +161,23 @@ def smooth_evaluate_endpoints(boundary, endpoints):
         for y in e:
             total += boundary.node[y]["score"]
     return total
+
+def xycoordinates(boundary, endpoints):
+    coords = []
+    for e in endpoints:
+        xcoord = 0
+        ycoord = 0
+        for y in e:
+            xcoord += y[0]/2
+            ycoord += y[1]/2
+            
+        coords.append( [ xcoord, ycoord])
+    return coords
 #################
+
+def endpoint_coordinates(boundary, block):
+    endpoints = find_endpoints(boundary, block)
+    return xycoordinates(boundary, endpoints)
 
 def sum_evaluate_block(boundary, block):
     total = 0
@@ -202,8 +240,8 @@ def entire_workflow(m, steps, evaluate_function, weight_function):
     series = create_time_series(boundary, restricted_path, evaluate_function)
     return [series, restricted_path, boundary]
 
-m = 20
-steps = 100000
+m = 5
+steps = 10000
 
 evaluate_function = smooth_evaluate_SAW
 weight_function = assign_smooth_complex_weights
@@ -224,32 +262,43 @@ series, restricted_path, boundary = entire_workflow(m,steps, evaluate_function, 
 #plt.show()
 
 
-
-
-evaluate_function = evaluate_SAW
+evaluate_function = endpoint_coordinates
 weight_function = assign_complex_weights
-series = create_time_series_means(boundary, restricted_path, evaluate_function)
+series = create_time_series(boundary, restricted_path, evaluate_function)
+series_continuous = contiguify(series)
 print(np.mean(series))
 
 times = list(range(len(series)))
-plt.plot(times, [x.imag for x in series])
-plt.plot(times, [x.real for x in series])
+xcoord_of_a = [x[0][1] for x in series_continuous]
+plt.plot(times, xcoord_of_a)
+plt.plot(times, [x[0][0] for x in series_continuous])
 plt.show()
-
 
 #
-evaluate_function = evaluate_SAW
-weight_function = assign_complex_weights
-
-weight_function(boundary)
-series = create_time_series(boundary, restricted_path, evaluate_function)
-#print(series)
-print(np.mean(series))
-
-times = list(range(len(series)))
-plt.plot(times, [x.imag for x in series])
-plt.plot(times, [x.real for x in series])
-plt.show()
+#evaluate_function = evaluate_SAW
+#weight_function = assign_complex_weights
+#series = create_time_series_means(boundary, restricted_path, evaluate_function)
+#print(np.mean(series))
+#
+#times = list(range(len(series)))
+#plt.plot(times, [x.imag for x in series])
+#plt.plot(times, [x.real for x in series])
+#plt.show()
+#
+#
+##
+#evaluate_function = evaluate_SAW
+#weight_function = assign_complex_weights
+#
+#weight_function(boundary)
+#series = create_time_series(boundary, restricted_path, evaluate_function)
+##print(series)
+#print(np.mean(series))
+#
+#times = list(range(len(series)))
+#plt.plot(times, [x.imag for x in series])
+#plt.plot(times, [x.real for x in series])
+#plt.show()
 
 #The statistic used here is not invariant of the ordering.
 
