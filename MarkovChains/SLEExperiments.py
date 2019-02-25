@@ -13,6 +13,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 import multiprocessing as mp
+import cProfile
+import re
 
 def dist(v, w):
     return np.linalg.norm(np.array(v) - np.array(w))
@@ -183,7 +185,8 @@ def check_self_avoiding(path):
 def convert_node_sequence_to_edge(path):
     # For analysis and visualization, it will be better to use the edges
     edge_path = []
-    for i in range(len(path) - 1):
+    length = len(path)
+    for i in range(length - 1):
         edge_path.append((path[i], path[i+1]))
     return edge_path
 
@@ -201,21 +204,22 @@ def try_add_faces(path, edges):
     # situation, since that will break self avoiding -- it makes changes to the path as a function fo time
     square = nx.Graph()
     square.add_edges_from(edges)
+    length = len(path)
 
     vertices = set([x[0] for x in edges] + [x[1] for x in edges])
     i = 0
     while path[i] not in vertices:
         i += 1
-        if i == len(path):
+        if i == length:
             return False
             #return False
             # This is the case when the face is disjoint.
     j = i + 1
-    if j >= len(path):
+    if j >= length:
         # This is the case that i is the endpoint of the path, i.e. that the path touches the face at the end
         return False
     old_path_through_square = set([])
-    while ((j < len(path)) and (path[j] in vertices)):
+    while ((j < length) and (path[j] in vertices)):
         # It might be ht ecase that exist_node is the last point of the path
         old_path_through_square.add(path[j])
         j += 1
@@ -248,7 +252,7 @@ def try_add_faces(path, edges):
             current = exit_node
         else:
             current = list(neighs)[0]
-    for m in range(j - 1, len(path)):
+    for m in range(j - 1, length):
         new_path.append(path[m])
 
     return new_path
@@ -309,7 +313,7 @@ def in_disc(translate, rad, disc, path):
     return False
 
 
-def make_sample(disc, num_steps, output,x ):
+def make_sample(disc, num_steps, output, x ):
 
     path = initial_path(disc)
     sample_path = run_steps(disc, path, num_steps)
@@ -325,8 +329,7 @@ def estimate_probabilities(disc, radius, num_samples, num_steps):
 
     total_results = []
 
-
-    for i in range(int(num_chunks)):
+    for i in range(int(num_chunks) + 1):
         print("on chunk", i)
         processes = [mp.Process(target=make_sample, args=(disc, num_steps, output,x)) for x in range(chunks_size)]
         for p in processes:
@@ -372,3 +375,26 @@ def do_test():
         print("r: ", x[0], " estimation: ", x[1])
     # With r = 30, steps = 100,000 got 14/40.
     # With r = 20, ideal radius, desired_error = .05, desired_confidence = .1, and 1001 samples at 20000 steps, got: .3636
+
+
+def test():
+    r = 5
+    radius = .818610421572298  # (The radius for the half disc ... this value makes the RV Bernoulii(1/2)
+    desired_error = .1
+    true_mean = 1 - (1 - radius ** 2) ** (5 / 8)
+    true_variance = true_mean*(1 - true_mean)
+    var_times_accuracy_sq = true_variance * ( 1 / desired_error)**2
+    desired_confidence = .05
+    # Want
+    num_samples = round(var_times_accuracy_sq / desired_confidence) + 1
+
+    num_samples = 100
+    print("need", num_samples)
+    num_steps = 200* ( r ** 4)
+    num_steps = 10000
+    disc = integral_disc(r)
+    path = initial_path(disc)
+    sample_path = run_steps(disc, path, num_steps)
+
+def profile():
+    p = cProfile.run('test()')
