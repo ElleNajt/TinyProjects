@@ -319,41 +319,56 @@ def make_sample(disc, num_steps, output,x ):
 def estimate_probabilities(disc, radius, num_samples, num_steps):
     count = 0
     output = mp.Queue()
-    processes = [mp.Process(target=make_sample, args=(disc, num_steps, output,x)) for x in range(num_samples)]
-    for p in processes:
-        p.start()
 
-    for p in processes:
-        p.join()
+    chunks_size = 25
+    num_chunks = num_samples / chunks_size
 
-    results = [output.get() for p in processes]
+    total_results = []
 
-    for sample_path in results:
+
+    for i in range(int(num_chunks)):
+        print("on chunk", i)
+        processes = [mp.Process(target=make_sample, args=(disc, num_steps, output,x)) for x in range(chunks_size)]
+        for p in processes:
+            p.start()
+
+        for p in processes:
+            p.join()
+
+        results = [output.get() for p in processes]
+        total_results += results
+
+    for sample_path in total_results:
         if in_disc([1,0], radius, disc, sample_path[1]):
             count += 1
 
-    return count / num_samples, results
+    return count / num_samples, total_results
 
 
 def do_test():
 
-
-    r = 30
-    radius = .818610421572298  # (The radius for the half disc ... this value makes the RV Bernoulii(1/2)
-    desired_error = .05
-    true_mean = 1 - (1 - radius ** 2) ** (5 / 8)
-    true_variance = true_mean*(1 - true_mean)
-    var_times_accuracy_sq = true_variance * ( 1 / desired_error)**2
-    desired_confidence = .3
-    # Want
-    num_samples = round(var_times_accuracy_sq / desired_confidence) + 1
-    print("need", num_samples)
-    num_steps = 100000
-    disc = integral_disc(r)
-    prob, samples = estimate_probabilities(disc, radius, num_samples, num_steps)
-    print("correct value",  1-(1-radius**2)**(5/8))
-    # https://arxiv.org/pdf/math/0112246.pdf
-    print("estimated probabiltiy", prob)
-
+    experimental_results = []
+    for r in range(4, 9):
+        radius = .818610421572298  # (The radius for the half disc ... this value makes the RV Bernoulii(1/2)
+        desired_error = .1
+        true_mean = 1 - (1 - radius ** 2) ** (5 / 8)
+        true_variance = true_mean*(1 - true_mean)
+        var_times_accuracy_sq = true_variance * ( 1 / desired_error)**2
+        desired_confidence = .05
+        # Want
+        num_samples = round(var_times_accuracy_sq / desired_confidence) + 1
+        print("need", num_samples)
+        num_steps = 200* ( r ** 4)
+        disc = integral_disc(r)
+        prob, samples = estimate_probabilities(disc, radius, num_samples, num_steps)
+        print("for r", r)
+        print("correct value",  1-(1-radius**2)**(5/8))
+        # https://arxiv.org/pdf/math/0112246.pdf
+        print("estimated probabiltiy", prob)
+        result_vector = [r, prob, samples]
+        experimental_results.append(result_vector)
+    print("results:")
+    for x in experimental_results:
+        print("r: ", x[0], " estimation: ", x[1])
     # With r = 30, steps = 100,000 got 14/40.
     # With r = 20, ideal radius, desired_error = .05, desired_confidence = .1, and 1001 samples at 20000 steps, got: .3636
