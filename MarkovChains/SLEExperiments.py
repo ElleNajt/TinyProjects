@@ -12,7 +12,7 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 import random
-
+import multiprocessing as mp
 
 def dist(v, w):
     return np.linalg.norm(np.array(v) - np.array(w))
@@ -254,7 +254,7 @@ def try_add_faces(path, edges):
     return new_path
 
 
-def step(disc, path):
+def propose_step(disc, path):
     dual = disc.graph["dual"]
     face = random.choice(list(dual.nodes()))
     vertices, edges = edges_of_dual_face(dual.node[face]["coord"])
@@ -270,14 +270,90 @@ def step(disc, path):
 
     return path
 
-def test_run(disc, path):
+def SLE_step(disc,path):
+    mu = 2.63815853
+    new_path = propose_step(disc, path)
+    if new_path == path:
+        return new_path
+    coin = random.uniform(0,1)
+    if coin < mu**(len(path) - len(new_path)):
+        return new_path
+    return path
 
-    for i in range(1000):
+def run_steps(disc, path, steps):
+    for i in range(steps):
         try:
-            path = step(disc, path)
+            path = SLE_step(disc, path)
+        except:
+            print("failed")
+    return path
+
+def test_run(disc):
+    path = initial_path(disc)
+
+
+    for i in range(10000):
+        try:
+            path = SLE_step(disc, path)
         except:
             print("failed")
     edge_path = convert_node_sequence_to_edge(path)
     viz_edge(disc, edge_path)
 
+def in_disc(translate, rad, disc, path):
+    #Checks if the sampled path is in $x + aD$ in $\mathbb{H}$.
+    points = [ map_up(x, disc.graph["scale"]) for x in path]
+    for p in points:
+        if dist(p, translate) < rad:
+            return True
+    return False
 
+
+def make_sample(disc, num_steps, output,x ):
+
+    path = initial_path(disc)
+    sample_path = run_steps(disc, path, num_steps)
+    output.put((x,sample_path))
+
+
+def estimate_probabilities(disc, radius, num_samples, num_steps):
+    count = 0
+    output = mp.Queue()
+    processes = [mp.Process(target=make_sample, args=(disc, num_steps, output,x)) for x in range(num_samples)]
+    for p in processes:
+        p.start()
+
+    for p in processes:
+        p.join()
+
+    results = [output.get() for p in processes]
+
+    for sample_path in results:
+        if in_disc([1,0], radius, disc, sample_path[1]):
+            count += 1
+
+    return count / num_samples, results
+
+
+def do_test():
+
+
+    r = 30
+    radius = .818610421572298  # (The radius for the half disc ... this value makes the RV Bernoulii(1/2)
+    desired_error = .05
+    true_mean = 1 - (1 - radius ** 2) ** (5 / 8)
+    true_variance = true_mean*(1 - true_mean)
+    var_times_accuracy_sq = true_variance * ( 1 / desired_error)**2
+    desired_confidence = .3
+    # Want
+    num_samples = round(var_times_accuracy_sq / desired_confidence) + 1
+    print("need", num_samples)
+    num_steps = 100000
+    disc = integral_disc(r)
+    prob, samples = estimate_probabilities(disc, radius, num_samples, num_steps)
+    print("correct value",  1-(1-radius**2)**(5/8))
+    # https://arxiv.org/pdf/math/0112246.pdf
+    print("estimated probabiltiy", prob)
+
+    # With r = 30, steps = 100,000 got 14/40.
+    # With r = 20, ideal radius, desired_error = .05, desired_confidence = .1, and 1001 samples at 20000 steps, got: .3636
