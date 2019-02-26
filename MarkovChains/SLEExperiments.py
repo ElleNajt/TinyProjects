@@ -15,7 +15,7 @@ import random
 import multiprocessing as mp
 import cProfile
 import re
-
+import scipy.stats
 def dist(v, w):
     return np.linalg.norm(np.array(v) - np.array(w))
 
@@ -128,7 +128,7 @@ def viz(T, path):
             T.node[x]["col"] = 1
     values = [T.node[x]["col"] for x in T.nodes()]
 
-    nx.draw(T, pos=nx.get_node_attributes(T, 'coord'), node_size = 1, width = .5, cmap=plt.get_cmap('jet'),  node_color=values)
+    nx.draw(T, pos=nx.get_node_attributes(T, 'coord'), node_size = 1, width = 2, cmap=plt.get_cmap('jet'),  node_color=values)
 
 def viz_edge(T, edge_path):
     k = 20
@@ -151,10 +151,10 @@ def test_create_and_map():
     path = initial_path(disc)
     viz(disc, path)
 
-    for v in D.nodes():
-        D.node[v]["coord"]=  map_up(D.node[v]["coord"])
+    for v in disc.nodes():
+        disc.node[v]["coord"]=  map_up(disc.node[v]["coord"])
 
-    viz(D)
+    viz(disc)
     # THere are some serious distortions here!This is going to be an issue probably, b
     # ut maybe we can avoid it by choosing discs that are near to the origin.
 
@@ -321,6 +321,9 @@ def make_sample(disc, num_steps, output, x ):
 
 
 def estimate_probabilities(disc, radius, num_samples, num_steps):
+
+    #Todo -- rewrite this to pool processors better, currently will wait on the slowest thread per chunk.
+
     count = 0
     output = mp.Queue()
 
@@ -341,17 +344,32 @@ def estimate_probabilities(disc, radius, num_samples, num_steps):
         results = [output.get() for p in processes]
         total_results += results
 
+    num_samples = len(total_results)
+
     for sample_path in total_results:
         if in_disc([1,0], radius, disc, sample_path[1]):
             count += 1
 
-    return count / num_samples, total_results
+    right_prob = count / num_samples
 
+    count = 0
+    for sample_path in total_results:
+        if in_disc([-1,0], radius, disc, sample_path[1]):
+            count += 1
+
+    left_prob = count / num_samples
+
+    return [right_prob, left_prob], total_results
+
+
+def hyp_test(true, estimate, num_samples):
+    stat = np.sqrt(num_samples) * ( estimate - true)  / ( np.sqrt( true * ( 1 - true)))
+    return scipy.stats.norm.cdf(stat)
 
 def do_test():
 
     experimental_results = []
-    for r in range(4, 9):
+    for r in range(5, 6):
         radius = .818610421572298  # (The radius for the half disc ... this value makes the RV Bernoulii(1/2)
         desired_error = .1
         true_mean = 1 - (1 - radius ** 2) ** (5 / 8)
@@ -360,8 +378,10 @@ def do_test():
         desired_confidence = .05
         # Want
         num_samples = round(var_times_accuracy_sq / desired_confidence) + 1
+        num_samples = 20
         print("need", num_samples)
-        num_steps = 200* ( r ** 4)
+        num_steps = 1 * (r ** 4)
+        num_steps = 100
         disc = integral_disc(r)
         prob, samples = estimate_probabilities(disc, radius, num_samples, num_steps)
         print("for r", r)
@@ -372,7 +392,9 @@ def do_test():
         experimental_results.append(result_vector)
     print("results:")
     for x in experimental_results:
-        print("r: ", x[0], " estimation: ", x[1])
+        print("r: ", x[0], " estimation: ", x[1], "prob of seeing an estimate:",
+              hyp_test(true_mean, x[1][0],num_samples))
+
     # With r = 30, steps = 100,000 got 14/40.
     # With r = 20, ideal radius, desired_error = .05, desired_confidence = .1, and 1001 samples at 20000 steps, got: .3636
 
@@ -388,9 +410,9 @@ def test():
     # Want
     num_samples = round(var_times_accuracy_sq / desired_confidence) + 1
 
-    num_samples = 100
+    num_samples = 1
     print("need", num_samples)
-    num_steps = 200* ( r ** 4)
+    num_steps = 500
     num_steps = 10000
     disc = integral_disc(r)
     path = initial_path(disc)
@@ -398,3 +420,64 @@ def test():
 
 def profile():
     p = cProfile.run('test()')
+
+def save(experimental_results):
+
+    with open(str(experimental_results[0][1]), 'w') as f:
+        for item in experimental_results:
+            f.write("%s\n" % item)
+
+def open_file():
+    name = "FirstTrial"
+    with open(name) as f:
+        content = f.readlines()
+    data = [eval(x) for x in content]
+    return data
+
+def stats_sanity_check():
+    for i in range(10):
+
+        flips = [random.choice([0,1]) for x in range(500)]
+        print(np.mean(flips), hyp_test(.5, np.mean(flips), 500))
+
+def more_tests():
+    #This is just for first data -- beacuse I lost it
+    data = open_file()
+
+
+    for r in [4,5,6,7,8]:
+        total_results = []
+        radius = .818610421572298  # (The radius for the half disc ... this value makes the RV Bernoulii(1/2)
+        disc = integral_disc(r)
+
+        for x in data[r - 4 ][2]:
+            try:
+                total_results.append(x[1])
+            except:
+                print(x)
+
+        sample_path = total_results[10]
+        #viz_edge(disc, convert_node_sequence_to_edge(sample_path))
+
+        for v in disc.nodes():
+            disc.node[v]["coord"] = map_up(disc.node[v]["coord"],r)
+
+        viz_edge(disc, convert_node_sequence_to_edge(sample_path))
+
+        count = 0
+        num_samples = len(total_results)
+        for sample_path in total_results:
+            if in_disc([1,0], radius, disc, sample_path):
+                count += 1
+
+        right_prob = count / len(total_results)
+
+        count = 0
+        for sample_path in total_results:
+            if in_disc([-1,0], radius, disc, sample_path):
+                count += 1
+
+        left_prob = count / len(total_results)
+        print("r:", r, "left side estimate", left_prob, "(", 2*hyp_test(.5, left_prob,num_samples), ")",
+              "right side estimate", right_prob, "(",
+              2*hyp_test(.5, right_prob, num_samples), ")")
