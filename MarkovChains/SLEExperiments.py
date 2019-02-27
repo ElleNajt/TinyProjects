@@ -363,8 +363,8 @@ def estimate_probabilities(disc, radius, num_samples, num_steps):
 
 
 def hyp_test(true, estimate, num_samples):
-    stat = np.sqrt(num_samples) * ( estimate - true)  / ( np.sqrt( true * ( 1 - true)))
-    return scipy.stats.norm.cdf(stat)
+    stat = np.abs( np.sqrt(num_samples) * ( estimate - true)  / ( np.sqrt( true * ( 1 - true))))
+    return scipy.stats.norm.cdf(-1 * stat)
 
 def do_test():
 
@@ -435,10 +435,45 @@ def open_file():
     return data
 
 def stats_sanity_check():
-    for i in range(10):
+    for size in [4000,5000,6000]:
+        vals = []
+        for i in range(3000):
 
-        flips = [random.choice([0,1]) for x in range(500)]
-        print(np.mean(flips), hyp_test(.5, np.mean(flips), 500))
+            flips = scipy.stats.bernoulli.rvs(.45, size = size)
+            vals.append(hyp_test(.5, np.mean(flips), size))
+        print(np.max(vals))
+
+
+def top_bot_more(disc, sample_path):
+
+    new_graph = disc.copy()
+
+    for x in sample_path:
+        new_graph.remove_node(x)
+
+    components = list(nx.connected_components(new_graph))
+    y_values = []
+    for comp in components:
+        value = 0
+        for x in comp:
+            value += x[1]
+        y_values.append(value)
+
+    if y_values[0] > y_values[1]:
+        #Then comp[0] is the top
+        if len(components[0]) > len(components[1]):
+            return 1
+        else:
+            return -1
+
+    if y_values[1] > y_values[0]:
+        #Them comp[1] is the top
+        if len(components[1]) > len(components[0]):
+            return 1
+        else:
+            return -1
+    print("the exceptional thing happened")
+    return 0
 
 def more_tests():
     #This is just for first data -- beacuse I lost it
@@ -456,13 +491,13 @@ def more_tests():
             except:
                 print(x)
 
-        sample_path = total_results[10]
+        sample_path = total_results[100]
         #viz_edge(disc, convert_node_sequence_to_edge(sample_path))
 
         for v in disc.nodes():
             disc.node[v]["coord"] = map_up(disc.node[v]["coord"],r)
 
-        viz_edge(disc, convert_node_sequence_to_edge(sample_path))
+        #viz_edge(disc, convert_node_sequence_to_edge(sample_path))
 
         count = 0
         num_samples = len(total_results)
@@ -477,7 +512,19 @@ def more_tests():
             if in_disc([-1,0], radius, disc, sample_path):
                 count += 1
 
+
+
         left_prob = count / len(total_results)
-        print("r:", r, "left side estimate", left_prob, "(", 2*hyp_test(.5, left_prob,num_samples), ")",
+
+        count = 0
+        for sample_path in total_results:
+            count += top_bot_more(disc, sample_path)
+
+        top_bot_stat = .5 * (count / len(total_results)) + .5
+        #To make it a Bernoulli
+
+
+        """print("r:", r, "left side estimate", left_prob, "(", 2*hyp_test(.5, left_prob,num_samples), ")",
               "right side estimate", right_prob, "(",
-              2*hyp_test(.5, right_prob, num_samples), ")")
+              2*hyp_test(.5, right_prob, num_samples), ")")"""
+        print("r:", r, "top_bot", top_bot_stat, "(", 2*hyp_test(.5, top_bot_stat, num_samples), ")")
