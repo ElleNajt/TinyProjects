@@ -31,6 +31,8 @@ def check_connected(grid):
             district_zero.append(x)
         else:
             district_one.append(x)
+    if np.abs(len(district_one) - len(district_zero)) > 2:
+        return False
     dist_zero_graph = nx.subgraph(grid, district_zero)
     dist_one_graph = nx.subgraph(grid, district_one)
     if not nx.is_connected(dist_one_graph):
@@ -42,12 +44,14 @@ def check_connected(grid):
 def step(grid):
     x = random.choice(list(grid.nodes()))
     old = grid.node[x]["district"]
-
     grid.node[x]["district"] = 1 - old
-    if check_connected(grid):
-        return [grid, x, old]
-    else:
+
+    while not check_connected(grid):
         grid.node[x]["district"] = old
+        x = random.choice(list(grid.nodes()))
+        old = grid.node[x]["district"]
+        grid.node[x]["district"] = 1 - old
+
     return [grid, x, old]
 
 def cut_size(grid):
@@ -114,17 +118,49 @@ def test():
     grid = initialize_graph(20, .6)
 
     votes = []
-    for i in range(100000):
-        grid = step(grid)
-        if (i % 1000) == 0:
+    for i in range(10000):
+        grid, x, old = step(grid)
+        if (i % 100) == 0:
             votes.append(vote(grid))
     fairness_super_critical = [fair_vote(x) for x in votes]
-    #viz(grid)
+    viz_district(grid)
 
 
-    parameter = .1
+    parameter = .3
     grid = initialize_graph(20,.6)
     viz_district(grid)
+    votes = []
+    undids = 0
+    for i in range(10000):
+
+        old_cut = cut_size(grid)
+        grid, x, old = step(grid)
+        new_cut = cut_size(grid)
+        successful_sample = False
+        while successful_sample == False:
+            if new_cut > old_cut:
+                p = random.uniform(0, 1)
+                cut_off = parameter ** ( new_cut - old_cut)
+                if p > cut_off:
+                    undids += 1
+                    grid.node[x]["district"] = old
+                    grid, x, old = step(grid)
+                    new_cut = cut_size(grid)
+                else:
+                    successful_sample = True
+            else:
+                successful_sample = True
+        if (i % 100) == 0:
+            votes.append(vote(grid))
+    fairness_sub_critical = [fair_vote(x) for x in votes]
+    viz_district(grid)
+
+
+def test_around_critical():
+    critical_value =0.379
+
+    parameter = .375
+    grid = initialize_graph(20,.6)
     votes = []
     undids = 0
     for i in range(10000):
@@ -138,31 +174,7 @@ def test():
                 undids += 1
                 grid.node[x]["district"] = old
 
-        if (i % 1000) == 0:
-            votes.append(vote(grid))
-    fairness_sub_critical = [fair_vote(x) for x in votes]
-    viz_district(grid)
-
-
-def test_around_critical():
-    critical_value =0.379
-
-    parameter = .375
-    grid = initialize_graph(20,.6)
-    votes = []
-    undids = 0
-    for i in range(500000):
-        old_cut = cut_size(grid)
-        grid, x, old = step(grid)
-        new_cut = cut_size(grid)
-        if new_cut > old_cut:
-            p = random.uniform(0, 1)
-            cut_off = parameter ** ( new_cut - old_cut)
-            if p > cut_off:
-                undids += 1
-                grid.node[x]["district"] = old
-
-        if (i % 1000) == 0:
+        if (i % 100) == 0:
             votes.append(vote(grid))
     fairness_sub_critical = [fair_vote(x) for x in votes]
     print(undids)
@@ -172,7 +184,7 @@ def test_around_critical():
     grid = initialize_graph(20,.6)
     votes = []
     undids = 0
-    for i in range(500000):
+    for i in range(10000):
         old_cut = cut_size(grid)
         grid, x, old = step(grid)
         new_cut = cut_size(grid)
@@ -183,7 +195,7 @@ def test_around_critical():
                 undids += 1
                 grid.node[x]["district"] = old
 
-        if (i % 1000) == 0:
+        if (i % 100) == 0:
             votes.append(vote(grid))
     print(undids)
     fairness_super_critical = [fair_vote(x) for x in votes]
