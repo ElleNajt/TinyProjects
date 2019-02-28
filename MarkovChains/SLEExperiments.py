@@ -107,14 +107,21 @@ def integral_disc(r):
 
     # Now we need to add code so that each dualface can report its edges
 
-    disc_graph.graph["dual"] = dual_disc_graph
-
     disc_graph.graph["plus_one"] = (r, 0)
     disc_graph.graph["minus_one"] = (-r,0)
     disc_graph.graph["scale"] = r + .5
     # These two are the nearest points on the graph to $-1$ and $+1$.
 
     # This is a little funny in the integral case... so we set the disc to size r + .5
+
+    for face in dual_disc_graph.nodes():
+
+        vertices, edges = edges_of_dual_face(dual_disc_graph.node[face]["coord"])
+        dual_disc_graph.node[face]["vertices"] = set(vertices)
+        dual_disc_graph.node[face]["edges"] = edges
+
+    disc_graph.graph["dual"] = dual_disc_graph
+
     return disc_graph
 
 
@@ -191,7 +198,7 @@ def convert_node_sequence_to_edge(path):
     return edge_path
 
 
-def try_add_faces(path, edges):
+def try_add_faces(path, vertices, edges):
     # cases depending on the size of the intersection -- a little sloppier but will be faster?
     # Algorithm -- walk down path until interect vertics of the edges...
     # delete the edges from *edges* as you walk down the path,
@@ -206,7 +213,6 @@ def try_add_faces(path, edges):
     square.add_edges_from(edges)
     length = len(path)
 
-    vertices = set([x[0] for x in edges] + [x[1] for x in edges])
     i = 0
     while path[i] not in vertices:
         i += 1
@@ -261,14 +267,12 @@ def try_add_faces(path, edges):
 def propose_step(disc, path):
     dual = disc.graph["dual"]
     face = random.choice(list(dual.nodes()))
-    vertices, edges = edges_of_dual_face(dual.node[face]["coord"])
 
-    new_path = try_add_faces(path, edges)
+    new_path = try_add_faces(path, dual.node[face]["vertices"], dual.node[face]["edges"])
 
     while new_path is False:
         face = random.choice(list(dual.nodes()))
-        vertices, edges = edges_of_dual_face(dual.node[face]["coord"])
-        new_path = try_add_faces(path, edges)
+        new_path = try_add_faces(path, dual.node[face]["vertices"], dual.node[face]["edges"])
     if check_self_avoiding(new_path):
         path = new_path
 
@@ -400,7 +404,7 @@ def do_test():
 
 
 def test():
-    r = 5
+    r = 8
     radius = .818610421572298  # (The radius for the half disc ... this value makes the RV Bernoulii(1/2)
     desired_error = .1
     true_mean = 1 - (1 - radius ** 2) ** (5 / 8)
@@ -412,15 +416,20 @@ def test():
 
     num_samples = 1
     print("need", num_samples)
-    num_steps = 500
     num_steps = 10000
     disc = integral_disc(r)
     path = initial_path(disc)
     sample_path = run_steps(disc, path, num_steps)
 
 def profile():
-    p = cProfile.run('test()')
+    disc = integral_disc(8)
+    path = initial_path(disc)
+    p = cProfile.run('run_steps(disc, path, num_steps)')
+    cProfile.run('propose_step(disc,path)')
+    dual = disc.graph["dual"]
+    face = random.choice(list(dual.nodes()))
 
+    cProfile.run('try_add_faces(path, dual.node[face]["vertices"], dual.node[face]["edges"])')
 def save(experimental_results):
 
     with open(str(experimental_results[0][1]), 'w') as f:
