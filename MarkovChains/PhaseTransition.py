@@ -45,10 +45,10 @@ def step(grid):
 
     grid.node[x]["district"] = 1 - old
     if check_connected(grid):
-        return grid
+        return [grid, x, old]
     else:
         grid.node[x]["district"] = old
-    return grid
+    return [grid, x, old]
 
 def cut_size(grid):
     district_zero = []
@@ -89,13 +89,19 @@ def vote(grid):
 
     return seats
 
-def viz(graph):
+def viz_vote(graph):
+    for x in graph.nodes():
+        graph.node[x]["pos"] = x
+    values = [graph.node[x]["vote"] for x in graph.nodes()]
+    nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 10, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
+
+def viz_district(graph):
     for x in graph.nodes():
         graph.node[x]["pos"] = x
     values = [graph.node[x]["district"] for x in graph.nodes()]
     nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 10, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
 
-grid = initialize_graph(20,.6)
+
 
 def fair_vote(vote):
     #This is specifically for a case like 6/10 -- where fairness might mean 50-50 seats.
@@ -118,20 +124,69 @@ def test():
 
     parameter = .1
     grid = initialize_graph(20,.6)
+    viz_district(grid)
     votes = []
     undids = 0
-    for i in range(100000):
+    for i in range(10000):
         old_cut = cut_size(grid)
-        new_grid = step(grid)
-        new_cut = cut_size(new_grid)
+        grid, x, old = step(grid)
+        new_cut = cut_size(grid)
         if new_cut > old_cut:
-            p = random.uniform(0,1)
+            p = random.uniform(0, 1)
             cut_off = parameter ** ( new_cut - old_cut)
             if p > cut_off:
                 undids += 1
-                new_grid = grid
-        grid = new_grid
+                grid.node[x]["district"] = old
 
         if (i % 1000) == 0:
             votes.append(vote(grid))
     fairness_sub_critical = [fair_vote(x) for x in votes]
+    viz_district(grid)
+
+
+def test_around_critical():
+    critical_value =0.379
+
+    parameter = .375
+    grid = initialize_graph(20,.6)
+    votes = []
+    undids = 0
+    for i in range(500000):
+        old_cut = cut_size(grid)
+        grid, x, old = step(grid)
+        new_cut = cut_size(grid)
+        if new_cut > old_cut:
+            p = random.uniform(0, 1)
+            cut_off = parameter ** ( new_cut - old_cut)
+            if p > cut_off:
+                undids += 1
+                grid.node[x]["district"] = old
+
+        if (i % 1000) == 0:
+            votes.append(vote(grid))
+    fairness_sub_critical = [fair_vote(x) for x in votes]
+    print(undids)
+    sub_critical_grid = grid
+
+    parameter = .385
+    grid = initialize_graph(20,.6)
+    votes = []
+    undids = 0
+    for i in range(500000):
+        old_cut = cut_size(grid)
+        grid, x, old = step(grid)
+        new_cut = cut_size(grid)
+        if new_cut > old_cut:
+            p = random.uniform(0, 1)
+            cut_off = parameter ** ( new_cut - old_cut)
+            if p > cut_off:
+                undids += 1
+                grid.node[x]["district"] = old
+
+        if (i % 1000) == 0:
+            votes.append(vote(grid))
+    print(undids)
+    fairness_super_critical = [fair_vote(x) for x in votes]
+    print(fairness_sub_critical)
+    print(fairness_super_critical)
+    super_critical_grid = grid
