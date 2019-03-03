@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import random
 import multiprocessing as mp
 import cProfile
-import re
+import copy
 import scipy.stats
 def dist(v, w):
     return np.linalg.norm(np.array(v) - np.array(w))
@@ -34,7 +34,7 @@ def edges_of_dual_face(coord):
     vertices = []
     for a in [-.5, .5]:
         for b in [-.5, .5]:
-            vertices.append( (coord[0]+ a + (coord[1] + b)*1j))
+            vertices.append( (coord[0]+ a , (coord[1] + b)))
     edges = set([])
     for x in vertices:
         for y in vertices:
@@ -267,12 +267,15 @@ def try_add_faces(path, vertices, edges):
 def propose_step(disc, path):
     dual = disc.graph["dual"]
     face = random.choice(list(dual.nodes()))
+    vertices = dual.node[face]["vertices"]
+    edges = dual.node[face]["edges"]
 
-    new_path = try_add_faces(path, dual.node[face]["vertices"], dual.node[face]["edges"])
+    new_path = try_add_faces(path, vertices, edges)
 
     while new_path is False:
         face = random.choice(list(dual.nodes()))
         new_path = try_add_faces(path, dual.node[face]["vertices"], dual.node[face]["edges"])
+
     if check_self_avoiding(new_path):
         path = new_path
 
@@ -290,6 +293,7 @@ def SLE_step(disc,path):
 
 def run_steps(disc, path, steps):
     for i in range(steps):
+
         try:
             path = SLE_step(disc, path)
         except:
@@ -317,53 +321,39 @@ def in_disc(translate, rad, disc, path):
     return False
 
 
-def make_sample(disc, num_steps, output, x ):
-
+def make_sample(data_vector):
+    disc = data_vector[0]
+    num_steps = data_vector[1]
+    x = data_vector[2]
     path = initial_path(disc)
     sample_path = run_steps(disc, path, num_steps)
-    output.put((x,sample_path))
+    return [sample_path, x]
 
 
 def estimate_probabilities(disc, radius, num_samples, num_steps):
 
-    #Todo -- rewrite this to pool processors better, currently will wait on the slowest thread per chunk.
 
     count = 0
-    output = mp.Queue()
 
-    chunks_size = 25
-    num_chunks = num_samples / chunks_size
+    pool = mp.Pool(processes=20)
+    results = pool.map(make_sample, [[disc, num_steps, x] for x in range(num_samples)])
 
-    total_results = []
+    num_samples = len(results)
 
-    for i in range(int(num_chunks) + 1):
-        print("on chunk", i)
-        processes = [mp.Process(target=make_sample, args=(disc, num_steps, output,x)) for x in range(chunks_size)]
-        for p in processes:
-            p.start()
-
-        for p in processes:
-            p.join()
-
-        results = [output.get() for p in processes]
-        total_results += results
-
-    num_samples = len(total_results)
-
-    for sample_path in total_results:
-        if in_disc([1,0], radius, disc, sample_path[1]):
+    for sample_path in results:
+        if in_disc([1,0], radius, disc, sample_path[0]):
             count += 1
 
     right_prob = count / num_samples
 
     count = 0
-    for sample_path in total_results:
-        if in_disc([-1,0], radius, disc, sample_path[1]):
+    for sample_path in results:
+        if in_disc([-1,0], radius, disc, sample_path[0]):
             count += 1
 
     left_prob = count / num_samples
 
-    return [right_prob, left_prob], total_results
+    return [right_prob, left_prob], results
 
 
 def hyp_test(true, estimate, num_samples):
@@ -373,6 +363,7 @@ def hyp_test(true, estimate, num_samples):
 def do_test():
 
     experimental_results = []
+    r = 5
     for r in range(5, 6):
         radius = .818610421572298  # (The radius for the half disc ... this value makes the RV Bernoulii(1/2)
         desired_error = .1
@@ -382,10 +373,10 @@ def do_test():
         desired_confidence = .05
         # Want
         num_samples = round(var_times_accuracy_sq / desired_confidence) + 1
-        num_samples = 20
-        print("need", num_samples)
+        num_samples = 100
+        #print("need", num_samples)
         num_steps = 1 * (r ** 4)
-        num_steps = 100
+        num_steps = 3000
         disc = integral_disc(r)
         prob, samples = estimate_probabilities(disc, radius, num_samples, num_steps)
         print("for r", r)
@@ -396,8 +387,8 @@ def do_test():
         experimental_results.append(result_vector)
     print("results:")
     for x in experimental_results:
-        print("r: ", x[0], " estimation: ", x[1], "prob of seeing an estimate:",
-              hyp_test(true_mean, x[1][0],num_samples))
+        print("r: ", x[0], " estimation: ", x[1], "signifigance:",
+              [hyp_test(true_mean,t,num_samples) for t in x[1]])
 
     # With r = 30, steps = 100,000 got 14/40.
     # With r = 20, ideal radius, desired_error = .05, desired_confidence = .1, and 1001 samples at 20000 steps, got: .3636
@@ -537,3 +528,17 @@ def more_tests():
               "right side estimate", right_prob, "(",
               2*hyp_test(.5, right_prob, num_samples), ")")"""
         print("r:", r, "top_bot", top_bot_stat, "(", 2*hyp_test(.5, top_bot_stat, num_samples), ")")
+
+def epsilon_outlier(vector, epsilon):
+    #Returns True if the vector[0] is an epsilon outlier, otherwise false
+
+    count = 0
+    for x in vector:
+        if x <= vector[0]:
+            count += 1
+
+    threshold = epsilon * len(vector)
+
+    if count <= threshold:
+        return True
+    return False

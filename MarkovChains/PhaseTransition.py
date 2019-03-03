@@ -9,6 +9,14 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import random
 import numpy as np
+import matplotlib.pyplot as plt
+import cProfile
+
+def plot(fairness_vector):
+    plt.plot(fairness_vector)
+    plt.show()
+
+
 
 def initialize_graph(size, p):
     grid = nx.grid_graph( [size, size])
@@ -120,15 +128,16 @@ def test():
     votes = []
     for i in range(10000):
         grid, x, old = step(grid)
-        if (i % 100) == 0:
-            votes.append(vote(grid))
+        votes.append(vote(grid))
     fairness_super_critical = [fair_vote(x) for x in votes]
+    plot(fairness_super_critical)
     viz_district(grid)
 
 
+def test_2():
     parameter = .3
     grid = initialize_graph(20,.6)
-    viz_district(grid)
+    #viz_district(grid)
     votes = []
     undids = 0
     for i in range(10000):
@@ -150,55 +159,63 @@ def test():
                     successful_sample = True
             else:
                 successful_sample = True
-        if (i % 100) == 0:
-            votes.append(vote(grid))
+        votes.append(vote(grid))
     fairness_sub_critical = [fair_vote(x) for x in votes]
-    viz_district(grid)
+    #viz_district(grid)
 
+def profile():
+    cProfile.run('test_2()')
+
+def make_samples(graph_size, proportion, parameter, num_samples):
+    votes = []
+    undids = 0
+    grid = initialize_graph(graph_size, proportion)
+    got_samples = 0
+    while got_samples < num_samples:
+        old_cut = cut_size(grid)
+        grid, x, old = step(grid)
+        new_cut = cut_size(grid)
+        if new_cut > old_cut:
+            p = random.uniform(0, 1)
+            cut_off = parameter ** ( new_cut - old_cut)
+            if p > cut_off:
+                undids += 1
+                grid.node[x]["district"] = old
+            else:
+                got_samples += 1
+        else:
+            got_samples += 1
+        if (got_samples % 10000) == 0:
+            print(got_samples)
+        votes.append(vote(grid))
+    print(undids)
+    fairness_vector = [fair_vote(x) for x in votes]
+
+    return [votes, fairness_vector, grid]
 
 def test_around_critical():
     critical_value =0.379
 
-    parameter = .375
-    grid = initialize_graph(20,.6)
-    votes = []
-    undids = 0
-    for i in range(10000):
-        old_cut = cut_size(grid)
-        grid, x, old = step(grid)
-        new_cut = cut_size(grid)
-        if new_cut > old_cut:
-            p = random.uniform(0, 1)
-            cut_off = parameter ** ( new_cut - old_cut)
-            if p > cut_off:
-                undids += 1
-                grid.node[x]["district"] = old
+    graph_size = 40
+    proportion = .6
+    parameter = .35
+    num_samples = 1000000
 
-        if (i % 100) == 0:
-            votes.append(vote(grid))
-    fairness_sub_critical = [fair_vote(x) for x in votes]
-    print(undids)
-    sub_critical_grid = grid
 
-    parameter = .385
-    grid = initialize_graph(20,.6)
-    votes = []
-    undids = 0
-    for i in range(10000):
-        old_cut = cut_size(grid)
-        grid, x, old = step(grid)
-        new_cut = cut_size(grid)
-        if new_cut > old_cut:
-            p = random.uniform(0, 1)
-            cut_off = parameter ** ( new_cut - old_cut)
-            if p > cut_off:
-                undids += 1
-                grid.node[x]["district"] = old
+    votes, fairness_sub_critical, sub_critical_grid = \
+        make_samples(graph_size, proportion, parameter, num_samples)
 
-        if (i % 100) == 0:
-            votes.append(vote(grid))
-    print(undids)
-    fairness_super_critical = [fair_vote(x) for x in votes]
-    print(fairness_sub_critical)
-    print(fairness_super_critical)
-    super_critical_grid = grid
+
+
+    print(np.mean(fairness_sub_critical))
+
+    parameter = .45
+
+    votes, fairness_super_critical, super_critical_grid = \
+        make_samples(graph_size, proportion, parameter, num_samples)
+
+    print(np.mean(fairness_super_critical[50000:]))
+
+
+    plot(fairness_super_critical)
+    plot(fairness_sub_critical)
