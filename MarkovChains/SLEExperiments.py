@@ -20,6 +20,10 @@ def dist(v, w):
     return np.linalg.norm(np.array(v) - np.array(w))
 
 
+def plot(fairness_vector):
+    plt.plot(fairness_vector)
+    plt.show()
+
 def face_contained_in_disc(coord, r):
     # given the center of the 1x1 face, determine if it is contained in the open unit disc.
     for a in [-.5, .5]:
@@ -292,12 +296,15 @@ def SLE_step(disc,path):
     return path
 
 def run_steps(disc, path, steps):
+    sample_trajectory = [path]
     for i in range(steps):
 
         try:
             path = SLE_step(disc, path)
+            sample_trajectory.append(path)
         except:
             print("failed")
+    return [path, sample_trajectory]
     return path
 
 def test_run(disc):
@@ -326,8 +333,8 @@ def make_sample(data_vector):
     num_steps = data_vector[1]
     x = data_vector[2]
     path = initial_path(disc)
-    sample_path = run_steps(disc, path, num_steps)
-    return [sample_path, x]
+    sample_path, sample_trajectory = run_steps(disc, path, num_steps)
+    return [sample_path, sample_trajectory, x]
 
 
 def estimate_probabilities(disc, radius, num_samples, num_steps):
@@ -355,43 +362,84 @@ def estimate_probabilities(disc, radius, num_samples, num_steps):
 
     return [right_prob, left_prob], results
 
+def estimate_probabilities_given_sample(disc, radius, results):
+    count = 0
+    num_samples = len(results)
+
+    for sample_path in results:
+        if in_disc([1,0], radius, disc, sample_path[0]):
+            count += 1
+
+    right_prob = count / num_samples
+
+    count = 0
+    for sample_path in results:
+        if in_disc([-1,0], radius, disc, sample_path[0]):
+            count += 1
+
+    left_prob = count / num_samples
+
+    return [right_prob, left_prob]
 
 def hyp_test(true, estimate, num_samples):
     stat = np.abs( np.sqrt(num_samples) * ( estimate - true)  / ( np.sqrt( true * ( 1 - true))))
     return scipy.stats.norm.cdf(-1 * stat)
 
+def vary_radius(r, samples):
+    disc = integral_disc(r)
+    left_estimates = []
+    right_estimates = []
+    means = []
+    density = 100
+    for radius in range(1,density):
+        radius = radius / (density + 1)
+        true_mean = 1 - (1 - radius ** 2) ** (5 / 8)
+        estimations = estimate_probabilities_given_sample(disc, radius, samples)
+        means.append(true_mean)
+        left_estimates.append(estimations[0])
+        right_estimates.append(estimations[1])
+
+    plt.plot(means, color = 'r')
+    plt.plot(left_estimates)
+    plt.plot(right_estimates)
+    plt.savefig(str(r))
+    plt.close()
+
 def do_test():
 
     experimental_results = []
-    r = 5
-    for r in range(5, 6):
+
+    r = 10
+    for r in range(10, 12):
         radius = .818610421572298  # (The radius for the half disc ... this value makes the RV Bernoulii(1/2)
-        desired_error = .1
         true_mean = 1 - (1 - radius ** 2) ** (5 / 8)
-        true_variance = true_mean*(1 - true_mean)
-        var_times_accuracy_sq = true_variance * ( 1 / desired_error)**2
-        desired_confidence = .05
-        # Want
-        num_samples = round(var_times_accuracy_sq / desired_confidence) + 1
         num_samples = 100
-        #print("need", num_samples)
-        num_steps = 1 * (r ** 4)
-        num_steps = 3000
+        num_steps = 10000
         disc = integral_disc(r)
         prob, samples = estimate_probabilities(disc, radius, num_samples, num_steps)
         print("for r", r)
         print("correct value",  1-(1-radius**2)**(5/8))
         # https://arxiv.org/pdf/math/0112246.pdf
         print("estimated probabiltiy", prob)
-        result_vector = [r, prob, samples]
+        result_vector = [r, prob, samples, disc]
         experimental_results.append(result_vector)
+
     print("results:")
     for x in experimental_results:
-        print("r: ", x[0], " estimation: ", x[1], "signifigance:",
-              [hyp_test(true_mean,t,num_samples) for t in x[1]])
+        print("r: ", x[0], " estimation: ", x[1], "p-value:",
+              [hyp_test(true_mean, t, num_samples) for t in x[1]])
+
+        path = x[2][0][0]
+    create_plots(experimental_results)
+        #viz_edge(disc, convert_node_sequence_to_edge(path))
 
     # With r = 30, steps = 100,000 got 14/40.
     # With r = 20, ideal radius, desired_error = .05, desired_confidence = .1, and 1001 samples at 20000 steps, got: .3636
+
+def create_plots(experimental_results):
+    for results_vector in experimental_results:
+        vary_radius(results_vector[0], results_vector[2])
+
 
 
 def test():
