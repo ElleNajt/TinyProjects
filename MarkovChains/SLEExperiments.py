@@ -8,12 +8,14 @@ Created on Mon Feb 18 20:47:44 2019
 #What we'll do is simulate the Markov chain on the intersection with the disc.
 #Then we can compute the explicit mapping out fomulas...
 
+import json
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 import random
 import multiprocessing as mp
 import cProfile
+import pickle
 import copy
 import scipy.stats
 def dist(v, w):
@@ -334,6 +336,7 @@ def make_sample(data_vector):
     x = data_vector[2]
     path = initial_path(disc)
     sample_path, sample_trajectory = run_steps(disc, path, num_steps)
+    sample_trajectory = []
     return [sample_path, sample_trajectory, x]
 
 
@@ -410,11 +413,11 @@ def do_test():
     experimental_results = []
 
     r = 10
-    for r in range(10, 12):
+    for r in range(10, 20):
         radius = .818610421572298  # (The radius for the half disc ... this value makes the RV Bernoulii(1/2)
         true_mean = 1 - (1 - radius ** 2) ** (5 / 8)
         num_samples = 100
-        num_steps = 10000
+        num_steps = 1000000
         disc = integral_disc(r)
         prob, samples = estimate_probabilities(disc, radius, num_samples, num_steps)
         print("for r", r)
@@ -422,15 +425,24 @@ def do_test():
         # https://arxiv.org/pdf/math/0112246.pdf
         print("estimated probabiltiy", prob)
         result_vector = [r, prob, samples, disc]
-        experimental_results.append(result_vector)
+        #experimental_results.append(result_vector)
+        create_plots([result_vector])
+        with open(str(r) + 'data.data', 'wb') as outfile:
+            pickle.dump(result_vector, outfile)
+        result_vector = []
 
-    print("results:")
-    for x in experimental_results:
-        print("r: ", x[0], " estimation: ", x[1], "p-value:",
-              [hyp_test(true_mean, t, num_samples) for t in x[1]])
+    test = []
 
-        path = x[2][0][0]
-    create_plots(experimental_results)
+    with open(str(r) + 'data.data', 'rb') as f:
+        test = pickle.load(f)
+
+    #print("results:")
+    #for x in experimental_results:
+    #    print("r: ", x[0], " estimation: ", x[1], "p-value:",
+    #          [hyp_test(true_mean, t, num_samples) for t in x[1]])
+
+    #    path = x[2][0][0]
+    #create_plots(experimental_results)
         #viz_edge(disc, convert_node_sequence_to_edge(path))
 
     # With r = 30, steps = 100,000 got 14/40.
