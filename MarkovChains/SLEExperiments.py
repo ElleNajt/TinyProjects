@@ -99,6 +99,8 @@ def integral_disc(r):
     dual_relabels = {}
     for v in grid.nodes():
         grid.node[v]["coord"] = (v[0] - 2*r, v[1] - 2*r)
+        grid.node[v]["top"] = 0
+        grid.node[v]["bot"] = 0
         dual_grid.node[v]["coord"] = ((v[0] + .5) - 2*r, (v[1] + .5) - 2*r)
         relabels[v] = grid.node[v]["coord"]
         dual_relabels[v] = dual_grid.node[v]["coord"]
@@ -142,6 +144,19 @@ def viz(T, path):
     values = [T.node[x]["col"] for x in T.nodes()]
 
     nx.draw(T, pos=nx.get_node_attributes(T, 'coord'), node_size = 1, width = 2, cmap=plt.get_cmap('jet'),  node_color=values)
+
+def viz_top_bot(disc):
+
+
+    for x in disc.nodes():
+        t = disc.node[x]["top"]
+        b = disc.node[x]["bot"]
+        disc.node[x]["col"] = t / (t + b + 1)
+
+    values = [disc.node[x]["col"] for x in disc.nodes()]
+
+    nx.draw(disc, pos=nx.get_node_attributes(disc, 'coord'), node_size = 1, width = 2, cmap=plt.get_cmap('jet'),  node_color=values)
+
 
 def viz_edge(T, edge_path):
     k = 20
@@ -287,8 +302,8 @@ def propose_step(disc, path):
 
     return path
 
-def SLE_step(disc,path):
-    mu = 2.63815853
+def SLE_step(disc,path, fugacity):
+    mu = fugacity
     new_path = propose_step(disc, path)
     if new_path == path:
         return new_path
@@ -297,12 +312,13 @@ def SLE_step(disc,path):
         return new_path
     return path
 
-def run_steps(disc, path, steps):
+
+def run_steps(disc, path, steps, fugacity = 2.63815853):
     sample_trajectory = [path]
     for i in range(steps):
 
         try:
-            path = SLE_step(disc, path)
+            path = SLE_step(disc, path, fugacity)
             sample_trajectory.append(path)
         except:
             print("failed")
@@ -345,7 +361,7 @@ def estimate_probabilities(disc, radius, num_samples, num_steps):
 
     count = 0
 
-    pool = mp.Pool(processes=20)
+    pool = mp.Pool(processes=28)
     results = pool.map(make_sample, [[disc, num_steps, x] for x in range(num_samples)])
 
     num_samples = len(results)
@@ -416,8 +432,8 @@ def do_test():
     for r in range(10, 20):
         radius = .818610421572298  # (The radius for the half disc ... this value makes the RV Bernoulii(1/2)
         true_mean = 1 - (1 - radius ** 2) ** (5 / 8)
-        num_samples = 100
-        num_steps = 1000000
+        num_samples = 1000
+        num_steps = 100000
         disc = integral_disc(r)
         prob, samples = estimate_probabilities(disc, radius, num_samples, num_steps)
         print("for r", r)
@@ -519,8 +535,12 @@ def top_bot_more(disc, sample_path):
             value += x[1]
         y_values.append(value)
 
+    top = []
+    bot = []
     if y_values[0] > y_values[1]:
         #Then comp[0] is the top
+        top = comp[0]
+        bot = comp[1]
         if len(components[0]) > len(components[1]):
             return 1
         else:
@@ -528,12 +548,50 @@ def top_bot_more(disc, sample_path):
 
     if y_values[1] > y_values[0]:
         #Them comp[1] is the top
+        top = comp[1]
+        bot = comp[0]
+
         if len(components[1]) > len(components[0]):
             return 1
         else:
             return -1
     print("the exceptional thing happened")
     return 0
+def sign_top_bot(disc, sample_path):
+
+    new_graph = disc.copy()
+
+    for x in sample_path:
+        new_graph.remove_node(x)
+
+    components = list(nx.connected_components(new_graph))
+    y_values = []
+    for comp in components:
+        value = 0
+        for x in comp:
+            value += x[1]
+        y_values.append(value)
+
+    top = []
+    bot = []
+
+    if y_values[0] > y_values[1]:
+        #Then components[0] is the top
+        top = components[0]
+        bot = components[1]
+
+    if y_values[1] > y_values[0]:
+        #Them components[1] is the top
+        top = components[1]
+        bot = components[0]
+
+    for x in top:
+        disc.node[x]["top"] += 1
+    for x in bot:
+        disc.node[x]["bot"] += 1
+
+    return disc
+
 
 def more_tests():
     #This is just for first data -- beacuse I lost it
@@ -602,3 +660,16 @@ def epsilon_outlier(vector, epsilon):
     if count <= threshold:
         return True
     return False
+
+def top_bot_halfies_test(disc):
+    #This samples super critical paths, and each node keeps track of the number of times
+#       it was on the top vs. on the bottom
+
+    disc = integral_disc(10)
+    path = initial_path(disc)
+    num_steps = 10000
+    for i in range(1000):
+        sample_path = run_steps(disc, path, num_steps, 1)
+        sign_top_bot(disc, sample_path[0])
+
+    viz_top_bot(disc)
