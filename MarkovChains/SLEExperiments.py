@@ -143,7 +143,7 @@ def viz(T, path):
             T.node[x]["col"] = 1
     values = [T.node[x]["col"] for x in T.nodes()]
 
-    nx.draw(T, pos=nx.get_node_attributes(T, 'coord'), node_size = 1, width = 2, cmap=plt.get_cmap('jet'),  node_color=values)
+    nx.draw(T, pos=nx.get_node_attributes(T, 'coord'), node_size = 1, width = .1, cmap=plt.get_cmap('jet'),  node_color=values)
 
 def viz_top_bot(disc):
 
@@ -155,7 +155,7 @@ def viz_top_bot(disc):
 
     values = [disc.node[x]["col"] for x in disc.nodes()]
 
-    nx.draw(disc, pos=nx.get_node_attributes(disc, 'coord'), node_size = 1, width = 2, cmap=plt.get_cmap('jet'),  node_color=values)
+    nx.draw(disc, pos=nx.get_node_attributes(disc, 'coord'), node_size = 1, width = .0, cmap=plt.get_cmap('jet'),  node_color=values)
 
 
 def viz_edge(T, edge_path):
@@ -163,7 +163,7 @@ def viz_edge(T, edge_path):
 
     values = [1 - int((x in edge_path) or ((x[1], x[0]) in edge_path)) for x in T.edges()]
 
-    nx.draw(T, pos=nx.get_node_attributes(T, 'coord'), node_size = 1, width = 1, cmap=plt.get_cmap('jet'),  edge_color=values)
+    nx.draw(T, pos=nx.get_node_attributes(T, 'coord'), node_size = 1, width =2, cmap=plt.get_cmap('jet'),  edge_color=values)
 
 
 def map_up(point, r):
@@ -404,7 +404,7 @@ def hyp_test(true, estimate, num_samples):
     stat = np.abs( np.sqrt(num_samples) * ( estimate - true)  / ( np.sqrt( true * ( 1 - true))))
     return scipy.stats.norm.cdf(-1 * stat)
 
-def vary_radius(r, samples):
+def vary_radius(r, samples, name):
     disc = integral_disc(r)
     left_estimates = []
     right_estimates = []
@@ -421,7 +421,7 @@ def vary_radius(r, samples):
     plt.plot(means, color = 'r')
     plt.plot(left_estimates)
     plt.plot(right_estimates)
-    plt.savefig(str(r))
+    plt.savefig(name)
     plt.close()
 
 def do_test():
@@ -429,11 +429,12 @@ def do_test():
     experimental_results = []
 
     r = 10
-    for r in range(10, 20):
+    for r in range(1,6):
+        r = r*5 + 20
         radius = .818610421572298  # (The radius for the half disc ... this value makes the RV Bernoulii(1/2)
         true_mean = 1 - (1 - radius ** 2) ** (5 / 8)
         num_samples = 1000
-        num_steps = 100000
+        num_steps = 10000
         disc = integral_disc(r)
         prob, samples = estimate_probabilities(disc, radius, num_samples, num_steps)
         print("for r", r)
@@ -441,9 +442,10 @@ def do_test():
         # https://arxiv.org/pdf/math/0112246.pdf
         print("estimated probabiltiy", prob)
         result_vector = [r, prob, samples, disc]
+        name = str(r) + "_samples" + str(num_samples) + "_steps" + str(num_steps)
         #experimental_results.append(result_vector)
-        create_plots([result_vector])
-        with open(str(r) + 'data.data', 'wb') as outfile:
+        create_plots([result_vector], name)
+        with open(name + 'data.data', 'wb') as outfile:
             pickle.dump(result_vector, outfile)
         result_vector = []
 
@@ -464,9 +466,9 @@ def do_test():
     # With r = 30, steps = 100,000 got 14/40.
     # With r = 20, ideal radius, desired_error = .05, desired_confidence = .1, and 1001 samples at 20000 steps, got: .3636
 
-def create_plots(experimental_results):
+def create_plots(experimental_results, name):
     for results_vector in experimental_results:
-        vary_radius(results_vector[0], results_vector[2])
+        vary_radius(results_vector[0], results_vector[2], name)
 
 
 
@@ -557,23 +559,65 @@ def top_bot_more(disc, sample_path):
             return -1
     print("the exceptional thing happened")
     return 0
+
+def rotate_90(vector):
+    mat = np.array([ [0,-1], [1,0]])
+    return np.matmul(mat, vector)
+
+
+def convert_to_dual_edge(edge):
+    x = np.array(edge[0])
+    y = np.array(edge[1])
+
+    m = (x + y)/2
+    v_1 = x - m
+    v_2 = y - m
+    u_1 = rotate_90(v_1) + m
+    u_2 = rotate_90(v_2) + m
+
+    return tuple([tuple(u_1), tuple(u_2)])
+
+
+
 def sign_top_bot(disc, sample_path):
 
-    new_graph = disc.copy()
 
-    for x in sample_path:
-        new_graph.remove_node(x)
+    new_graph = disc.graph["dual"].copy()
+    #Now add external edges for top and bottom halves
+    top_edge = []
+    bot_edge = []
+    for x in new_graph.nodes():
+        if x[1] >= np.max( [ y[1] for y in new_graph.neighbors(x) ] ):
+            top_edge.append(x)
+        if x[1] <= np.min( [ y[1] for y in new_graph.neighbors(x) ] ):
+            bot_edge.append(x)
+
+    for x in top_edge:
+        new_graph.add_edge(x, "TOP")
+    for x in bot_edge:
+        new_graph.add_edge(x, "BOT")
+
+
+
+    edges = convert_node_sequence_to_edge(sample_path[0])
+    for x in edges:
+        dual_x = convert_to_dual_edge(x)
+        if dual_x in new_graph.edges():
+            new_graph.remove_edge(dual_x[0], dual_x[1])
+        dual_x = ( dual_x[1], dual_x[0])
+        if dual_x in new_graph.edges():
+            new_graph.remove_edge(dual_x[0], dual_x[1])
+
+
 
     components = list(nx.connected_components(new_graph))
-    y_values = []
-    for comp in components:
-        value = 0
-        for x in comp:
-            value += x[1]
-        y_values.append(value)
 
-    top = []
-    bot = []
+    for comp in components:
+        if "TOP" in comp:
+            top = comp
+        if "BOT" in comp:
+            bot = comp
+
 
     if y_values[0] > y_values[1]:
         #Then components[0] is the top
@@ -586,9 +630,9 @@ def sign_top_bot(disc, sample_path):
         bot = components[0]
 
     for x in top:
-        disc.node[x]["top"] += 1
+        disc.graph["dual"].node[x]["top"] += 1
     for x in bot:
-        disc.node[x]["bot"] += 1
+        disc.graph["dual"].node[x]["bot"] += 1
 
     return disc
 
@@ -667,9 +711,13 @@ def top_bot_halfies_test(disc):
 
     disc = integral_disc(10)
     path = initial_path(disc)
-    num_steps = 10000
-    for i in range(1000):
+    num_steps = 2000
+    for i in range(100):
+        print(i)
         sample_path = run_steps(disc, path, num_steps, 1)
         sign_top_bot(disc, sample_path[0])
 
-    viz_top_bot(disc)
+    viz_edge(disc, convert_node_sequence_to_edge(sample_path[0]))
+    #viz_top_bot(disc)
+
+    #This is wrong because you need to be considering the dual path anyway... ok, fix this ...

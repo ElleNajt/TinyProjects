@@ -31,6 +31,19 @@ def initialize_graph(size, p):
             grid.node[x]["district"] = 1
     return grid
 
+def middle_box(size, p = .2, q = .2 + np.sqrt(.4)):
+    grid = nx.grid_graph( [size, size])
+    for x in grid.nodes():
+        if (p * size <= x[1] < q*size) and ((p * size <= x[0] < q*size) ):
+            grid.node[x]["vote"] = 0
+        else:
+            grid.node[x]["vote"] = 1
+        if x[1] < size/2:
+            grid.node[x]["district"] = 0
+        else:
+            grid.node[x]["district"] = 1
+    return grid
+
 def check_connected(grid):
     district_zero = []
     district_one = []
@@ -169,7 +182,8 @@ def profile():
 def make_samples(graph_size, proportion, parameter, num_samples):
     votes = []
     undids = 0
-    grid = initialize_graph(graph_size, proportion)
+    #grid = initialize_graph(graph_size, proportion)
+    grid =  middle_box(20)
     got_samples = 0
     while got_samples < num_samples:
         old_cut = cut_size(grid)
@@ -198,8 +212,8 @@ def test_around_critical():
 
     graph_size = 40
     proportion = .6
-    parameter = .35
-    num_samples = 1000000
+    parameter = .1
+    num_samples = 10000
 
 
     votes, fairness_sub_critical, sub_critical_grid = \
@@ -209,12 +223,12 @@ def test_around_critical():
 
     print(np.mean(fairness_sub_critical))
 
-    parameter = .45
+    parameter = critical_value
 
     votes, fairness_super_critical, super_critical_grid = \
         make_samples(graph_size, proportion, parameter, num_samples)
 
-    print(np.mean(fairness_super_critical[50000:]))
+    print(np.mean(fairness_super_critical))
 
 
     plot(fairness_super_critical)
