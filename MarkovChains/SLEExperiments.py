@@ -2,7 +2,7 @@
 """
 Created on Mon Feb 18 20:47:44 2019
 
-@author: Temporary
+@author: Lorenzo
 """
 
 #What we'll do is simulate the Markov chain on the intersection with the disc.
