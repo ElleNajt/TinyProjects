@@ -2,7 +2,7 @@
 """
 Created on Wed Feb 27 19:16:59 2019
 
-@author: Temporary
+@author: Lorenzo
 """
 
 import networkx as nx
@@ -301,7 +301,11 @@ def test_around_critical():
 
 
     plot(fairness_super_critical)
+<<<<<<< HEAD
 
     viz_vote(super_critical_grid)
     viz_soft_district(super_critical_grid)
 
+=======
+    plot(fairness_sub_critical)
+>>>>>>> master
