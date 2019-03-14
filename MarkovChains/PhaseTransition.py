@@ -21,6 +21,8 @@ def plot(fairness_vector):
 def initialize_graph(size, p):
     grid = nx.grid_graph( [size, size])
     for x in grid.nodes():
+        grid.node[x]["zeros"] = 0
+        grid.node[x]["ones"] = 0
         if x[1] < p*size :
             grid.node[x]["vote"] = 0
         else:
@@ -34,6 +36,8 @@ def initialize_graph(size, p):
 def middle_box(size, p = .2, q = .2 + np.sqrt(.4)):
     grid = nx.grid_graph( [size, size])
     for x in grid.nodes():
+        grid.node[x]["zeros"] = 0
+        grid.node[x]["ones"] = 0
         if (p * size <= x[1] < q*size) and ((p * size <= x[0] < q*size) ):
             grid.node[x]["vote"] = 0
         else:
@@ -52,8 +56,12 @@ def check_connected(grid):
             district_zero.append(x)
         else:
             district_one.append(x)
-    if np.abs(len(district_one) - len(district_zero)) > 2:
-        return False
+    if len(district_one) == 0:
+        return True
+    if len(district_zero) == 0:
+        return True
+    #if np.abs(len(district_one) - len(district_zero)) > 2:
+    #    return False
     dist_zero_graph = nx.subgraph(grid, district_zero)
     dist_one_graph = nx.subgraph(grid, district_one)
     if not nx.is_connected(dist_one_graph):
@@ -99,6 +107,7 @@ def vote(grid):
     seats = []
     tally = 0
     for x in district_zero:
+        grid.node[x]["zeros"] += 1
         if grid.node[x]["vote"] == 1:
             tally += 1
         else:
@@ -106,6 +115,7 @@ def vote(grid):
     seats.append(np.sign(tally))
     tally = 0
     for x in district_one:
+        grid.node[x]["ones"] += 1
         if grid.node[x]["vote"] == 1:
             tally += 1
         else:
@@ -117,14 +127,30 @@ def vote(grid):
 def viz_vote(graph):
     for x in graph.nodes():
         graph.node[x]["pos"] = x
-    values = [graph.node[x]["vote"] for x in graph.nodes()]
-    nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 10, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
+    values = [graph.node[x]["vote"] + 3 for x in graph.nodes()]
+    nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 10, width = .5, cmap=plt.get_cmap('Set2'), node_color=values)
 
 def viz_district(graph):
     for x in graph.nodes():
         graph.node[x]["pos"] = x
     values = [graph.node[x]["district"] for x in graph.nodes()]
     nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 10, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
+
+
+def viz_soft_district(graph):
+    for x in graph.nodes():
+        graph.node[x]["pos"] = x
+    values = [graph.node[x]["ones"] - graph.node[x]["zeros"] for x in graph.nodes()]
+    nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 10, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
+
+
+def viz_soft_district_one(graph):
+    for x in graph.nodes():
+        graph.node[x]["pos"] = x
+    values = [graph.node[x]["zeros"] for x in graph.nodes()]
+    nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 10, width = .5, cmap=plt.get_cmap('binary'), node_color=values)
+
+
 
 
 
@@ -181,6 +207,7 @@ def profile():
 
 def make_samples(graph_size, proportion, parameter, num_samples):
     votes = []
+    slopes = []
     undids = 0
     #grid = initialize_graph(graph_size, proportion)
     grid =  middle_box(20)
@@ -202,34 +229,79 @@ def make_samples(graph_size, proportion, parameter, num_samples):
         if (got_samples % 10000) == 0:
             print(got_samples)
         votes.append(vote(grid))
+        slopes.append(slope(grid))
     print(undids)
     fairness_vector = [fair_vote(x) for x in votes]
 
-    return [votes, fairness_vector, grid]
+    return [votes, fairness_vector, grid, slopes]
+
+def slope(grid):
+
+    #This will compute the average slope, after tilting $i$ to $i + 1$... this is imperfect, since I'd like
+    #this average measurement to be linearly equivariant
+
+    district_zero = []
+    district_one = []
+    for x in grid.nodes():
+        if grid.node[x]["district"] == 0:
+            district_zero.append(x)
+        else:
+            district_one.append(x)
+
+    cuts = list(nx.edge_boundary(grid, district_zero, district_one))
+    horizontal = 0
+    vertical = 0
+    for e in cuts:
+        if e[0][0] == e[1][0]:
+            vertical += 1
+        else:
+            horizontal += 1
+    slope = horizontal * np.array( [ 1,0]) + vertical * np.array([0,1])
+    slope = slope / np.linalg.norm(slope)
+    return slope
+
+def test_slopes():
+
+    graph_size = 30
+    proportion = .6
+    parameter = .35
+    num_samples = 1000000
+
+    votes, fairness, grid, slopes = \
+        make_samples(graph_size, proportion, parameter, num_samples)
+    plot(slopes)
+    viz_soft_district(grid)
 
 def test_around_critical():
     critical_value =0.379
 
-    graph_size = 40
+    graph_size = 30
     proportion = .6
-    parameter = .1
-    num_samples = 10000
+    parameter = .35
+    num_samples = 2000000
 
 
-    votes, fairness_sub_critical, sub_critical_grid = \
+    sub_critical_votes, fairness_sub_critical, sub_critical_grid, slopes = \
         make_samples(graph_size, proportion, parameter, num_samples)
+
+
+    #plot(fairness_sub_critical)
+    viz_soft_district(sub_critical_grid)
 
 
 
     print(np.mean(fairness_sub_critical))
 
-    parameter = critical_value
+    parameter = 0.379
 
-    votes, fairness_super_critical, super_critical_grid = \
+    super_critical_votes, fairness_super_critical, super_critical_grid, slopes = \
         make_samples(graph_size, proportion, parameter, num_samples)
 
     print(np.mean(fairness_super_critical))
 
 
     plot(fairness_super_critical)
-    plot(fairness_sub_critical)
+
+    viz_vote(super_critical_grid)
+    viz_soft_district(super_critical_grid)
+

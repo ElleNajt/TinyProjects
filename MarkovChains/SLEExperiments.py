@@ -424,17 +424,19 @@ def vary_radius(r, samples, name):
     plt.savefig(name)
     plt.close()
 
+
+
+
 def do_test():
 
     experimental_results = []
 
     r = 10
-    for r in range(1,6):
-        r = r*5 + 20
+    for r in [10,11,12,13,14,15]:
         radius = .818610421572298  # (The radius for the half disc ... this value makes the RV Bernoulii(1/2)
         true_mean = 1 - (1 - radius ** 2) ** (5 / 8)
-        num_samples = 1000
-        num_steps = 10000
+        num_samples = 100
+        num_steps = 100000
         disc = integral_disc(r)
         prob, samples = estimate_probabilities(disc, radius, num_samples, num_steps)
         print("for r", r)
@@ -445,14 +447,16 @@ def do_test():
         name = str(r) + "_samples" + str(num_samples) + "_steps" + str(num_steps)
         #experimental_results.append(result_vector)
         create_plots([result_vector], name)
-        with open(name + 'data.data', 'wb') as outfile:
+        with open(str(r) + '_steps:' + str(num_steps) + 'data.data', 'wb') as outfile:
             pickle.dump(result_vector, outfile)
         result_vector = []
 
     test = []
 
-    with open(str(r) + 'data.data', 'rb') as f:
-        test = pickle.load(f)
+    for r in [10,11,12,13,14,15]:
+        with open(str(r) + '_steps:' + str(num_steps) + 'data.data', 'rb') as f:
+            test = pickle.load(f)
+        print('r', search_for_conflict(test))
 
     #print("results:")
     #for x in experimental_results:
@@ -465,6 +469,33 @@ def do_test():
 
     # With r = 30, steps = 100,000 got 14/40.
     # With r = 20, ideal radius, desired_error = .05, desired_confidence = .1, and 1001 samples at 20000 steps, got: .3636
+
+
+def get_lengths(test):
+
+    paths = test[2]
+    lengths = [len(x[0]) for x in paths]
+    return lengths
+
+def search_for_conflict(test):
+    #This will try to see if the samples double back
+    paths = test[2]
+    count = 0
+    for path in paths:
+        count += double_back(path[0])
+    return count
+
+def double_back(path):
+
+    for i in range(len(path)):
+        for j in range(len(path)):
+            if dist(path[i], path[j]) <= 1 and np.abs(i - j) > 1:
+                return 1
+    return 0
+
+
+
+
 
 def create_plots(experimental_results, name):
     for results_vector in experimental_results:
