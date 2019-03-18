@@ -12,6 +12,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cProfile
 
+from mpl_toolkits.mplot3d import Axes3D
+
 def plot(fairness_vector):
     plt.plot(fairness_vector)
     plt.show()
@@ -253,24 +255,68 @@ def slope(grid):
     vertical = 0
     for e in cuts:
         if e[0][0] == e[1][0]:
-            vertical += 1
+            vertical += e[0][1] - e[1][1]
         else:
-            horizontal += 1
+            horizontal += e[0][0] - e[1][0]
     slope = horizontal * np.array( [ 1,0]) + vertical * np.array([0,1])
     slope = slope / np.linalg.norm(slope)
     return slope
 
+def homology_class(torus):
+    #Here's a natural statistic:
+
+    #On the torus, the partitions will correspond to either a: Simple Cycles
+    #b: Pairs of non-simple cycles int he same homology class
+    #Probably moving between these is slow... is it possible? Yes, because the graph si 2 connected.
+    #This case is DEFINATELY SLOW.
+
+    return False
+
+
+def map_up(grid):
+
+    #Since a key bottle neck seems to be regarding the slopes, I wonder if this is also a problem for mixing as well...
+    # All we suspect at this point is that FOR FIXED ENDPOINTS, the mixing at critical temperature appears to be rapid,
+
+    return False
+
+
+
+
+
+
+def slopes_plot(slopes):
+
+
+    plt.rcParams['legend.fontsize'] = 10
+
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+
+    # Prepare arrays x, y, z
+    z = np.linspace(-2, 2, len(slopes))
+    x = [vect[0] for vect in slopes]
+    y = [vect[1] for vect in slopes]
+
+    ax.plot(x, y, z)
+    ax.legend()
+
+    plt.show()
+
 def test_slopes():
 
-    graph_size = 30
-    proportion = .6
-    parameter = .35
-    num_samples = 1000000
+    slope_list = []
+    grid_list = []
+    for i in range(5):
+        graph_size = 20
+        proportion = .6
+        parameter = 1
+        num_samples = 100000
 
-    votes, fairness, grid, slopes = \
-        make_samples(graph_size, proportion, parameter, num_samples)
-    plot(slopes)
-    viz_soft_district(grid)
+        votes, fairness, grid, slopes = \
+            make_samples(graph_size, proportion, parameter, num_samples)
+        slope_list.append(slopes)
+        grid_list.append(grid)
 
 def test_around_critical():
     critical_value =0.379
@@ -301,11 +347,9 @@ def test_around_critical():
 
 
     plot(fairness_super_critical)
-<<<<<<< HEAD
 
     viz_vote(super_critical_grid)
     viz_soft_district(super_critical_grid)
 
-=======
     plot(fairness_sub_critical)
->>>>>>> master
+
