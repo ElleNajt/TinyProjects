@@ -259,7 +259,7 @@ def slope(grid):
         else:
             horizontal += e[0][0] - e[1][0]
     slope = horizontal * np.array( [ 1,0]) + vertical * np.array([0,1])
-    slope = slope / np.linalg.norm(slope)
+    #slope = slope / np.linalg.norm(slope) it's not good to get rid of the norm -- we miss information
     return slope
 
 def homology_class(torus):
@@ -299,7 +299,7 @@ def slopes_plot(slopes):
     y = [vect[1] for vect in slopes]
 
     ax.plot(x, y, z)
-    ax.legend()
+
 
     plt.show()
 
@@ -308,15 +308,18 @@ def test_slopes():
     slope_list = []
     grid_list = []
     for i in range(5):
-        graph_size = 20
+        graph_size = 10
         proportion = .6
         parameter = 1
-        num_samples = 100000
+        num_samples = 500000
 
         votes, fairness, grid, slopes = \
             make_samples(graph_size, proportion, parameter, num_samples)
         slope_list.append(slopes)
         grid_list.append(grid)
+
+    print( [np.mean(x, 0) for x in slope_list])
+    print( [ np.var(x,0) for x in slope_list])
 
 def test_around_critical():
     critical_value =0.379
