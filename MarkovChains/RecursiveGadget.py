@@ -92,6 +92,16 @@ def construct_gadget(depth):
         R.node[x]["pos"] = R.node[x]["coord"]
     return R
 
+def construct_gadget_with_clasp(k):
+    graph = construct_gadget(k)
+    graph.add_node("S")
+    graph.add_edge("S", 'a0')
+    graph.add_edge("S", 'b0')
+    graph.add_edge("S", 'c0')
+    graph.node["S"]["pos"] = [6,9]
+    graph.node["S"]["coord"] = [6,9]
+    return graph
+
 graph = construct_gadget(3)
 
 graph = Facefinder.compute_rotation_system(graph)
@@ -136,6 +146,10 @@ def add(edges1, edges2):
             output.append(e)    
     return frozenset(output)
 
+def cycle_basis(graph):
+    vertex_listed = nx.cycle_basis(graph)
+    #NX gives the cycle basis as a list of vertices, not by edges
+
 def enumerate_simple_cycles(graph):
     #This enumerate the simple cycles of the input graph
     #The input graph must be 2 connected in order for this to work
@@ -149,6 +163,8 @@ def enumerate_simple_cycles(graph):
     dual_R = Facefinder.restricted_planar_dual(graph)
 
     basis = [convert_to_edges(graph, x) for x in dual_R.nodes()]
+    #basis = cycle_basis(graph)
+    
     set_basis = []
     for b in basis:
         set_basis.append( frozenset( [ frozenset(x) for x in b]))
@@ -173,12 +189,45 @@ def enumerate_simple_cycles(graph):
     
     print(len(metagraph))
     
+#For counting the simple cycles
+
+for i in range(6):
+    #enumerate_simple_cycles(construct_gadget(i))
+    graph = construct_gadget(i)
+    G = nx.DiGraph()
+    for x in graph.nodes():
+        G.add_node(x)
+    for e in graph.edges():
+        G.add_edge(e[0],e[1])
+        G.add_edge(e[1],e[0])
+    S = list(nx.simple_cycles(G))
+
+    print( (len(S) - len(list(graph.edges())) )/2)
+    #print( len(with_S) / 2)
 
 
-for i in range(4):
-    enumerate_simple_cycles(construct_gadget(i))
+#For counting the simple boundary links:
 
-for k in range(2,6):
+for i in range(-1,6):
+    #enumerate_simple_cycles(construct_gadget(i))
+    graph = construct_gadget_with_clasp(i)
+    G = nx.DiGraph()
+    for x in graph.nodes():
+        G.add_node(x)
+    for e in graph.edges():
+        G.add_edge(e[0],e[1])
+        G.add_edge(e[1],e[0])
+    S = list(nx.simple_cycles(G))
+    with_S = [x for x in S if 'S' in x and len(x) > 2 ] 
+    print( len(with_S) / 2)
+
+
+
+
+
+
+
+for k in range(2,3):
     graph = nx.grid_graph([k,k])
     for x in graph.nodes():
         
