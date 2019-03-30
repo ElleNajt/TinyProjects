@@ -66,6 +66,8 @@ def subdivide(R):
     layer = make_layer([convert_label(edge) for edge in R.graph["Cedges"]], R.graph["level"] + 1)
     
     F = nx.compose(layer, R)
+    for x in layer.nodes():
+        F.node[x]["coord"] = layer.node[x]["coord"]
     #viz(F)
     
     #nx.draw(F, with_labels = True)
@@ -188,57 +190,66 @@ def enumerate_simple_cycles(graph):
             wet = wet.union(new_wets)
     
     print(len(metagraph))
+
+def connectivity():
     
-#For counting the simple cycles
-
-for i in range(6):
-    #enumerate_simple_cycles(construct_gadget(i))
-    graph = construct_gadget(i)
-    G = nx.DiGraph()
-    for x in graph.nodes():
-        G.add_node(x)
-    for e in graph.edges():
-        G.add_edge(e[0],e[1])
-        G.add_edge(e[1],e[0])
-    S = list(nx.simple_cycles(G))
-
-    print( (len(S) - len(list(graph.edges())) )/2)
-    #print( len(with_S) / 2)
-
-
-#For counting the simple boundary links:
-
-for i in range(-1,6):
-    #enumerate_simple_cycles(construct_gadget(i))
-    graph = construct_gadget_with_clasp(i)
-    G = nx.DiGraph()
-    for x in graph.nodes():
-        G.add_node(x)
-    for e in graph.edges():
-        G.add_edge(e[0],e[1])
-        G.add_edge(e[1],e[0])
-    S = list(nx.simple_cycles(G))
-    with_S = [x for x in S if 'S' in x and len(x) > 2 ] 
-    print( len(with_S) / 2)
-
-
-
-
-
-
-
-for k in range(2,3):
-    graph = nx.grid_graph([k,k])
-    for x in graph.nodes():
+    for i in range(40):
+        graph = construct_gadget_with_clasp(i)
+        print(nx.node_connectivity(graph))
         
-        graph.node[x]["pos"] = np.array([x[0], x[1]])
-    enumerate_simple_cycles(graph)
+
+
+def counts():
+    #For counting the simple cycles
     
-    np.max(dict(nx.degree(dual_R)).values())
-
-#Can we fix the faces to be convex?
-
-#The nodes of the dual give the cycle basis -- this is enough to enumerate the metagraph 
+    for i in range(6):
+        #enumerate_simple_cycles(construct_gadget(i))
+        graph = construct_gadget(i)
+        G = nx.DiGraph()
+        for x in graph.nodes():
+            G.add_node(x)
+        for e in graph.edges():
+            G.add_edge(e[0],e[1])
+            G.add_edge(e[1],e[0])
+        S = list(nx.simple_cycles(G))
+    
+        print( (len(S) - len(list(graph.edges())) )/2)
+        #print( len(with_S) / 2)
+    
+    
+    #For counting the simple boundary links:
+    
+    for i in range(-1,6):
+        #enumerate_simple_cycles(construct_gadget(i))
+        graph = construct_gadget_with_clasp(i)
+        G = nx.DiGraph()
+        for x in graph.nodes():
+            G.add_node(x)
+        for e in graph.edges():
+            G.add_edge(e[0],e[1])
+            G.add_edge(e[1],e[0])
+        S = list(nx.simple_cycles(G))
+        with_S = [x for x in S if 'S' in x and len(x) > 2 ] 
+        print( len(with_S) / 2)
+    
+    
+    
+    
+    
+    
+    
+    for k in range(2,3):
+        graph = nx.grid_graph([k,k])
+        for x in graph.nodes():
+            
+            graph.node[x]["pos"] = np.array([x[0], x[1]])
+        enumerate_simple_cycles(graph)
+        
+        np.max(dict(nx.degree(dual_R)).values())
+    
+    #Can we fix the faces to be convex?
+    
+    #The nodes of the dual give the cycle basis -- this is enough to enumerate the metagraph 
 
 def translate_graph(G, vector):
     for x in G.nodes():
