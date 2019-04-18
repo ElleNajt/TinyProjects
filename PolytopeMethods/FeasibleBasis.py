@@ -1,8 +1,8 @@
 import numpy as np
 import random
 import networkx as nx
+import matplotlib
 import matplotlib.pyplot as plt
-
 class LPMatroid():
     def __init__(self, A, b):
         self.A = A
@@ -10,7 +10,7 @@ class LPMatroid():
         self.num_equations = A.shape[0]
         if len(b) != self.num_equations:
             print ( "Dimensions do not agree")
-            raise
+
         self.rank = np.linalg.matrix_rank(A)
         self.current_basis = self.pick_basis()
         self.b = b
@@ -140,12 +140,17 @@ def viz_edge(T, set_of_cycles):
         k = 20
 
         values = [1 - int((x in edge_path) or ((x[1], x[0]) in edge_path)) for x in T.edges()]
-        plt.figure(i)
-        nx.draw(T, pos=nx.get_node_attributes(T, 'coord'), node_size = 1, width =2, cmap=plt.get_cmap('jet'),  edge_color=values)
-        plt.savefig("sample_cycle" + str(i))
+
+        f = plt.figure()
+
+        nx.draw(T, ax=f.add_subplot(111), pos=nx.get_node_attributes(T, 'coord'), node_size = 1, width =2, cmap=plt.get_cmap('jet'),  edge_color=values)
+        f.savefig("graph" + str(len(T.nodes())) + "sample_cycle" + str(i))
+        plt.close(f)
         i += 1
 
-graph = nx.grid_graph([5,5])
+matplotlib.use("Agg")
+
+graph = nx.grid_graph([6, 6])
 for v in graph.nodes():
     graph.node[v]['coord'] = v
 
@@ -155,21 +160,18 @@ graph.graph["edgelist"] = list_of_edges
 A, b = build_degenerate_cycle_polytope(graph)
 
 
-#A = np.random.uniform(0,1, [4,10])
-
 M = LPMatroid(A,b)
 M.show_basis_exchange()
 
-M.tries = 10*16
+M.tries = 10*25
 M.find_basic_feasible_solution()
 
 list_of_solutions = [convert_bfs_to_edges(graph, x) for x in M.list_of_BFS]
 
 print("found:", len(list_of_solutions))
-if 5 > len(list_of_solutions)> 0 :
+if len(list_of_solutions) > 0:
 
     viz_edge(graph, list_of_solutions)
 
 #I'm confused -- there's a subtle thing: the basis exchange graph mixes rapidly, but constrain it to lie on the polytope
-#may not.
-#On the other hand, we can try to constrain the steps to lie on the polytope.
+#may not. We can try to constrain the steps to lie on the polytope.
