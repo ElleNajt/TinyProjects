@@ -11,7 +11,7 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 import cProfile
-
+from SLEExperiments import integral_disc
 from mpl_toolkits.mplot3d import Axes3D
 
 def plot(fairness_vector):
@@ -206,6 +206,9 @@ def test_2():
 
 def profile():
     cProfile.run('test_2()')
+
+
+
 
 def make_samples(graph_size, proportion, parameter, num_samples):
     votes = []
