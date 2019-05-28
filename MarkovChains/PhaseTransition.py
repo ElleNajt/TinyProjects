@@ -11,7 +11,6 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 import cProfile
-from SLEExperiments import integral_disc
 from mpl_toolkits.mplot3d import Axes3D
 
 def plot(fairness_vector):
@@ -205,8 +204,7 @@ def test_2():
     #viz_district(grid)
 
 def profile():
-    cProfile.run('test_2()')
-
+    cProfile.run('low_fugacity()')
 
 
 
@@ -226,6 +224,7 @@ def make_samples(graph_size, proportion, parameter, num_samples):
             cut_off = parameter ** ( new_cut - old_cut)
             if p > cut_off:
                 undids += 1
+                #got_samples += 1 -- we still save the undid samples, we just make sure to go for longer
                 grid.node[x]["district"] = old
             else:
                 got_samples += 1
@@ -285,9 +284,6 @@ def map_up(grid):
 
 
 
-
-
-
 def slopes_plot(slopes):
 
 
@@ -324,13 +320,30 @@ def test_slopes():
     print( [np.mean(x, 0) for x in slope_list])
     print( [ np.var(x,0) for x in slope_list])
 
+def low_fugacity():
+
+    graph_size = 20
+    proportion = .6
+    parameter = .1
+    num_samples = 10000
+
+
+    sub_critical_votes, fairness_sub_critical, sub_critical_grid, slopes = \
+        make_samples(graph_size, proportion, parameter, num_samples)
+
+
+    #plot(fairness_sub_critical)
+    viz_soft_district(sub_critical_grid)
+
+
+
 def test_around_critical():
     critical_value =0.379
 
-    graph_size = 30
+    graph_size = 20
     proportion = .6
-    parameter = .35
-    num_samples = 2000000
+    parameter = .1
+    num_samples = 100
 
 
     sub_critical_votes, fairness_sub_critical, sub_critical_grid, slopes = \

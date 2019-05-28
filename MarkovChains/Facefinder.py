@@ -11,6 +11,14 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 
+class duality():
+    '''This is going to be a class for holding onto a primal and dual graph --- actually, this might be a bad idea,
+    because for the chain we only need the dual, and the conversation process is very expensive.'''
+    def __init__(self, primal):
+        self.dual = planar_dual(primal)
+
+    def cut(self):
+        return True
 
 def compute_rotation_system(graph):
     # Graph nodes must have "pos"
@@ -169,8 +177,11 @@ def restricted_planar_dual(graph):
     for e in graph.edges():
         for face in graph.graph["faces"]:
             for face2 in graph.graph["faces"]:
-                if (e[0] in face) and (e[1] in face) and (e[0] in face2) and (e[1] in face2):
-                    dual_graph.add_edge(face, face2)
+                if face != face2:
+                    if (e[0] in face) and (e[1] in face) and (e[0] in face2) and (e[1] in face2):
+                        if (face, face2) not in dual_graph.edges() and (face2, face) not in dual_graph.edges():
+                            dual_graph.add_edge(face, face2)
+                            dual_graph.edges[ (face, face2)]["primal_name"] = e
     return dual_graph
 
 
@@ -191,12 +202,21 @@ def planar_dual(graph):
 
     ##handle edges
     for e in graph.edges():
+
+        #Adds them twice
+
         for face in list_of_faces:
             for face2 in list_of_faces:
-                if (e[0] in face) and (e[1] in face) and (e[0] in face2) and (e[1] in face2):
-                    dual_graph.add_edge(face, face2)
+                if face != face2:
+                    if (e[0] in face) and (e[1] in face) and (e[0] in face2) and (e[1] in face2):
+                        if (face, face2) not in dual_graph.edges() and (face2, face) not in dual_graph.edges() :
+                            dual_graph.add_edge(face, face2)
+                            dual_graph.edges[ (face, face2)]["primal_name"] = e
+
+    dual_graph.graph["supernode"] = unbounded_face
     return dual_graph
 
+q = [y for y in dual.edges() if dual.edges[y]['primal_name'] == dual.edges[x]['primal_name'] ]
 
 def draw_with_location(graph):
     #    for x in graph.nodes():
@@ -206,7 +226,7 @@ def draw_with_location(graph):
 #
 
 '''
-m= 3
+m= 5
 graph = nx.grid_graph([m,m])
 graph.name = "grid_size:" + str(m)
 for x in graph.nodes():
@@ -215,6 +235,12 @@ for x in graph.nodes():
 dual = planar_dual(graph)
 draw_with_location(dual)
 
+degs = list(dict(nx.degree(dual)).values())
+np.sort(degs)
+print(np.sort(degs))
+
+
+'''
 '''
 #
 ##graph = depth_k_refine(graph,0)
@@ -226,3 +252,4 @@ draw_with_location(dual)
 #
 # dual = restricted_planar_dual(graph)
 # draw_with_location(dual)
+'''
