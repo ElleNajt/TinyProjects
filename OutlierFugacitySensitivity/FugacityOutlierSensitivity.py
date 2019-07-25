@@ -2,7 +2,8 @@
 import os
 
 #os.chdir('/home/lorenzonajt/Documents/GerrychainSensitivity/PA_VTD')
-os.chdir('/home/lorenzonajt/Documents/GITHUB/TinyProjects/OutlierFugacitySensitivity')
+#os.chdir('/home/lorenzonajt/Documents/GITHUB/TinyProjects/OutlierFugacitySensitivity')
+
 from gerrychain import Graph, GeographicPartition, Partition, Election
 from gerrychain.updaters import Tally, cut_edges
 import geopandas as gpd
