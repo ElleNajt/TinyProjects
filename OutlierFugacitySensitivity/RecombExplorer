@@ -1,0 +1,337 @@
+import gerrychain
+import networkx as nx
+import numpy as np
+import matplotlib.pyplot as plt
+#from Attractor import *
+
+
+import os
+import random
+import json
+import geopandas as gpd
+import functools
+import datetime
+import matplotlib
+# matplotlib.use('Agg')
+
+os.chdir('/home/lorenzonajt/Documents/GITHUB/TinyProjects/OutlierFugacitySensitivity')
+
+import matplotlib.pyplot as plt
+import numpy as np
+import csv
+from networkx.readwrite import json_graph
+import math
+import seaborn as sns
+from functools import partial
+import networkx as nx
+import numpy as np
+
+from gerrychain import Graph
+from gerrychain import MarkovChain
+from gerrychain.constraints import (Validator, single_flip_contiguous,
+                                    within_percent_of_ideal_population, UpperBound)
+from gerrychain.proposals import propose_random_flip, propose_chunk_flip
+from gerrychain.accept import always_accept
+from gerrychain.updaters import Election, Tally, cut_edges
+from gerrychain import GeographicPartition
+from gerrychain.partition import Partition
+from gerrychain.proposals import recom
+from gerrychain.metrics import mean_median, efficiency_gap
+
+def fixed_endpoints(partition):
+    return partition.assignment[(19, 0)] != partition.assignment[(20, 0)] and partition.assignment[(19, 39)] != \
+           partition.assignment[(20, 39)]
+def boundary_condition(partition):
+    blist = partition["boundary"]
+    o_part = partition.assignment[blist[0]]
+
+    for x in blist:
+        if partition.assignment[x] != o_part:
+            return True
+
+    return False
+def annealing_cut_accept_backwards(partition):
+    boundaries1 = {x[0] for x in partition["cut_edges"]}.union({x[1] for x in partition["cut_edges"]})
+    boundaries2 = {x[0] for x in partition.parent["cut_edges"]}.union({x[1] for x in partition.parent["cut_edges"]})
+
+    t = partition["step_num"]
+
+    # if t <100000:
+    #    beta = 0
+    # elif t<400000:
+    #    beta = (t-100000)/100000 #was 50000)/50000
+    # else:
+    #    beta = 3
+    base = .1
+    beta = 5
+
+    bound = 1
+    if partition.parent is not None:
+        bound = (base ** (beta * (-len(partition["cut_edges"]) + len(partition.parent["cut_edges"])))) * (
+                    len(boundaries1) / len(boundaries2))
+
+        if not popbound(partition):
+            bound = 0
+        if not single_flip_contiguous(partition):
+            bound = 0
+            # bound = min(1, (how_many_seats_value(partition, col1="G17RATG",
+        # col2="G17DATG")/how_many_seats_value(partition.parent, col1="G17RATG",
+        # col2="G17DATG"))**2  ) #for some states/elections probably want to add 1 to denominator so you don't divide by zero
+
+    return random.random() < bound
+def go_nowhere(partition):
+    return partition.flip(dict())
+def slow_reversible_propose(partition):
+    """Proposes a random boundary flip from the partition in a reversible fasion
+    by selecting uniformly from the (node, flip) pairs.
+    Temporary version until we make an updater for this set.
+    :param partition: The current partition to propose a flip from.
+    :return: a proposed next `~gerrychain.Partition`
+    """
+
+    # b_nodes = {(x[0], partition.assignment[x[1]]) for x in partition["cut_edges"]
+    #           }.union({(x[1], partition.assignment[x[0]]) for x in partition["cut_edges"]})
+
+    flip = random.choice(list(partition["b_nodes"]))
+
+    return partition.flip({flip[0]: flip[1]})
+def slow_reversible_propose_bi(partition):
+    """Proposes a random boundary flip from the partition in a reversible fasion
+    by selecting uniformly from the (node, flip) pairs.
+    Temporary version until we make an updater for this set.
+    :param partition: The current partition to propose a flip from.
+    :return: a proposed next `~gerrychain.Partition`
+    """
+
+    # b_nodes = {(x[0], partition.assignment[x[1]]) for x in partition["cut_edges"]
+    #           }.union({(x[1], partition.assignment[x[0]]) for x in partition["cut_edges"]})
+
+    fnode = random.choice(list(partition["b_nodes"]))
+
+    return partition.flip({fnode: -1 * partition.assignment[fnode]})
+def geom_wait(partition):
+    return int(np.random.geometric(
+        len(list(partition["b_nodes"])) / (len(partition.graph.nodes) ** (len(partition.parts)) - 1), 1)) - 1
+def b_nodes(partition):
+    return {(x[0], partition.assignment[x[1]]) for x in partition["cut_edges"]
+            }.union({(x[1], partition.assignment[x[0]]) for x in partition["cut_edges"]})
+def b_nodes_bi(partition):
+    return {x[0] for x in partition["cut_edges"]}.union({x[1] for x in partition["cut_edges"]})
+def uniform_accept(partition):
+    bound = 0
+    if popbound(partition) and single_flip_contiguous(partition) and boundary_condition(partition):
+        bound = 1
+
+    return random.random() < bound
+def cut_accept(partition):
+    bound = 1
+    if partition.parent is not None:
+        bound = (partition["base"] ** (-len(partition["cut_edges"]) + len(
+            partition.parent["cut_edges"])))  # *(len(boundaries1)/len(boundaries2))
+
+    return random.random() < bound
+def dist(v, w):
+    return np.linalg.norm(np.array(v) - np.array(w))
+
+def create_disc_graph(r):
+
+    grid = nx.grid_graph([4*r, 4*r])
+    for v in grid.nodes():
+        grid.node[v]["coord"]= [ v[0]/r - 2, v[1]/r - 2]
+        grid.node[v]['pos'] = grid.node[v]["coord"]
+
+    intersection_nodes = [v for v in grid.nodes() if np.linalg.norm(grid.node[v]["coord"]) < 1]
+
+    disc_graph = nx.Graph(nx.subgraph(grid, intersection_nodes))
+    new_edges = []
+    for v in disc_graph.nodes():
+        if 1/3 < np.linalg.norm(grid.node[v]["coord"]) < 2/3:
+            new_edges.append( [ v, (v[0] +1, v[1] + 1)] )
+    disc_graph.add_edges_from(new_edges)
+
+    for n in disc_graph.nodes():
+        disc_graph.node[n]["population"] = 1
+        disc_graph.node[n]["last_flipped"] = 0
+        disc_graph.node[n]["num_flips"] = 0
+
+
+    #nx.draw(disc_graph, pos=nx.get_node_attributes(disc_graph, "coord"), node_size=20, width=1, cmap=plt.get_cmap('jet'))
+    return disc_graph
+
+def angle(p):
+    return math.atan2(p[1],p[0])/math.pi
+
+def create_disc_graph2(r):
+
+    grid = nx.grid_graph([4*r, 4*r])
+    for v in grid.nodes():
+        grid.node[v]["coord"]= [ v[0]/r - 2, v[1]/r - 2]
+        grid.node[v]['pos'] = grid.node[v]["coord"]
+
+    intersection_nodes = [v for v in grid.nodes() if np.linalg.norm(grid.node[v]["coord"]) < 1]
+
+    disc_graph = nx.Graph(nx.subgraph(grid, intersection_nodes))
+    new_edges = []
+    for v in disc_graph.nodes():
+        p= grid.node[v]["coord"]
+        a = angle(p)
+        if (-0.6 <= a < -.3 or 0 <= a < .3 or .6 <= a < .9) and  np.linalg.norm(p) < .9:
+            new_edges.append( [ v, (v[0] +1, v[1] + 1)] )
+    disc_graph.add_edges_from(new_edges)
+
+    for n in disc_graph.nodes():
+        disc_graph.node[n]["population"] = 1
+        disc_graph.node[n]["last_flipped"] = 0
+        disc_graph.node[n]["num_flips"] = 0
+
+
+    nx.draw(disc_graph, pos=nx.get_node_attributes(disc_graph, "coord"), node_size=20, width=1, cmap=plt.get_cmap('jet'))
+    return disc_graph
+
+
+def create_disc_graph3(r):
+
+    grid = nx.grid_graph([4*r, 4*r])
+    for v in grid.nodes():
+        grid.node[v]["coord"]= [ v[0]/r - 2, v[1]/r - 2]
+        grid.node[v]['pos'] = grid.node[v]["coord"]
+
+    intersection_nodes = [v for v in grid.nodes() if np.linalg.norm(grid.node[v]["coord"]) < 1]
+
+    disc_graph = nx.Graph(nx.subgraph(grid, intersection_nodes))
+    new_edges = []
+    for v in disc_graph.nodes():
+        p= grid.node[v]["coord"]
+        a = angle(p)
+        if 1/3 < np.linalg.norm(grid.node[v]["coord"]) < 2/3:
+            if a > 0:
+                new_edges.append( [ v, (v[0] +1, v[1] + 1)] )
+            else:
+                new_edges.append( [ v, (v[0] -1, v[1] + 1)] )
+    disc_graph.add_edges_from(new_edges)
+
+    for n in disc_graph.nodes():
+        disc_graph.node[n]["population"] = 1
+        disc_graph.node[n]["last_flipped"] = 0
+        disc_graph.node[n]["num_flips"] = 0
+
+
+    nx.draw(disc_graph, pos=nx.get_node_attributes(disc_graph, "coord"), node_size=20, width=1, cmap=plt.get_cmap('jet'))
+    return disc_graph
+
+
+
+m = 40
+steps = 10000
+
+disc_type = 3
+
+if disc_type == 3:
+    graph = create_disc_graph3(m)
+
+axis_aligned = {}
+for x in graph.nodes():
+    axis_aligned[x] = int(x[0] < 2*m) + int(x[1] < 2*m )*2
+'''
+plt.figure()
+nx.draw(graph, pos={x: x for x in graph.nodes()},
+        node_color=[axis_aligned[x] for x in graph.nodes()], node_size=5, node_shape='s',
+        cmap='tab20')
+'''
+axis_tilted = {}
+
+for x in graph.nodes():
+    a = x[0] - 2*m
+    b = x[1] - 2*m
+    axis_tilted[x] = int(a + b > 0) + int( a> b)*2
+
+'''
+plt.figure()
+nx.draw(graph, pos={x: x for x in graph.nodes()},
+        node_color=[axis_tilted[x] for x in graph.nodes()], node_size=5, node_shape='s',
+        cmap='tab20')
+'''
+
+for alignment in range(2):
+    ccdict = [axis_aligned, axis_tilted][alignment]
+    for edge in graph.edges():
+        graph[edge[0]][edge[1]]['cut_times'] = 0
+
+    updaters = {'population': Tally('population'),
+                'cut_edges': cut_edges,
+                'geom': geom_wait
+                # "Pink-Purple": Election("Pink-Purple", {"Pink":"pink","Purple":"purple"})
+                }
+
+    #########BUILD PARTITION
+
+    grid_partition = Partition(graph, assignment=ccdict, updaters=updaters)
+    pop1 = .1
+
+    base = 1
+    # ADD CONSTRAINTS
+    popbound = within_percent_of_ideal_population(grid_partition, pop1)
+    '''
+    plt.figure()
+    nx.draw(graph, pos={x: x for x in graph.nodes()}, node_size=ns,
+            node_shape='s', cmap='tab20')
+    plt.savefig("./plots/Attractor/" + str(alignment) + "SAMPLES:" + str(steps) + "Size:" + str(m) + "WIDTH:" + str(width) + "chaintype:" +str(chaintype) +    "B" + str(int(100 * base)) + "P" + str(
+        int(100 * pop1)) + "start.eps", format='eps')
+    plt.close()'''
+
+    #########Setup Proposal
+    ideal_population = sum(grid_partition["population"].values()) / len(grid_partition)
+
+
+    tree_proposal = partial(recom,
+                            pop_col="population",
+                            pop_target=ideal_population,
+                            epsilon=0.05,
+                            node_repeats=1
+                            )
+
+    exp_chain = MarkovChain(tree_proposal,
+                            Validator([popbound  # ,boundary_condition
+                                       ]), accept=always_accept, initial_state=grid_partition,
+                            total_steps=steps)
+
+    #########Run MARKOV CHAINS
+
+    rsw = []
+    rmm = []
+    reg = []
+    rce = []
+    rbn = []
+    waits = []
+
+    import time
+
+    st = time.time()
+
+    t = 0
+    seats = [[], []]
+    vote_counts = [[], []]
+    old = 0
+    # skip = next(exp_chain)
+    # skip the first partition
+    k = 0
+    for part in exp_chain:
+        if k > 0:
+            # if part.assignment == old:
+            #    print("didn't change")
+            rce.append(len(part["cut_edges"]))
+
+            for edge in part["cut_edges"]:
+                graph[edge[0]][edge[1]]["cut_times"] += 1
+                # print(graph[edge[0]][edge[1]]["cut_times"])
+
+        t += 1
+        k += 1
+
+    plt.figure()
+    nx.draw(graph, pos={x: x for x in graph.nodes()}, node_color=[0 for x in graph.nodes()], node_size=1,
+            edge_color=[graph[edge[0]][edge[1]]["cut_times"] for edge in graph.edges()], node_shape='s',
+            cmap='magma', width=3)
+    plt.savefig("./plots/Attractor/RecombBottleneck/" + "RecombBottleneck" + "starting_alignment:" + str(alignment) + "Type:" + str(disc_type) + "SAMPLES:" + str(steps) + "Size:" + str(m) + "P" + str(
+        int(100 * pop1)) + "edges.eps", format='eps')
+    plt.close()
