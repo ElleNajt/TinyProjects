@@ -30,6 +30,167 @@ from gerrychain import GeographicPartition
 from gerrychain.partition import Partition
 from gerrychain.proposals import recom
 from gerrychain.metrics import mean_median, efficiency_gap
+from gerrychain.tree import recursive_tree_part, bipartition_tree_random, PopulatedGraph, contract_leaves_until_balanced_or_none, find_balanced_edge_cuts
+'''
+def get_spanning_tree_u_w(G):
+    node_set = set(G.nodes())
+    x0 = random.choice(tuple(node_set))
+    x1 = x0
+    while x1 == x0:
+        x1 = random.choice(tuple(node_set))
+    node_set.remove(x1)
+    tnodes = {x1}
+    tedges = []
+    current = x0
+    current_path = [x0]
+    current_edges = []
+    while node_set != set():
+        next = random.choice(list(G.neighbors(current)))
+        current_edges.append((current, next))
+        current = next
+        current_path.append(next)
+
+        if next in tnodes:
+            for x in current_path[:-1]:
+                node_set.remove(x)
+                tnodes.add(x)
+            for ed in current_edges:
+                tedges.append(ed)
+            current_edges = []
+            if node_set != set():
+                current = random.choice(tuple(node_set))
+            current_path = [current]
+
+        if next in current_path[:-1]:
+            current_path.pop()
+            current_edges.pop()
+            for i in range(len(current_path)):
+                if current_edges != []:
+                    current_edges.pop()
+                if current_path.pop() == next:
+                    break
+            if len(current_path) > 0:
+                current = current_path[-1]
+            else:
+                current = random.choice(tuple(node_set))
+                current_path = [current]
+
+    return tedges
+def uniform_tree_propose(partition):
+    g = partition.graph.copy()
+    t = get_spanning_tree_u_w(g)
+    tgraph = nx.Graph()
+    tgraph.add_edges_from(t)
+    edge = random.choice(t)
+    if (edge[0], edge[1]) in t:
+        tgraph.remove_edge(edge[0], edge[1])
+    if (edge[1], edge[0]) in t:
+        tgraph.remove_edge(edge[1], edge[0])
+
+    clist = list(nx.connected_components(tgraph))
+
+    return partition.flip({x: -1 if x in clist[0] else 1 for x in g.nodes()})
+'''
+
+def get_spanning_tree_u_w(G):
+    node_set=set(G.nodes())
+    x0=random.choice(tuple(node_set))
+    x1=x0
+    while x1==x0:
+        x1=random.choice(tuple(node_set))
+    node_set.remove(x1)
+    tnodes ={x1}
+    tedges=[]
+    current=x0
+    current_path=[x0]
+    current_edges=[]
+    while node_set != set():
+        next=random.choice(list(G.neighbors(current)))
+        current_edges.append((current,next))
+        current = next
+        current_path.append(next)
+
+        if next in tnodes:
+            for x in current_path[:-1]:
+                node_set.remove(x)
+                tnodes.add(x)
+            for ed in current_edges:
+                tedges.append(ed)
+            current_edges = []
+            if node_set != set():
+                current=random.choice(tuple(node_set))
+            current_path=[current]
+
+
+        if next in current_path[:-1]:
+            current_path.pop()
+            current_edges.pop()
+            for i in range(len(current_path)):
+                if current_edges !=[]:
+                    current_edges.pop()
+                if current_path.pop() == next:
+                    break
+            if len(current_path)>0:
+                current=current_path[-1]
+            else:
+                current=random.choice(tuple(node_set))
+                current_path=[current]
+
+    #tgraph = Graph()
+    #tgraph.add_edges_from(tedges)
+    return G.edge_subgraph(tedges)
+
+def my_uu_bipartition_tree_random(
+    graph,
+    pop_col,
+    pop_target,
+    epsilon,
+    node_repeats=1,
+    spanning_tree=None,
+    choice=random.choice):
+    populations = {node: graph.nodes[node][pop_col] for node in graph}
+
+    possible_cuts = []
+    if spanning_tree is None:
+        spanning_tree = get_spanning_tree_u_w(graph)
+
+    while len(possible_cuts) == 0:
+        spanning_tree = get_spanning_tree_u_w(graph)
+        h = PopulatedGraph(spanning_tree, populations, pop_target, epsilon)
+        possible_cuts = find_balanced_edge_cuts(h, choice=choice)
+
+    return choice(possible_cuts).subset
+
+
+def get_spanning_tree_mst(graph):
+    for edge in graph.edges:
+        graph.edges[edge]["weight"] = random.random()
+
+    spanning_tree = nx.tree.maximum_spanning_tree(
+        graph, algorithm="kruskal", weight="weight"
+    )
+    return spanning_tree
+
+def my_mst_bipartition_tree_random(
+    graph,
+    pop_col,
+    pop_target,
+    epsilon,
+    node_repeats=1,
+    spanning_tree=None,
+    choice=random.choice):
+    populations = {node: graph.nodes[node][pop_col] for node in graph}
+
+    possible_cuts = []
+    if spanning_tree is None:
+        spanning_tree = get_spanning_tree_mst(graph)
+
+    while len(possible_cuts) == 0:
+        spanning_tree = get_spanning_tree_mst(graph)
+        h = PopulatedGraph(spanning_tree, populations, pop_target, epsilon)
+        possible_cuts = find_balanced_edge_cuts(h, choice=choice)
+
+    return choice(possible_cuts).subset
 
 
 def fixed_endpoints(partition):
@@ -145,231 +306,274 @@ def cut_accept(partition):
             partition.parent["cut_edges"])))  # *(len(boundaries1)/len(boundaries2))
 
     return random.random() < bound
+############
 
+def biased_diagonals(m):
+    G = nx.grid_graph([6 * m, 6 * m])
 
+    for n in G.nodes():
+        if ((6 - width) * m - 1 <= n[0] <= 6 * m - 2 or 0 <= n[0] <= width * m - 1) and 2 * m <= n[1] <= 4 * m:
+            G.add_edge(n, (n[0] + 1, n[1] + 1))
+        G.node[n]['pos'] = (n[0], n[1])
+    return G
+
+def debiased_diagonals(m):
+    G = nx.grid_graph([6 * m, 6 * m])
+
+    for n in G.nodes():
+        if ((6 - width) * m - 1 <= n[0] <= 6 * m - 2 or 0 <= n[0] <= width * m - 1) and 2 * m <= n[1] <= 4 * m:
+            if n[0] % 2 == 0:
+                G.add_edge(n, (n[0] + 1, n[1] + 1))
+            if n[0] % 2 == 1:
+                G.add_edge(n, (n[0] + 1, n[1] - 1))
+        G.node[n]['pos'] = (n[0], n[1])
+    return G
 ##############3
 
 steps = 1000
-pops = [.5]
 ns = 1
-m = 7
+m = 6
+#widths = [0,.5,1,1.5,2,2.5,3]
+#widths = [1,2,3]
+#widths = [1.5]
+widths = [0]
+#chaintype = "uniform_tree"
 chaintype = "tree"
+p = .6
+proportion = p*6
 #####
+#widths = [0,.5]
+#widths = [1,1.5]
+#widths = [3]
+print("proportion:", proportion)
+#for p in [.6,.55,.65,.7, .75]:
+diagonal_bias = "debiased"
 
 
-G = nx.grid_graph([6*m, 6*m])
+widths = [0,.5,1,2,3]
+for p in [.6]:
+    proportion = p * 6
+    for width in widths:
 
-for n in G.nodes():
-    if (5*m - 2 <= n[0] <= 6*m - 2 or 0 <= n[0] <= m) and 2*m <= n[1] <= 4*m:
-        G.add_edge(n, (n[0] + 1, n[1] + 1))
-    G.node[n]['pos'] = (n[0], n[1])
+        if diagonal_bias == "biased":
+            graph = biased_diagonals(m)
+        if diagonal_bias == "debiased":
+            graph = debiased_diagonals(m)
 
+        plt.figure()
+        nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 1, width = 1, cmap=plt.get_cmap('jet'))
+        plt.savefig("./plots/Attractor/" + "Size:" + str(m) + "WIDTH:" + str(width) + "Bias:" + str(diagonal_bias) +  "UnderlyingGraph.eps", format='eps')
+        plt.close()
 
-H = nx.grid_graph([9*m,9*m])
-
-for n in H.nodes():
-    if not ((m <= n[0] <= 2*m or 3 *m <= n[0] <= 4*m or 5*m <= n[0] <= 6*m or 7*m <= n[0] <= 8*m) and (m <= n[1] <= 2*m or 3*m <= n[1] <= 4*m or 5*m <= n[1] <= 6*m or 7*m <= n[1] <= 8*m)):
-        if n[0] < 9*m - 1 and n[1] < 9*m -1 :
-            H.add_edge(n, (n[0] + 1, n[1] + 1))
-    H.node[n]['pos'] = (n[0], n[1])
-
-graph = H
-graph = G
-#nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 20, width = 1, cmap=plt.get_cmap('jet'))
-
-horizontal = []
-for x in graph.nodes():
-    if x[1] < 6*m / 2:
-        horizontal.append(x)
-
-vertical = []
-for x in graph.nodes():
-    if x[0] < 6*m / 2:
-        vertical.append(x)
-
-cddict = {}  # {x: 1-2*int(x[0]/gn)  for x in graph.nodes()}
-
-start_plans = [horizontal, vertical]
-
-for pop1 in pops:
-    for n in graph.nodes():
-        if n in start_plans[0]:
-            cddict[n] = 1
-        else:
-            cddict[n] = -1
-
-    for edge in graph.edges():
-        graph[edge[0]][edge[1]]['cut_times'] = 0
-
-    for n in graph.nodes():
-        graph.node[n]["population"] = 1
-        graph.node[n]["part_sum"] = cddict[n]
-        graph.node[n]["last_flipped"] = 0
-        graph.node[n]["num_flips"] = 0
-
-        if n[0] == 0 or n[0] == m - 1 or n[1] == m or n[1] == -m + 1:
-            graph.node[n]["boundary_node"] = True
-            graph.node[n]["boundary_perim"] = 1
-
-        else:
-            graph.node[n]["boundary_node"] = False
+        horizontal = []
+        for x in graph.nodes():
+            if x[1] < 6 * m / 2:
+                horizontal.append(x)
+        vertical = []
+        for x in graph.nodes():
+            if x[1] < 3 * m:
+                vertical.append(x)
 
 
-    ####CONFIGURE UPDATERS
+        cddict = {}  # {x: 1-2*int(x[0]/gn)  for x in graph.nodes()}
 
-    def new_base(partition):
-        return base
+        start_plans = [horizontal]
+        alignment = 0
+        for n in graph.nodes():
+            if n in start_plans[alignment]:
+                cddict[n] = 1
+            else:
+                cddict[n] = -1
 
+        for edge in graph.edges():
+            graph[edge[0]][edge[1]]['cut_times'] = 0
 
-    def step_num(partition):
-        parent = partition.parent
+        for n in graph.nodes():
+            graph.node[n]["population"] = 1
+            graph.node[n]["part_sum"] = cddict[n]
+            graph.node[n]["last_flipped"] = 0
+            graph.node[n]["num_flips"] = 0
 
-        if not parent:
-            return 0
+            if n[0] == 0 or n[0] == m - 1 or n[1] == m or n[1] == -m + 1:
+                graph.node[n]["boundary_node"] = True
+                graph.node[n]["boundary_perim"] = 1
 
-        return parent["step_num"] + 1
-
-
-    bnodes = [x for x in graph.nodes() if graph.node[x]["boundary_node"] == 1]
-
-
-    def bnodes_p(partition):
-        return [x for x in graph.nodes() if graph.node[x]["boundary_node"] == 1]
-
-
-    updaters = {'population': Tally('population'),
-                "boundary": bnodes_p,
-                'cut_edges': cut_edges,
-                'step_num': step_num,
-                'b_nodes': b_nodes_bi,
-                'base': new_base,
-                'geom': geom_wait,
-                # "Pink-Purple": Election("Pink-Purple", {"Pink":"pink","Purple":"purple"})
-                }
-
-    #########BUILD PARTITION
-
-    grid_partition = Partition(graph, assignment=cddict, updaters=updaters)
-
-    # ADD CONSTRAINTS
-    popbound = within_percent_of_ideal_population(grid_partition, pop1)
-
-    plt.figure()
-    nx.draw(graph, pos={x: x for x in graph.nodes()},
-            node_color=[dict(grid_partition.assignment)[x] for x in graph.nodes()], node_size=ns,
-            node_shape='s', cmap='tab20')
-    plt.savefig("./plots/Attractor/" + str(alignment) + "STEPS:" + str(steps) + "Size:" + str(m) + "chaintype:" +str(chaintype) +    "B" + str(int(100 * base)) + "P" + str(
-        int(100 * pop1)) + "start.eps", format='eps')
-    plt.close()
-
-    #########Setup Proposal
-    ideal_population = sum(grid_partition["population"].values()) / len(grid_partition)
-
-    tree_proposal = partial(recom,
-                            pop_col="population",
-                            pop_target=ideal_population,
-                            epsilon=0.05,
-                            node_repeats=1
-                            )
-
-    #######BUILD MARKOV CHAINS
-    if chaintype == "flip":
-        exp_chain = MarkovChain(slow_reversible_propose_bi,
-                                Validator([single_flip_contiguous, popbound  # ,boundary_condition
-                                           ]), accept=cut_accept, initial_state=grid_partition,
-                                total_steps=steps)
+            else:
+                graph.node[n]["boundary_node"] = False
 
 
-    if chaintype == "tree":
-        exp_chain = MarkovChain(tree_proposal,
-                                Validator([popbound  # ,boundary_condition
-                                           ]), accept=always_accept, initial_state=grid_partition,
-                                total_steps=steps)
+        ####CONFIGURE UPDATERS
 
-    #########Run MARKOV CHAINS
+        def new_base(partition):
+            return base
 
-    rsw = []
-    rmm = []
-    reg = []
-    rce = []
-    rbn = []
-    waits = []
 
-    import time
+        def step_num(partition):
+            parent = partition.parent
 
-    st = time.time()
+            if not parent:
+                return 0
 
-    t = 0
-    for part in exp_chain:
-        rce.append(len(part["cut_edges"]))
-        waits.append(part["geom"])
-        rbn.append(len(list(part["b_nodes"])))
+            return parent["step_num"] + 1
 
-        for edge in part["cut_edges"]:
-            graph[edge[0]][edge[1]]["cut_times"] += 1
-            # print(graph[edge[0]][edge[1]]["cut_times"])
 
-        t += 1
+        bnodes = [x for x in graph.nodes() if graph.node[x]["boundary_node"] == 1]
 
-    print("finished no", st - time.time())
-    with open("./plots/Attractor/" + str(alignment) + "STEPS:" + str(steps) + "Size:" + str(m) + "chaintype:" +str(chaintype) +    "B" + str(int(100 * base)) + "P" + str(
-            int(100 * pop1)) + "wait.txt", 'w') as wfile:
-        wfile.write(str(sum(waits)))
 
-    for n in graph.nodes():
-        if graph.node[n]["last_flipped"] == 0:
-            graph.node[n]["part_sum"] = t * part.assignment[n]
-        graph.node[n]["lognum_flips"] = math.log(graph.node[n]["num_flips"] + 1)
+        def bnodes_p(partition):
+            return [x for x in graph.nodes() if graph.node[x]["boundary_node"] == 1]
 
-        # print(len(rsw[-1]))
-    #print(graph[(1, 0)][(0, 1)]["cut_times"])
 
-    plt.figure()
-    nx.draw(graph, pos={x: x for x in graph.nodes()}, node_color=[0 for x in graph.nodes()], node_size=10,
-            edge_color=[graph[edge[0]][edge[1]]["cut_times"] for edge in graph.edges()], node_shape='s',
-            cmap='jet', width=5)
-    plt.savefig("./plots/Attractor/" + str(alignment) + "STEPS:" + str(steps) + "Size:" + str(m) + "chaintype:" +str(chaintype) +    "B" + str(int(100 * base)) + "P" + str(
-        int(100 * pop1)) + "edges.eps", format='eps')
-    plt.close()
+        updaters = {'population': Tally('population'),
+                    "boundary": bnodes_p,
+                    'cut_edges': cut_edges,
+                    'step_num': step_num,
+                    'b_nodes': b_nodes_bi,
+                    'base': new_base,
+                    'geom': geom_wait,
+                    # "Pink-Purple": Election("Pink-Purple", {"Pink":"pink","Purple":"purple"})
+                    }
 
-    plt.figure()
-    nx.draw(graph, pos={x: x for x in graph.nodes()},
-            node_color=[dict(part.assignment)[x] for x in graph.nodes()], node_size=ns, node_shape='s',
-            cmap='tab20')
-    plt.savefig("./plots/Attractor/" + str(alignment) + "STEPS:" + str(steps) + "Size:" + str(m) + "chaintype:" +str(chaintype) +    "B" + str(int(100 * base)) + "P" + str(
-        int(100 * pop1)) + "end.eps", format='eps')
-    plt.close()
+        #########BUILD PARTITION
 
-    A2 = np.zeros([6*m, 6*m])
+        grid_partition = Partition(graph, assignment=cddict, updaters=updaters)
+        pop1 = .05
 
-    for n in graph.nodes():
-        A2[n[0], n[1] - 1] = dict(part.assignment)[n]
+        base = 1
+        # ADD CONSTRAINTS
+        popbound = within_percent_of_ideal_population(grid_partition, pop1)
+        '''
+        plt.figure()
+        nx.draw(graph, pos={x: x for x in graph.nodes()}, node_size=ns,
+                node_shape='s', cmap='tab20')
+        plt.savefig("./plots/Attractor/" + str(alignment) + "SAMPLES:" + str(steps) + "Size:" + str(m) + "WIDTH:" + str(width) + "chaintype:" +str(chaintype) +    "B" + str(int(100 * base)) + "P" + str(
+            int(100 * pop1)) + "start.eps", format='eps')
+        plt.close()'''
 
-    plt.figure()
-    plt.imshow(A2, cmap='jet')
-    plt.colorbar()
-    plt.savefig("./plots/Attractor/" + str(alignment) + "STEPS:" + str(steps) + "Size:" + str(m) + "chaintype:" +str(chaintype) +    "B" + str(int(100 * base)) + "P" + str(
-        int(100 * pop1)) + "end2.eps", format='eps')
-    plt.close()
+        #########Setup Proposal
+        ideal_population = sum(grid_partition["population"].values()) / len(grid_partition)
 
-    plt.figure()
-    nx.draw(graph, pos={x: x for x in graph.nodes()},
-            node_color=[graph.nodes[x]["part_sum"] for x in graph.nodes()], node_size=ns, node_shape='s',
-            cmap='jet')
-    plt.savefig("./plots/Attractor/" + str(alignment) + "STEPS:" + str(steps) + "Size:" + str(m) + "chaintype:" +str(chaintype) +    "B" + str(int(100 * base)) + "P" + str(
-        int(100 * pop1)) + "wca.eps", format='eps')
-    plt.close()
+        tree_proposal = partial(recom,
+                                pop_col="population",
+                                pop_target=ideal_population,
+                                epsilon=0.05,
+                                node_repeats=1
+                                )
 
-    A2 = np.zeros([6*m, 6*m])
+        #######BUILD MARKOV CHAINS
+        if chaintype == "flip":
+            exp_chain = MarkovChain(slow_reversible_propose_bi,
+                                    Validator([single_flip_contiguous, popbound  # ,boundary_condition
+                                               ]), accept=cut_accept, initial_state=grid_partition,
+                                    total_steps=steps)
 
-    for n in graph.nodes():
-        A2[n[0], n[1] - 1] = graph.nodes[n]["part_sum"]
 
-    plt.figure()
-    plt.imshow(A2, cmap='jet')
-    plt.colorbar()
+        if chaintype == "tree":
+            tree_proposal = partial(recom, pop_col="population", pop_target=ideal_population, epsilon=0.006,
+                                    node_repeats=1, method=my_mst_bipartition_tree_random)
 
-    plt.savefig("./plots/Attractor/" + str(alignment) + "STEPS:" + str(steps) + "Size:" + str(m) + "chaintype:" +str(chaintype) +    "B" + str(int(100 * base)) + "P" + str(
-        int(100 * pop1)) + "wca2.eps", format='eps')
-    plt.close()
+            exp_chain = MarkovChain(tree_proposal,
+                                    Validator([popbound  # ,boundary_condition
+                                               ]), accept=cut_accept, initial_state=grid_partition,
+                                    total_steps=steps)
 
+        if chaintype == "uniform_tree":
+            #tree_proposal = partial(uniform_tree_propose)
+            tree_proposal = partial(recom, pop_col="population", pop_target=ideal_population, epsilon=0.05,
+                                    node_repeats=1, method=my_uu_bipartition_tree_random)
+
+            exp_chain = MarkovChain(tree_proposal,
+                                    Validator([popbound  # ,boundary_condition
+                                               ]), accept=cut_accept, initial_state=grid_partition,
+                                    total_steps=steps)
+
+        #########Run MARKOV CHAINS
+
+        rsw = []
+        rmm = []
+        reg = []
+        rce = []
+        rbn = []
+        waits = []
+
+        import time
+
+        st = time.time()
+
+        t = 0
+        seats = [[],[]]
+        vote_counts = [[],[]]
+        old = 0
+        #skip = next(exp_chain)
+        #skip the first partition
+        k = 0
+        for part in exp_chain:
+            if k > 0:
+                #if part.assignment == old:
+                #    print("didn't change")
+                rce.append(len(part["cut_edges"]))
+                waits.append(part["geom"])
+                rbn.append(len(list(part["b_nodes"])))
+
+                for edge in part["cut_edges"]:
+                    graph[edge[0]][edge[1]]["cut_times"] += 1
+                    # print(graph[edge[0]][edge[1]]["cut_times"])
+
+                if part.flips is not None:
+                    f = list(part.flips.keys())[0]
+                    graph.node[f]["part_sum"] = graph.node[f]["part_sum"] - dict(part.assignment)[f] * (
+                        abs(t - graph.node[f]["last_flipped"]))
+                    graph.node[f]["last_flipped"] = t
+                    graph.node[f]["num_flips"] = graph.node[f]["num_flips"] + 1
+                for i in [0, 1]:
+                    top = []
+                    bottom = []
+                    for n in G.nodes():
+                        if part.assignment[n] == 1:
+                            top.append( int(n[i] < proportion*m))
+                        if part.assignment[n] == -1:
+                            bottom.append( int( n[i] < proportion*m))
+
+                    top_seat = int(np.mean(top) > .5)
+                    bottom_seat = int(np.mean(bottom) > .5)
+                    total_seats = top_seat + bottom_seat
+                    seats[i].append(total_seats)
+                #old = part.assignment
+            t += 1
+            k += 1
+        f = open("./plots/Attractor/" + str(alignment) + "SAMPLES:" + str(steps) + "Size:" + str(m) + "chaintype:" + str(chaintype) + "Bias:" + str(diagonal_bias) + "P" + str(
+            int(100 * pop1)) + "proportion:" + str(p) + "edges.txt", 'a')
+
+        means = np.mean(seats,1)
+        stds = np.std(seats,1)
+
+        f.write( str( means[0] ) + "(" + str(stds[0]) + ")," + str( means[1] ) + "(" + str(stds[1]) + ")" + "at width:" + str(width) + '\n')
+
+        #f.write("mean:" +  str(np.mean(seats,1)) + "var:" + str(np.var(seats,1)) + "stdev:" + str(np.std(seats,1)) +  "at width:" + str(width) + '\n' )
+
+        f.close()
+        print(str( means[0] ) + "(" + str(stds[0]) + ")" + str( means[1] ) + "(" + str(stds[1]) + ")" )
+        #print(seats)
+
+        plt.figure()
+        nx.draw(graph, pos={x: x for x in graph.nodes()}, node_color=[0 for x in graph.nodes()], node_size=1,
+                edge_color=[graph[edge[0]][edge[1]]["cut_times"] for edge in graph.edges()], node_shape='s',
+                cmap='magma', width=3)
+        plt.savefig("./plots/Attractor/" + str(alignment) + "SAMPLES:" + str(steps) + "Size:" + str(m) + "WIDTH:" + str(width) + "chaintype:" +str(chaintype) +  "Bias:" + str(diagonal_bias) +  "P" + str(
+            int(100 * pop1)) + "edges.eps", format='eps')
+        plt.close()
+
+        A2 = np.zeros([6 * m, 6 * m])
+        for n in graph.nodes():
+            #print(n[0], n[1] - 1, dict(part.assignment)[n])
+            A2[n[0], n[1]] = dict(part.assignment)[n]
+
+        plt.figure()
+        plt.imshow(A2, cmap = 'jet')
+        plt.axis('off')
+        plt.savefig("./plots/Attractor/" + "Size:" + str(m) + "WIDTH:" + str(width) + "chaintype:" +str(chaintype) + "Bias:" + str(diagonal_bias) + "P" + str(
+            int(100 * pop1)) + "sample_partition.eps", format='eps')
+        plt.close()
+
+        plt.figure()
+        plt.hist(seats)
