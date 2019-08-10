@@ -219,15 +219,54 @@ def create_disc_graph3(r):
     nx.draw(disc_graph, pos=nx.get_node_attributes(disc_graph, "coord"), node_size=20, width=1, cmap=plt.get_cmap('jet'))
     return disc_graph
 
+def pepperoni_angles(a):
+    mod_a = a % .5
 
+    if .0625 < mod_a < .185:
+        return True
+    if .3125 < mod_a < .44:
+        return True
+    return False
+
+def create_pepperoni_pizza(r):
+    grid = nx.grid_graph([4*r, 4*r])
+    for v in grid.nodes():
+        grid.node[v]["coord"]= [ v[0]/r - 2, v[1]/r - 2]
+        grid.node[v]['pos'] = grid.node[v]["coord"]
+
+    intersection_nodes = [v for v in grid.nodes() if np.linalg.norm(grid.node[v]["coord"]) < 1]
+
+    disc_graph = nx.Graph(nx.subgraph(grid, intersection_nodes))
+
+    angles = []
+
+    new_edges = []
+    for v in disc_graph.nodes():
+        p = grid.node[v]["coord"]
+        a = angle(p)
+        if pepperoni_angles(a) and 1/3 < np.linalg.norm(grid.node[v]["coord"]) < .8:
+            new_edges.append( [v, (v[0] +1, v[1] + 1)] )
+    disc_graph.add_edges_from(new_edges)
+
+    for n in disc_graph.nodes():
+        disc_graph.node[n]["population"] = 1
+        disc_graph.node[n]["last_flipped"] = 0
+        disc_graph.node[n]["num_flips"] = 0
+
+
+    nx.draw(disc_graph, pos=nx.get_node_attributes(disc_graph, "coord"), node_size=20, width=1, cmap=plt.get_cmap('jet'))
+
+    return disc_graph
 
 m = 40
-steps = 10000
+steps = 1000
 
-disc_type = 3
+disc_type = 4
 
 if disc_type == 3:
     graph = create_disc_graph3(m)
+if disc_type == 4:
+    graph = create_pepperoni_pizza(m)
 
 axis_aligned = {}
 for x in graph.nodes():
