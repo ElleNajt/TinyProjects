@@ -1,0 +1,76 @@
+#!/usr/bin/env python2
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Sep 28 15:38:41 2019
+
+This calculates the number of subpolynomials of a given boolean polynomial. 
+Polynomials are encoded as a collection of subsets of a ground set [n].
+
+@author: lnajt
+"""
+
+import random
+import copy
+
+def random_poly(n = 10, m = 3, d = 5):
+
+    ground_set = set(range(n))
+    terms = set([])
+    
+    for k in range(m):
+        pre_term = random.sample(ground_set,d)
+        pre_term.sort()
+        term = frozenset(pre_term)
+        terms.add(term)
+    
+    polynomial = frozenset(terms)
+    return(polynomial)
+    
+
+def subpoly(polynomial, n):
+    subpolys = set([])
+    subpolys.add(polynomial)
+    list_of_subs = [ set( [polynomial])]
+    for i in range(n):
+        new_polys = set([])
+        
+        #i set to 0 phase:
+        for q in list_of_subs[i]:
+            new_q = set([])
+            for t in q:
+                if i not in t:
+                    new_q.add(t)
+            new_q = frozenset(new_q)
+            new_polys.add(new_q)
+        
+        #i set to 1 phase:
+        for q in list_of_subs[i]:
+            new_q = set([])
+            for t in q:
+                if i not in t:
+                    new_q.add(t)
+                if i in t:
+                    t_new = set(copy.deepcopy(t))
+                    t_new.remove(i)
+                    t_new = frozenset(t_new)
+                    new_q.add(t_new)
+            new_q = frozenset(new_q)
+            new_polys.add(new_q)
+        #print("step:" + str(new_polys) + "\n")
+        #subpolys = subpolys.union(new_polys)
+        list_of_subs.append(new_polys)
+        
+    subpoly = subpolys.union(*list_of_subs)
+    #print(subpoly)
+    #print(len(subpoly))
+    
+    return len(subpoly)
+    
+def experiment():
+    n = 30
+    m = 15
+    d = 8
+    for k in range(100):
+        poly = random_poly(n,m,d)
+        print(subpoly(poly, n))
+    
