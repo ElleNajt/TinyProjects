@@ -13,6 +13,14 @@ import random
 import copy
 import numpy as np
 def random_poly(n = 10, m = 3, d = 5):
+    '''
+    this creates a random boolean polynomial, stored as a frozenset of terms / monomials
+    each monomial is stored as frozen set of the variables that appear in it.
+    
+    n is the number of variables
+    m is the number of terms
+    d is the degree of the term
+    '''
 
     ground_set = set(range(n))
     terms = set([])
@@ -29,8 +37,10 @@ def random_poly(n = 10, m = 3, d = 5):
     
     
 def mod2(term_list):
-    #takes a list of terms, and returns the set of terms that appear
-    #an odd number of times.
+    '''
+    takes a list of terms, and returns the set of terms that appear
+    an odd number of times.
+    '''
     
     terms = set(term_list)
     odd_terms = set([])
@@ -41,8 +51,16 @@ def mod2(term_list):
     return odd_terms
 
 def compute_subpoly(polynomial, n):
+    '''
+    the subpolynomials as the polynomials that could be obtained by partial evaluations at the first m variables, 0 <= m <= n.
     
-    #Could be improved if you calculate $n$ as the max appearing variable
+    For example, the subpolynomials of x_1x_2...x_n are just x_1x_2...x_n, x_2...x_n, x_k...x_n,  1 and 0.
+    
+    n is the number of variables 
+    
+    TODO: Could be improved if you calculate $n$ as the max appearing variable
+    '''
+
     subpolys = set([])
     subpolys.add(polynomial)
     list_of_subs = [ set( [polynomial])]
@@ -84,6 +102,14 @@ def compute_subpoly(polynomial, n):
     return len(subpoly)
 
 def test():
+    '''
+    Some tests to make sure that the subpolynomial routine works.
+    
+    These can be compared to subpolynomial counts done by hand using a binary evaluation tree.
+    To calculate by hand:
+    each level of the tree corresponds to evaluting the next variable: the left child sets it to zero, and the right child to one.
+    
+    '''
     n = 3
     values = list(range(n))
     poly = frozenset([frozenset( values)])
@@ -100,7 +126,9 @@ def test():
     
     
 def experiment():
-    
+    '''
+    calculating how many subpolynomials a random polynomial has
+    '''
     print("warning: this uses a lot of memory")
     n = 50
     for m in range(3,25,2):
