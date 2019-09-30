@@ -12,6 +12,7 @@ Polynomials are encoded as a collection of subsets of a ground set [n].
 import random
 import copy
 import numpy as np
+import itertools
 def random_poly(n = 10, m = 3, d = 5):
     '''
     this creates a random boolean polynomial, stored as a frozenset of terms / monomials
@@ -50,7 +51,7 @@ def mod2(term_list):
             
     return odd_terms
 
-def compute_subpoly(polynomial, n):
+def compute_subpoly(polynomial, n, use_mod2 = True):
     '''
     the subpolynomials as the polynomials that could be obtained by partial evaluations at the first m variables, 0 <= m <= n.
     
@@ -87,8 +88,9 @@ def compute_subpoly(polynomial, n):
                     t_new.remove(i)
                     t_new = frozenset(t_new)
                     new_q.append(t_new)
-                    
-            new_q = mod2(new_q)        
+            
+            if use_mod2 == True:
+                new_q = mod2(new_q)        
             new_q = frozenset(new_q)
             new_polys.add(new_q)
         #print("step:" + str(new_polys) + "\n")
@@ -96,7 +98,7 @@ def compute_subpoly(polynomial, n):
         list_of_subs.append(new_polys)
         
     subpoly = subpolys.union(*list_of_subs)
-    print(subpoly)
+    #print(subpoly)
     #print(len(subpoly))
     
     return len(subpoly)
@@ -125,16 +127,48 @@ def test():
     compute_subpoly(poly, n)
     
     
+def sum_of_monomials(n = 5, d = 2):
+
+    variables = list(range(n))
+    terms = itertools.combinations(variables, d)
+    
+    poly_terms = set([])
+    for term in terms:
+        poly_terms.add(frozenset(term))
+    
+    polynomial = frozenset(poly_terms)
+    
+    return polynomial
+    
 def experiment():
     '''
     calculating how many subpolynomials a random polynomial has
     '''
     print("warning: this uses a lot of memory")
-    n = 50
-    for m in range(3,25,2):
-        d = 10
+    n = 20
+    for m in range(1,20,1):
+        d = 12
         list_of_counts = []
         for k in range(2):
             poly = random_poly(n,m,d)
             list_of_counts.append((compute_subpoly(poly, n)))
         print("at m: " +  str(m) + " counts: ", np.mean(list_of_counts))
+        
+def experiment_2():
+    n = 10
+    for n in range(4,15):
+        list_of_counts = []
+        for d in range(0,n+1):
+            poly = sum_of_monomials(n,d)
+            list_of_counts.append((compute_subpoly(poly, n)))
+        
+        print(list_of_counts)
+
+
+    for n in range(4,15):
+        list_of_counts = []
+        for d in range(0,n+1):
+            poly = sum_of_monomials(n,d)
+            list_of_counts.append((compute_subpoly(poly, n, False)))
+        
+        print(list_of_counts)
