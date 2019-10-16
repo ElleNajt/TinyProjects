@@ -65,10 +65,12 @@ def estimator(C, number_nodes):
     return y
 
 m = 1
-G = nx.grid_graph([2*m,2])
-estimate_perfect_matchings(G,1000, True, True)
+G = nx.grid_graph([2*m,3])
 
-#As one can see, the variance is truly terrible!
-#Maybe a more sophisticated estimator will do better?
+print("Using the Laplacian:", estimate_perfect_matchings(G,10000))
+print("Using A + n I : " ,  estimate_perfect_matchings(G,10000, False))
 
-#Note that the method using the Laplacian covariance matrix has signifigantly lower variance than the method with the Adjacency matrix...
+
+#Note that the method using the Laplacian covariance matrix has signifigantly lower variance than the method with the Adjacency matrix...although the variance is not good!
+
+#Maybe an alternative method for computing the expected value of the product of Gaussians that we construct can give an even better estimator?
