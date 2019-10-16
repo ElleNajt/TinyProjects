@@ -1,0 +1,47 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Oct 16 16:01:29 2019
+
+@author: Lorenzo Najt
+
+This uses Wick's theorem to estimate the number of perfect matchigns of a given graph.
+
+"""
+
+import networkx as nx
+import numpy as np
+
+
+def estimate_perfect_matchings(G, number_samples):
+    #L = -1*nx.laplacian_matrix(G) 
+    '''
+    I think we don't want the Laplacian -- in order for it to be positive definite, it seems like we need to use D - A, which will introduce funny signs in the sum.
+    
+    So we use Adj + n I instead. That's a shame because the description (Inc) (Inc)^T would probably have been useful numerically...
+    '''
+    
+    number_nodes = len(G.nodes())
+    Adj = nx.adj_matrix(G) + number_nodes* np.identity(number_nodes)
+    #Inc = nx.incidence_matrix(G)
+    C = np.linalg.cholesky(Adj.A)
+
+    samples = [estimator(C, number_nodes) for i in range(number_samples)]
+    return ["mean: " + str(np.mean(samples)),"var: " + str(np.var(samples))]
+    
+    
+def estimator(C, number_nodes):
+    '''
+    This takes the Cholesky factorization of the Laplacian and returns a sample from the Gaussian whose correlation matrix is Adj + n I
+    '''
+    X = np.random.normal(0,1, number_nodes)
+    Y = np.matmul(C,X) #This samples from (X_1, ..., X_V), where their correlation matrix is the Laplacian
+    y = np.prod(Y) # Take the product 
+    return y
+
+m = 2
+G = nx.grid_graph([2,3])
+estimate_perfect_matchings(G,1000000)
+
+#As one can see, the variance is truly terrible!
+
+#Maybe a more sophisticated estimator will do better?
