@@ -23,7 +23,7 @@ def estimate_perfect_matchings(G, number_samples, Laplacian = True):
     #Can probably use Inc cleverly instead of the cholesky decomposition
     if Laplacian == True:
         C = np.linalg.cholesky(L.A)
-        multiplier = (-1)^(int(number_nodes/2))
+        multiplier = (-1)**(int(number_nodes/2))
         samples = [multiplier* estimator(C, number_nodes) for i in range(number_samples)]
         #Multiplier is necessary to correct for sign
     else:
@@ -43,7 +43,7 @@ def estimator(C, number_nodes):
 
 m = 2
 G = nx.grid_graph([2,2])
-estimate_perfect_matchings(G,10000, False)
+estimate_perfect_matchings(G,100000, True)
 
 #As one can see, the variance is truly terrible!
 
