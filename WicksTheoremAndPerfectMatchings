@@ -12,39 +12,63 @@ import networkx as nx
 import numpy as np
 
 
-def estimate_perfect_matchings(G, number_samples, Laplacian = True):
+def estimate_perfect_matchings(G, number_samples, Laplacian = True, Clever_Laplacian = True):
+    
+    '''
+    Note that using the Laplacian matrix outperforms Adj + n I, even without the trick about using the incidence matrix. However, finding the Cholesky decomposition is unstable, because generally the Laplacian has a zero eigenvalue, corresponding to harmonic functions on the graph.
+    
+    Options:
+        
+        Laplacian -- use the Laplacian matrix instead of Adj + nI
+        Clever Laplacian -- don't compute the Cholesky factorization of the Laplacian matrix, instead compute a Gaussian with covariance matrix the Laplacian by using the relationship L = Inc Inc^T.
+    
+    '''
     L = nx.laplacian_matrix(G) 
     
     number_nodes = len(G.nodes())
+    number_edges = len(G.edges())
     Adj = nx.adj_matrix(G) + number_nodes* np.identity(number_nodes)
     #Adding n * identity to make it PSD, without affecting off diagonal terms.
-    
-    #Inc = nx.incidence_matrix(G)
-    #Can probably use Inc cleverly instead of the cholesky decomposition
     if Laplacian == True:
-        C = np.linalg.cholesky(L.A)
+        
         multiplier = (-1)**(int(number_nodes/2))
-        samples = [multiplier* estimator(C, number_nodes) for i in range(number_samples)]
+        
+        if Clever_Laplacian == True:
+            Inc = nx.incidence_matrix(G)
+            samples = [multiplier* clever_estimator(Inc, number_nodes, number_edges) for i in range(number_samples)]
+        else:
+            C = np.linalg.cholesky(L.A)
+            samples = [multiplier* estimator(C, number_nodes) for i in range(number_samples)]
         #Multiplier is necessary to correct for sign
     else:
         C = np.linalg.cholesky(Adj.A)
         samples = [estimator(C, number_nodes) for i in range(number_samples)]
     return ["mean: " + str(np.mean(samples)),"var: " + str(np.var(samples))]
     
+
+def clever_estimator(Inc, number_nodes, number_edges):
+    '''
+    This takes the incidence matrix of the graph, and returns a sample from a Gaussian with covariance matrix (Inc) (Inc)^T = Laplacian.
+    '''
+    X = np.random.normal(0,1, number_edges)
+    Y = np.matmul(Inc.A, X)
+    y = np.prod(Y)
+    return y
     
 def estimator(C, number_nodes):
     '''
-    This takes the Cholesky factorization of the Laplacian and returns a sample from the Gaussian whose correlation matrix is Adj + n I
+    This takes the Cholesky factorization of the given matrix A and returns a sample from the Gaussian whose correlation matrix is A
     '''
     X = np.random.normal(0,1, number_nodes)
     Y = np.matmul(C,X) #This samples from (X_1, ..., X_V), where their correlation matrix is the Laplacian
     y = np.prod(Y) # Take the product 
     return y
 
-m = 2
-G = nx.grid_graph([2,2])
-estimate_perfect_matchings(G,100000, True)
+m = 1
+G = nx.grid_graph([2*m,3])
+estimate_perfect_matchings(G,10000, True)
 
 #As one can see, the variance is truly terrible!
-
 #Maybe a more sophisticated estimator will do better?
+
+#Note that the method using the Laplacian covariance matrix has signifigantly lower variance than the method with the Adjacency matrix...
