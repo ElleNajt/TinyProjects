@@ -12,20 +12,21 @@ import networkx as nx
 import numpy as np
 
 
-def estimate_perfect_matchings(G, number_samples):
-    #L = -1*nx.laplacian_matrix(G) 
-    '''
-    I think we don't want the Laplacian -- in order for it to be positive definite, it seems like we need to use D - A, which will introduce funny signs in the sum.
-    
-    So we use Adj + n I instead. That's a shame because the description (Inc) (Inc)^T would probably have been useful numerically...
-    '''
+def estimate_perfect_matchings(G, number_samples, Laplacian = True):
+    L = nx.laplacian_matrix(G) 
     
     number_nodes = len(G.nodes())
     Adj = nx.adj_matrix(G) + number_nodes* np.identity(number_nodes)
     #Inc = nx.incidence_matrix(G)
-    C = np.linalg.cholesky(Adj.A)
-
-    samples = [estimator(C, number_nodes) for i in range(number_samples)]
+    #Can probably use Inc cleverly instead of the cholesky decomposition
+    if Laplacian == True:
+        C = np.linalg.cholesky(L.A)
+        multiplier = (-1)^(int(number_nodes/2))
+        samples = [multiplier* estimator(C, number_nodes) for i in range(number_samples)]
+        #Multiplier is necessary to correct for sign
+    else:
+        C = np.linalg.cholesky(Adj.A)
+        samples = [estimator(C, number_nodes) for i in range(number_samples)]
     return ["mean: " + str(np.mean(samples)),"var: " + str(np.var(samples))]
     
     
@@ -40,7 +41,7 @@ def estimator(C, number_nodes):
 
 m = 2
 G = nx.grid_graph([2,3])
-estimate_perfect_matchings(G,1000000)
+estimate_perfect_matchings(G,1000000, False)
 
 #As one can see, the variance is truly terrible!
 
