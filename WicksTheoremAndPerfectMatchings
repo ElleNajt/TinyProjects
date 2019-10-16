@@ -34,7 +34,7 @@ def estimate_perfect_matchings(G, number_samples, Laplacian = True, Clever_Lapla
         multiplier = (-1)**(int(number_nodes/2))
         
         if Clever_Laplacian == True:
-            Inc = nx.incidence_matrix(G)
+            Inc = nx.incidence_matrix(G, oriented = True)
             samples = [multiplier* clever_estimator(Inc, number_nodes, number_edges) for i in range(number_samples)]
         else:
             C = np.linalg.cholesky(L.A)
@@ -65,8 +65,8 @@ def estimator(C, number_nodes):
     return y
 
 m = 1
-G = nx.grid_graph([2*m,3])
-estimate_perfect_matchings(G,10000, True)
+G = nx.grid_graph([2*m,2])
+estimate_perfect_matchings(G,1000, True, True)
 
 #As one can see, the variance is truly terrible!
 #Maybe a more sophisticated estimator will do better?
