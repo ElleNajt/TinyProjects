@@ -17,6 +17,8 @@ def estimate_perfect_matchings(G, number_samples, Laplacian = True):
     
     number_nodes = len(G.nodes())
     Adj = nx.adj_matrix(G) + number_nodes* np.identity(number_nodes)
+    #Adding n * identity to make it PSD, without affecting off diagonal terms.
+    
     #Inc = nx.incidence_matrix(G)
     #Can probably use Inc cleverly instead of the cholesky decomposition
     if Laplacian == True:
@@ -40,8 +42,8 @@ def estimator(C, number_nodes):
     return y
 
 m = 2
-G = nx.grid_graph([2,3])
-estimate_perfect_matchings(G,1000000, False)
+G = nx.grid_graph([2,2])
+estimate_perfect_matchings(G,10000, False)
 
 #As one can see, the variance is truly terrible!
 
