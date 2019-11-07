@@ -118,7 +118,7 @@ def viz(graph):
 
 size = 8
 graph = initialize(size)
-steps = 100
+steps = 10000
 for i in range(steps):
     step(graph)
     
