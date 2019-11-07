@@ -85,12 +85,15 @@ def initialize(size):
     assignment = {}
     
     memory = {}
+    average_color = {}
     for x in graph.nodes():
         assignment[x] = 0
         memory[x] = 0
+        average_color[x] = 0
         
     graph.graph["assignment"] = assignment
     graph.graph["memory"]= memory
+    graph.graph["average_color"] = average_color
     return graph
 
 def reset_memory(graph):
@@ -110,12 +113,12 @@ def viz(graph):
     for x in graph.nodes():
         graph.node[x]["col"] = graph.graph["assignment"][x] 
     values = [graph.node[x]["col"] for x in graph.nodes()]
-    nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'),labels = graph.graph["display_memory"], node_size = 10, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
+    nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'),labels = graph.graph["average_color"], node_size = 10, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
     #nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'),labels = graph.graph["assignment"], node_size = 10, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
 
 size = 8
 graph = initialize(size)
-steps = 10000
+steps = 100
 for i in range(steps):
     step(graph)
     
@@ -126,7 +129,7 @@ for i in range(steps):
     
 
 for x in graph.nodes():
-    graph.graph["display_memory"][x] = int(graph.graph["memory"][x]/ steps)
+    graph.graph["average_color"][x] = int(graph.graph["memory"][x]/ steps)
 viz(graph)
 
     
