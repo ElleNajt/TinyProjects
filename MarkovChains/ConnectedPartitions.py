@@ -10,14 +10,9 @@ import random
 from matplotlib import pyplot as plt
 import math
 
-#What is the right Markov chain to use here?
-
-#Note that even for the colorful version, you do know the necessary reweightin factor
-#It is (n choose k) k! , for k blocks and n nodes total.
-#You can do the Glauber dynamics chain with this reweighting... I wonder how this will do. 
-
 
 def get_blocks(graph):
+    #Returns the blocks induced by "assignment"
     #You can do this in O(n), not O(n^2)
     block_table = []
     for c in graph.graph["colors"]:
@@ -29,6 +24,7 @@ def get_blocks(graph):
     return block_table
 
 def check_connected(graph):
+    #Checks that the blocks induced by "assignment" give connected subgraphs
     #This can be optimized a ton
     block_table = get_blocks(graph)
     for block in block_table:
@@ -39,6 +35,7 @@ def check_connected(graph):
     return True
 
 def step(graph):
+    #Markov chain step
     n= len(graph.nodes())
     old_number_colors = len ( set ( graph.graph["assignment"].values()))
     
@@ -53,6 +50,9 @@ def step(graph):
         return False
     new_number_colors = len ( set ( graph.graph["assignment"].values()))
     
+    
+    ##Metropolis Hastings to prevent over counting of stationary distribution  due to labelling
+    #That is : note that a partition into n isolated blocks has n! representations, but one into a single block has n representations.
     if new_number_colors <= old_number_colors:
         return True
     
@@ -94,6 +94,7 @@ def initialize(size):
     return graph
 
 def reset_memory(graph):
+    #Resets the average color memory
     memory = {}
     for x in graph.nodes():
         memory[x] = 0
@@ -101,6 +102,9 @@ def reset_memory(graph):
     graph.graph["memory"]= memory
 
 def viz(graph):
+    '''
+    Draws the graph , labelling nodes either by the current assignment ("assignment") or the average assignment ("memory")
+    '''
     for x in graph.nodes():
         graph.node[x]["pos"] = [x[0], x[1]]
     for x in graph.nodes():
@@ -109,9 +113,9 @@ def viz(graph):
     nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'),labels = graph.graph["memory"], node_size = 10, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
     #nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'),labels = graph.graph["assignment"], node_size = 10, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
 
-size = 5
+size = 8
 graph = initialize(size)
-steps = 6000
+steps = 10000
 for i in range(steps):
     step(graph)
     
