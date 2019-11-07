@@ -38,6 +38,8 @@ def check_connected(graph):
     return True
 
 def step(graph):
+    for x in graph.nodes():
+        graph.graph["memory"][x] += graph.graph["assignment"][x]
     x = random.choice(list(graph.nodes()))
     c = random.choice(graph.graph["colors"])
     old_color = graph.graph["assignment"][x]
@@ -48,16 +50,20 @@ def step(graph):
     return True
 
 def initialize():
-    graph = nx.grid_2d_graph(5,5)
+    graph = nx.grid_2d_graph(10,10)
     
     colors = range(len(graph.nodes()))
     graph.graph["colors"] = colors
     
     assignment = {}
+    
+    memory = {}
     for x in graph.nodes():
         assignment[x] = 0
+        memory[x] = 0
         
     graph.graph["assignment"] = assignment
+    graph.graph["memory"]= memory
     return graph
 
 def viz(graph):
@@ -66,12 +72,16 @@ def viz(graph):
     for x in graph.nodes():
         graph.node[x]["col"] = graph.graph["assignment"][x] 
     values = [graph.node[x]["col"] for x in graph.nodes()]
-    nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'),labels = graph.graph["assignment"], node_size = 60, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
-
+    nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'),labels = graph.graph["memory"], node_size = 10, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
+    #nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'),labels = graph.graph["assignment"], node_size = 10, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
 
 graph = initialize()
-for i in range(10000):
+steps = 1000000
+for i in range(steps):
     step(graph)
+
+for x in graph.nodes():
+    graph.graph["memory"][x] = int(graph.graph["memory"][x]/ steps)
 viz(graph)
 
     
