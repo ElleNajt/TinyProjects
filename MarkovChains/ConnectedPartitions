@@ -2,7 +2,10 @@
 """
 Spyder Editor
 
-This is a temporary script file.
+Author: Lorenzo Najt
+
+Project Goal: To analyze the effectiveness of Glauber dynamics Markov chain on sampling connected partitions
+TODO: Impose score function so that we have uniform distribution
 """
 
 import networkx as nx
