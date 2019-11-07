@@ -1,0 +1,77 @@
+# -*- coding: utf-8 -*-
+"""
+Spyder Editor
+
+This is a temporary script file.
+"""
+
+import networkx as nx
+import random
+from matplotlib import pyplot as plt
+
+#What is the right Markov chain to use here?
+
+#Note that even for the colorful version, you do know the necessary reweightin factor
+#It is (n choose k) k! , for k blocks and n nodes total.
+#You can do the Glauber dynamics chain with this reweighting... I wonder how this will do. 
+
+
+def get_blocks(graph):
+    #You can do this in O(n), not O(n^2)
+    block_table = []
+    for c in graph.graph["colors"]:
+        block = []
+        for x in graph.nodes():
+            if graph.graph["assignment"][x] == c:
+                block.append(x)
+        block_table.append(block)
+    return block_table
+
+def check_connected(graph):
+    #This can be optimized a ton
+    block_table = get_blocks(graph)
+    for block in block_table:
+        subgraph = nx.subgraph(graph, block)
+        if len(block) != 0:
+            if nx.is_connected(subgraph) == False:
+                return False
+    return True
+
+def step(graph):
+    x = random.choice(list(graph.nodes()))
+    c = random.choice(graph.graph["colors"])
+    old_color = graph.graph["assignment"][x]
+    graph.graph["assignment"][x] = c
+    if not check_connected(graph):
+        graph.graph["assignment"][x] = old_color
+        return False
+    return True
+
+def initialize():
+    graph = nx.grid_2d_graph(5,5)
+    
+    colors = range(len(graph.nodes()))
+    graph.graph["colors"] = colors
+    
+    assignment = {}
+    for x in graph.nodes():
+        assignment[x] = 0
+        
+    graph.graph["assignment"] = assignment
+    return graph
+
+def viz(graph):
+    for x in graph.nodes():
+        graph.node[x]["pos"] = [x[0], x[1]]
+    for x in graph.nodes():
+        graph.node[x]["col"] = graph.graph["assignment"][x] 
+    values = [graph.node[x]["col"] for x in graph.nodes()]
+    nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'),labels = graph.graph["assignment"], node_size = 60, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
+
+
+graph = initialize()
+for i in range(10000):
+    step(graph)
+viz(graph)
+
+    
