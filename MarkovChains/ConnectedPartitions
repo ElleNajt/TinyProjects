@@ -2,7 +2,7 @@
 """
 Spyder Editor
 
-This is a temporary script file.
+Author: Lorenzo Najt
 """
 
 import networkx as nx
@@ -38,6 +38,8 @@ def check_connected(graph):
     return True
 
 def step(graph):
+    old_number_colors = len ( set ( graph.graph["assignment"].values()))
+    
     for x in graph.nodes():
         graph.graph["memory"][x] += graph.graph["assignment"][x]
     x = random.choice(list(graph.nodes()))
@@ -47,10 +49,18 @@ def step(graph):
     if not check_connected(graph):
         graph.graph["assignment"][x] = old_color
         return False
+    new_number_colors = len ( set ( graph.graph["assignment"].values()))
+    
+    if new_number_colors <= old_number_colors:
+        return True
+    
+    c = random.uniform(0,1)
+    print("finish this")
     return True
-
-def initialize():
-    graph = nx.grid_2d_graph(10,10)
+    
+    
+def initialize(size):
+    graph = nx.grid_2d_graph(size,size)
     
     colors = range(len(graph.nodes()))
     graph.graph["colors"] = colors
@@ -82,8 +92,9 @@ def viz(graph):
     nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'),labels = graph.graph["memory"], node_size = 10, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
     #nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'),labels = graph.graph["assignment"], node_size = 10, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
 
-graph = initialize()
-steps = 2000
+size = 10
+graph = initialize(size)
+steps = 6000
 for i in range(steps):
     step(graph)
     
