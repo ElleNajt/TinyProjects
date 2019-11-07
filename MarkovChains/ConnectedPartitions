@@ -2,10 +2,7 @@
 """
 Spyder Editor
 
-Author: Lorenzo Najt
-
-Project Goal: To analyze the effectiveness of Glauber dynamics Markov chain on sampling connected partitions
-TODO: Impose score function so that we have uniform distribution
+This is a temporary script file.
 """
 
 import networkx as nx
@@ -69,6 +66,13 @@ def initialize():
     graph.graph["memory"]= memory
     return graph
 
+def reset_memory(graph):
+    memory = {}
+    for x in graph.nodes():
+        memory[x] = 0
+
+    graph.graph["memory"]= memory
+
 def viz(graph):
     for x in graph.nodes():
         graph.node[x]["pos"] = [x[0], x[1]]
@@ -79,9 +83,14 @@ def viz(graph):
     #nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'),labels = graph.graph["assignment"], node_size = 10, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
 
 graph = initialize()
-steps = 1000000
+steps = 2000
 for i in range(steps):
     step(graph)
+    
+reset_memory(graph)
+for i in range(steps):
+    step(graph)
+    
 
 for x in graph.nodes():
     graph.graph["memory"][x] = int(graph.graph["memory"][x]/ steps)
