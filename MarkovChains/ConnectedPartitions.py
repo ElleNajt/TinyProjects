@@ -8,6 +8,7 @@ Author: Lorenzo Najt
 import networkx as nx
 import random
 from matplotlib import pyplot as plt
+import math
 
 #What is the right Markov chain to use here?
 
@@ -38,6 +39,7 @@ def check_connected(graph):
     return True
 
 def step(graph):
+    n= len(graph.nodes())
     old_number_colors = len ( set ( graph.graph["assignment"].values()))
     
     for x in graph.nodes():
@@ -55,8 +57,23 @@ def step(graph):
         return True
     
     c = random.uniform(0,1)
-    print("finish this")
-    return True
+
+    if c < score(n,new_number_colors)/score(n,old_number_colors):
+        return True
+    else:
+        graph.graph["assignment"][x] = old_color
+        return False
+
+
+def score(n, k):
+    # A partition with k current colors on n nodes, is represented
+    # (n choose k) k! = n^{falling(k)} times. 
+    # up to a constant, this is is 1 / (n - k)! times. 
+    
+    #So we want to weight a partition by (n - k)!. 
+    
+    return math.factorial(n - k)
+    
     
     
 def initialize(size):
@@ -92,7 +109,7 @@ def viz(graph):
     nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'),labels = graph.graph["memory"], node_size = 10, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
     #nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'),labels = graph.graph["assignment"], node_size = 10, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
 
-size = 10
+size = 5
 graph = initialize(size)
 steps = 6000
 for i in range(steps):
