@@ -8,6 +8,7 @@ Author: Lorenzo Najt
 import networkx as nx
 import random
 from matplotlib import pyplot as plt
+import matplotlib.gridspec as gridspec
 import math
 
 
@@ -39,6 +40,7 @@ def step(graph):
     n= len(graph.nodes())
     old_number_colors = len ( set ( graph.graph["assignment"].values()))
     
+    graph.graph["num_colors_history"].append(old_number_colors)
     for x in graph.nodes():
         graph.graph["memory"][x] += graph.graph["assignment"][x]
     x = random.choice(list(graph.nodes()))
@@ -79,7 +81,9 @@ def score(n, k):
 def initialize(size):
     graph = nx.grid_2d_graph(size,size)
     
-    colors = range(len(graph.nodes()))
+    colors = range(2*len(graph.nodes()))
+    #reasonable idea : add a pool of 2n colors, so there's always something to swap in. This does change the necessary reweightings.
+    
     graph.graph["colors"] = colors
     
     assignment = {}
@@ -94,6 +98,7 @@ def initialize(size):
     graph.graph["assignment"] = assignment
     graph.graph["memory"]= memory
     graph.graph["average_color"] = average_color
+    graph.graph["num_colors_history"] = []
     return graph
 
 def reset_memory(graph):
@@ -113,12 +118,23 @@ def viz(graph):
     for x in graph.nodes():
         graph.node[x]["col"] = graph.graph["assignment"][x] 
     values = [graph.node[x]["col"] for x in graph.nodes()]
+    
+    fig = plt.figure()
+    gs = gridspec.GridSpec(2,2)
+    
+    ax = plt.subplot(gs[0,0])
     nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'),labels = graph.graph["average_color"], node_size = 10, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
-    #nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'),labels = graph.graph["assignment"], node_size = 10, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
-
-size = 8
+    fig.add_subplot(ax)
+    ax = plt.subplot(gs[0,1])
+    nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'),labels = graph.graph["assignment"], node_size = 10, width = .5, cmap=plt.get_cmap('jet'), node_color=values)
+    fig.add_subplot(ax)
+    ax = plt.subplot(gs[1,0])
+    plt.plot(list(range(len(graph.graph["num_colors_history"]))), graph.graph["num_colors_history"])
+    fig.add_subplot(ax)
+    
+size = 6
 graph = initialize(size)
-steps = 10000
+steps = 1000
 for i in range(steps):
     step(graph)
     
