@@ -78,10 +78,10 @@ def score(n, k):
     
     
     
-def initialize(size):
+def initialize(size, initial_config):
     graph = nx.grid_2d_graph(size,size)
     
-    colors = range(2*len(graph.nodes()))
+    colors = range(len(graph.nodes()))
     #reasonable idea : add a pool of 2n colors, so there's always something to swap in. This does change the necessary reweightings.
     
     graph.graph["colors"] = colors
@@ -94,6 +94,15 @@ def initialize(size):
         assignment[x] = 0
         memory[x] = 0
         average_color[x] = 0
+        
+    if initial_config == 1:
+        node_list = list(graph.nodes())
+        #This is the case of starting from everyone isolated
+        for i in range(len(graph.nodes())):
+            x = node_list[i]
+            assignment[x] = i
+            memory[x] = i
+            average_color[x] = i
         
     graph.graph["assignment"] = assignment
     graph.graph["memory"]= memory
@@ -132,9 +141,9 @@ def viz(graph):
     plt.plot(list(range(len(graph.graph["num_colors_history"]))), graph.graph["num_colors_history"])
     fig.add_subplot(ax)
     
-size = 6
-graph = initialize(size)
-steps = 1000
+size = 10
+graph = initialize(size,1)
+steps = 300000
 for i in range(steps):
     step(graph)
     
