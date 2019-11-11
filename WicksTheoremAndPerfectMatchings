@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 """
+Created on Mon Nov 11 14:56:37 2019
+
+@author: Temporary
+"""
+
+# -*- coding: utf-8 -*-
+"""
 Created on Wed Oct 16 16:01:29 2019
 
 @author: Lorenzo Najt
@@ -12,7 +19,7 @@ import networkx as nx
 import numpy as np
 
 
-def estimate_perfect_matchings(G, number_samples, Laplacian = True, Clever_Laplacian = True):
+def estimate_perfect_matchings(G, number_samples, Laplacian = True, Clever_Laplacian = True, type = "median"):
     
     '''
     Note that using the Laplacian matrix outperforms Adj + n I, even without the trick about using the incidence matrix. However, finding the Cholesky decomposition is unstable, because generally the Laplacian has a zero eigenvalue, corresponding to harmonic functions on the graph.
@@ -43,7 +50,11 @@ def estimate_perfect_matchings(G, number_samples, Laplacian = True, Clever_Lapla
     else:
         C = np.linalg.cholesky(Adj.A)
         samples = [estimator(C, number_nodes) for i in range(number_samples)]
-    return ["mean: " + str(np.mean(samples)),"var: " + str(np.var(samples))]
+        
+    if type == "mean":
+        return ["mean: " + str(np.mean(samples)),"var: " + str(np.var(samples))]
+    if type == "median":
+        return ["median:" + str(np.median(samples))]
     
 
 def clever_estimator(Inc, number_nodes, number_edges):
@@ -64,11 +75,11 @@ def estimator(C, number_nodes):
     y = np.prod(Y) # Take the product 
     return y
 
-m = 1
+m = 3
 G = nx.grid_graph([2*m,3])
 
-print("Using the Laplacian:", estimate_perfect_matchings(G,10000))
-print("Using A + n I : " ,  estimate_perfect_matchings(G,10000, False))
+print("Using the Laplacian:", estimate_perfect_matchings(G,50000))
+#print("Using A + n I : " ,  estimate_perfect_matchings(G,100, False))
 
 
 #Note that the method using the Laplacian covariance matrix has signifigantly lower variance than the method with the Adjacency matrix...although the variance is not good!
