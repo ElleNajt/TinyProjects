@@ -1,0 +1,91 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Nov 26 10:34:31 2019
+
+@author: Lorenzo Najt
+"""
+
+import networkx as nx
+import copy
+
+def partition_extendable(graph, in_set):
+    coloring = graph.graph["coloring"] 
+    for e in in_set:
+        if coloring[e[0]] == coloring[e[1]]:
+            return False
+    return True
+
+def update_coloring(graph, edge):
+    coloring = graph.graph["coloring"] 
+    a = coloring[edge[0]]
+    b = coloring[edge[1]]
+    if a == b:
+        return graph
+        #If already in the same component, do nothing.
+    else:
+        #Update the component coloring by the smallest label. 
+        #TODO: You can speed this up by having "a" and "b" be pointers to a color, and then updating that pointer. This will make this step linear time.
+        if a < b:
+            for x in graph.nodes():
+                if coloring[x] == b:
+                    coloring[x] = a
+        else:
+            for x in graph.nodes():
+                if coloring[x] == a:
+                    coloring[x] = b           
+    return graph
+    
+def back_tracking_recursion(input_graph, layer, in_set, out_set, new_in = set(), new_out = set()):
+    graph = copy.deepcopy(input_graph)
+    #graph = input_graph
+    #This is bad!
+    #Todo: you want to delete 
+    #print(layer, in_set, out_set, graph.graph["coloring"])
+    old_coloring = copy.deepcopy(graph.graph["coloring"])
+    if new_out != set():
+        graph = update_coloring(graph, new_out)
+    
+    extendable = partition_extendable(graph, in_set)
+    
+    #print(extendable)
+    
+    if extendable == False:
+        #graph.graph["coloring"] = old_coloring
+        return [False]
+    
+    if layer == len(graph.edges()):
+        #graph.graph["coloring"] = old_coloring
+        return [in_set]    
+
+    processed_edge= graph.graph["ordered_edges"][layer]
+    layer += 1
+    #A corresponding skip ahead step would go here.
+    left_tree = back_tracking_recursion(graph, layer, in_set + [processed_edge], out_set, processed_edge, set())
+    right_tree = back_tracking_recursion(graph, layer, in_set, out_set + [processed_edge], set(),processed_edge)
+    
+    return left_tree + right_tree
+    
+    
+def backtracking(graph):   
+    layer = 0
+    graph.graph["ordered_edges"] = list(graph.edges())
+    graph.graph["coloring"] = {x : x for x in graph.nodes()}
+    #Each node will start in its own block, when we declare an edge to be in the outset, will will update the colors of the blocks contianing those two nodes to be the same. THis is done by having the smallest color win.
+    
+    in_set = []
+    out_set = []
+    return back_tracking_recursion(graph, layer, in_set, out_set)
+
+def number_partitions_backtracking(input_graph):
+    graph = nx.convert_node_labels_to_integers(input_graph)
+    list_of_partitions = backtracking(graph)
+    pruned_list = [x for x in list_of_partitions if x != False]
+    counter = 0
+    for m in list_of_partitions:
+        if m != False:
+            counter += 1
+    return counter
+
+
+input_graph = nx.grid_graph([4,4])
+number_partitions_backtracking(input_graph)
