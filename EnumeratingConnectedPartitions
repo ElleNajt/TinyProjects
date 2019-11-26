@@ -37,10 +37,9 @@ def update_coloring(graph, edge):
     
 def back_tracking_recursion(input_graph, layer, in_set, out_set, new_in = set(), new_out = set()):
     #graph = copy.deepcopy(input_graph)
+    #This was a hack to manage color resetting. Now works better with the old_coloring idea.
+    
     graph = input_graph
-    #This is bad!
-    #Todo: you want to delete 
-
     old_coloring = copy.deepcopy(graph.graph["coloring"])
     if new_out != set():
         graph = update_coloring(graph, new_out)
@@ -94,5 +93,18 @@ def number_partitions_backtracking(input_graph):
     return counter
 
 
-input_graph = nx.grid_graph([5,3])
+input_graph = nx.grid_graph([5,5])
 number_partitions_backtracking(input_graph)
+'''
+
+
+###Results:
+    
+    2x2: 12
+    
+    5x3: 538150
+    
+    4x4: 1691690
+    
+    
+ '''
