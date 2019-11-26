@@ -93,7 +93,7 @@ def number_partitions_backtracking(input_graph):
     return counter
 
 
-input_graph = nx.grid_graph([5,5])
+input_graph = nx.grid_graph([3,3])
 number_partitions_backtracking(input_graph)
 '''
 
@@ -101,6 +101,8 @@ number_partitions_backtracking(input_graph)
 ###Results:
     
     2x2: 12
+    
+    3x3: 1434
     
     5x3: 538150
     
