@@ -75,7 +75,7 @@ def backtracking(graph):
     graph.graph["ordered_edges"] = list(graph.edges())
     
     #print(graph.graph["ordered_edges"])
-    graph.graph["coloring"] = {x : color_pointer(x) for x in graph.nodes()}
+    graph.graph["coloring"] = {x : x for x in graph.nodes()}
     #Each node will start in its own block, when we declare an edge to be in the outset, will will update the colors of the blocks contianing those two nodes to be the same. THis is done by having the smallest color win.
     
     in_set = []
