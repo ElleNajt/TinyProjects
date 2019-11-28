@@ -8,6 +8,7 @@ Created on Tue Nov 26 10:34:31 2019
 import networkx as nx
 import copy
 import random
+import numpy as np
 
 def partition_extendable(graph, in_set):
     coloring = graph.graph["coloring"] 
@@ -162,16 +163,15 @@ def viz(graph, edge_set, coloring):
     node_values = [convert[coloring[x]] for x in graph.nodes()]
     nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_color = node_values, edge_color = values, labels = coloring_convert, width = 10)
     
-def test_rejection_sample():
+def test_rejection_sample(graph, steps = 1000):
 
     samples = []
     
     sample_colors = []
     
-    graph = nx.grid_graph([7,7])
     number = 0
 
-    for i in range(100000):
+    for i in range(steps):
         new = rejection_sample(graph)
 
         if new != False:
@@ -186,6 +186,8 @@ def test_rejection_sample():
     viz(graph, edge_set, coloring)
     
     print("Got ", number, " samples")
+    
+    return samples
 
 '''
 
@@ -249,10 +251,10 @@ def restarting_rejection_recursion(input_graph, layer, in_set, out_set, new_in =
     #graph.graph["coloring"] = old_coloring
     #TODO: Make sure these coloring updates are organized correctly.
 
-def test_restarting_rejection():    
+def test_restarting_rejection(graph):    
     
     samples = []
-    graph = nx.grid_graph([6,6])
+    #graph = nx.grid_graph([6,6])
     
     for i in range(1000):
         samples.append(restarting_rejection_sample(graph))
@@ -412,7 +414,7 @@ def step(graph, cut_edges, non_cut_edges, temperature):
     coin = random.uniform(0,1)
     
     if temperature**(new_contradictions - current_contradictions) <= coin:
-        print("reset, at threshold:", temperature**(new_contradictions - current_contradictions) )
+        #print("reset, at threshold:", temperature**(new_contradictions - current_contradictions) )
         non_cut_edges = old_non_cut_edges
         cut_edges = old_cut_edges
         graph.graph["coloring"] = old_coloring
@@ -437,14 +439,31 @@ def run_markov_chain(graph, steps = 100, temperature = .5):
     for i in range(steps):
         non_cut_edges, cut_edges = step(graph, cut_edges, non_cut_edges, temperature)
         if contradictions(graph, cut_edges) == 0:
-            samples.append([copy.deepcopy(cut_edges), copy.deepcopy(graph.graph["coloring"])])
+            samples.append([copy.deepcopy(cut_edges),copy.deepcopy(non_cut_edges), copy.deepcopy(graph.graph["coloring"])])
             
     print(len(samples))
     
     return samples
 
-graph = nx.grid_graph([7,7])
 
-samples = run_markov_chain(graph, 1000, .5)
+def statistic(samples_1, samples_2):
+    
+    
 
-#Question: Can we tune temp so that we get both rapid mixing AND polynomial concentration on the zero contradiction assignments??
+
+graph = nx.grid_graph([5,5])
+
+samples = run_markov_chain(graph, 10000, .1)
+
+viz(graph, samples[-10][1], samples[-10][2])
+
+#The question: Can we tune temp so that we get both rapid mixing AND polynomial concentration on the zero contradiction assignments??
+
+#We can falsify rapid mixing using the totally uniform samples that we have.
+
+non_cut_sets = [len(s[1]) for s in samples]
+
+true_samples = test_rejection_sample(graph, 1000)
+
+true_non_cut_sets = [len(x) for x in true_samples]
+print(np.mean(non_cut_sets), " vs. ", np.mean(true_non_cut_sets))
