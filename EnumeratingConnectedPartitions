@@ -222,20 +222,21 @@ def restarting_rejection_recursion(input_graph, layer, in_set, out_set, new_in =
     
     #graph.graph["coloring"] = old_coloring
     #TODO: Make sure these coloring updates are organized correctly.
-    
-    
-samples = []
-graph = nx.grid_graph([6,6])
 
-for i in range(1000):
-    samples.append(restarting_rejection_sample(graph))
+def test_restarting_rejection():    
     
+    samples = []
+    graph = nx.grid_graph([6,6])
     
-pruned_samples = [x for x in samples if x != False]
-
-print("Got ", len(pruned_samples), " samples")
-
+    for i in range(1000):
+        samples.append(restarting_rejection_sample(graph))
+        
+        
+    pruned_samples = [x for x in samples if x != False]
     
+    print("Got ", len(pruned_samples), " samples")
+    
+        
 '''
 
 
