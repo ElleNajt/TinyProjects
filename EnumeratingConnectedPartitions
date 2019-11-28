@@ -2,7 +2,7 @@
 """
 Created on Tue Nov 26 10:34:31 2019
 
-@author: Lorenzo
+@author: Lorenzo Najt
 """
 
 import networkx as nx
@@ -411,7 +411,8 @@ def step(graph, cut_edges, non_cut_edges, temperature):
         
     coin = random.uniform(0,1)
     
-    if temperature**(new_contradictions - current_contradictions) > coin:
+    if temperature**(new_contradictions - current_contradictions) <= coin:
+        print("reset, at threshold:", temperature**(new_contradictions - current_contradictions) )
         non_cut_edges = old_non_cut_edges
         cut_edges = old_cut_edges
         graph.graph["coloring"] = old_coloring
@@ -423,8 +424,8 @@ def step(graph, cut_edges, non_cut_edges, temperature):
 def run_markov_chain(graph, steps = 100, temperature = .5):
     
     
-    temperature = .8
-    steps = 1000
+    #temperature = .8
+    #steps = 1000
     graph.graph["ordered_edges"] = list(graph.edges())
     graph.graph["coloring"] = {x : x for x in graph.nodes()}
     
@@ -442,6 +443,6 @@ def run_markov_chain(graph, steps = 100, temperature = .5):
     
     return samples
 
-graph = nx.grid_graph([4,4])
+graph = nx.grid_graph([5,5])
 
-samples = run_markov_chain(graph, 100, 1)
+samples = run_markov_chain(graph, 1000, 1)
