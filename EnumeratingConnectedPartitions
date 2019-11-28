@@ -183,7 +183,7 @@ def test_rejection_sample(graph, steps = 1000):
     k = 2
     edge_set = samples[k]
     coloring = sample_colors[k]
-    viz(graph, edge_set, coloring)
+    #viz(graph, edge_set, coloring)
     
     print("Got ", number, " samples")
     
@@ -451,11 +451,11 @@ def statistic(samples_1, samples_2):
     
 
 
-graph = nx.grid_graph([5,5])
+graph = nx.grid_graph([6,6])
 
 samples = run_markov_chain(graph, 10000, .1)
 
-viz(graph, samples[-10][1], samples[-10][2])
+#viz(graph, samples[-10][1], samples[-10][2])
 
 #The question: Can we tune temp so that we get both rapid mixing AND polynomial concentration on the zero contradiction assignments??
 
@@ -463,7 +463,7 @@ viz(graph, samples[-10][1], samples[-10][2])
 
 non_cut_sets = [len(s[1]) for s in samples]
 
-true_samples = test_rejection_sample(graph, 1000)
+true_samples = test_rejection_sample(graph, 10000)
 
 true_non_cut_sets = [len(x) for x in true_samples]
 print(np.mean(non_cut_sets), " vs. ", np.mean(true_non_cut_sets))
