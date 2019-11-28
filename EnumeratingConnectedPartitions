@@ -7,6 +7,7 @@ Created on Tue Nov 26 10:34:31 2019
 
 import networkx as nx
 import copy
+import random
 
 def partition_extendable(graph, in_set):
     coloring = graph.graph["coloring"] 
@@ -93,8 +94,10 @@ def number_partitions_backtracking(input_graph):
     return counter
 
 
-input_graph = nx.grid_graph([3,3])
-number_partitions_backtracking(input_graph)
+#input_graph = nx.grid_graph([3,3])
+#number_partitions_backtracking(input_graph)
+
+
 '''
 
 
@@ -102,11 +105,147 @@ number_partitions_backtracking(input_graph)
     
     2x2: 12
     
-    3x3: 1434
+    3x3: 1,434
     
-    5x3: 538150
+    5x3: 538,150
     
-    4x4: 1691690
+    4x4: 1,691,690 (about an hour of computation)
+    Lower bound from spanning tree: 32768
+    Compare to the upper bound from edge subsets: 16,777,216
+    
+    (Weird -- this suggests that there's a decent probability of just picking a connected partition??)
     
     
  '''
+ 
+ 
+ 
+ 
+def rejection_sample(graph):
+     #the above experiments suggest that, at least for small grid graphs, taking a random edge subset,  there is a decent chance of that being the cut-set of a connected partition.
+    J = []
+    I = []
+    for e in graph.edges():
+        c = random.uniform(0,1)
+        if c > .5 :
+            J.append(e)
+        else:
+            I.append(e)
+    
+    graph.graph["coloring"] = {x : x for x in graph.nodes()}
+    
+    for e in J:
+        graph = update_coloring(graph, e)
+    
+    coloring = graph.graph["coloring"] 
+    for e in I:
+        if coloring[e[0]] == coloring[e[1]]:
+            return False
+    return J
+        
+def test_rejection_sample():
+
+    samples = []
+    graph = nx.grid_graph([8,8])
+    
+    for i in range(100000):
+        new = rejection_sample(graph)
+        samples.append(new)
+        if new != False:
+            print("got one")
+        
+        
+    pruned_samples = [x for x in samples if x != False]
+    
+    print("Got ", len(pruned_samples), " samples")
+
+'''
+
+This works pretty well for 6x6
+
+For 7x7 got 11 samples in 100000 tries
+
+Next: You can use the pruning from above -- just take a random path in the backtracking tree, and restart the path if "extendable" ever declares it not extendable.
+
+'''
+
+
+
+def restarting_rejection_sample(graph):
+    
+    layer = 0
+    graph.graph["ordered_edges"] = list(graph.edges())
+    
+    #print(graph.graph["ordered_edges"])
+    graph.graph["coloring"] = {x : x for x in graph.nodes()}
+    #Each node will start in its own block, when we declare an edge to be in the outset, will will update the colors of the blocks contianing those two nodes to be the same. THis is done by having the smallest color win.
+    
+    in_set = []
+    out_set = []
+    return restarting_rejection_recursion(graph, layer, in_set, out_set)
+    
+
+def restarting_rejection_recursion(input_graph, layer, in_set, out_set, new_in = set(), new_out = set()):
+    #graph = copy.deepcopy(input_graph)
+    #This was a hack to manage color resetting. Now works better with the old_coloring idea.
+    
+    graph = input_graph
+    #old_coloring = copy.deepcopy(graph.graph["coloring"])
+    if new_out != set():
+        graph = update_coloring(graph, new_out)
+    
+    extendable = partition_extendable(graph, in_set)
+    #print(layer, in_set, out_set, graph.graph["coloring"])
+    
+    #print(extendable)
+    
+    if extendable == False:
+        #graph.graph["coloring"] = old_coloring
+        return [False]
+    
+    if layer == len(graph.edges()):
+        #graph.graph["coloring"] = old_coloring
+        return [in_set]    
+
+    processed_edge= graph.graph["ordered_edges"][layer]
+    layer += 1
+    #A corresponding skip ahead step would go here.
+    coin = random.uniform(0,1)
+    if coin < 1/2:
+        return back_tracking_recursion(graph, layer, in_set + [processed_edge], out_set, processed_edge, set())
+    else:
+        return back_tracking_recursion(graph, layer, in_set, out_set + [processed_edge], set(),processed_edge)
+    
+    #graph.graph["coloring"] = old_coloring
+    #TODO: Make sure these coloring updates are organized correctly.
+    
+    
+samples = []
+graph = nx.grid_graph([6,6])
+
+for i in range(1000):
+    samples.append(restarting_rejection_sample(graph))
+    
+    
+pruned_samples = [x for x in samples if x != False]
+
+print("Got ", len(pruned_samples), " samples")
+
+    
+'''
+
+
+I'm not sure that you really win anything from this -- of course the tree is not very deep, so if anything this just means that each sample happens slightly faster. On the other hand, checking this condition at each step is costy.
+
+It would be better to learn something from this process -- 
+
+
+If you want speed ups -- probably doing this with F_2 linear algebra will be faster. 
+
+a) Write the incidence matrix
+b) Pick a random column. 
+c) Scan the remaining columns to see if anything was dependent on it.
+    
+What is the distribution get by taking the span? I think it's the distribution over the G[J], for uniformly random J, which is biased by the number of spanning substructures.
+
+'''
