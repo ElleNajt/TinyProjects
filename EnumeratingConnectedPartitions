@@ -145,25 +145,29 @@ def rejection_sample(graph):
         
 def test_rejection_sample():
 
-    samples = []
-    graph = nx.grid_graph([8,8])
-    
-    for i in range(100000):
+    #samples = []
+    graph = nx.grid_graph([9,9])
+    number = 0
+
+    for i in range(1000000):
         new = rejection_sample(graph)
-        samples.append(new)
+        #samples.append(new)
         if new != False:
+            number += 1
             print("got one")
         
         
-    pruned_samples = [x for x in samples if x != False]
+    #pruned_samples = [x for x in samples if x != False]
     
-    print("Got ", len(pruned_samples), " samples")
+    print("Got ", number, " samples")
 
 '''
 
 This works pretty well for 6x6
 
 For 7x7 got 11 samples in 100000 tries
+For 8x8 got 2 samples in 100000 tries
+For 9x9 got 
 
 Next: You can use the pruning from above -- just take a random path in the backtracking tree, and restart the path if "extendable" ever declares it not extendable.
 
@@ -246,6 +250,6 @@ a) Write the incidence matrix
 b) Pick a random column. 
 c) Scan the remaining columns to see if anything was dependent on it.
     
-What is the distribution get by taking the span? I think it's the distribution over the G[J], for uniformly random J, which is biased by the number of spanning substructures.
+What is the distribution get by taking the span? It's the distribution over the G[J], which is biased by the number of spanning substructures.
 
 '''
