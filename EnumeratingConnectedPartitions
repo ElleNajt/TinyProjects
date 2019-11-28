@@ -2,7 +2,7 @@
 """
 Created on Tue Nov 26 10:34:31 2019
 
-@author: Lorenzo Najt
+@author: Lorenzo
 """
 
 import networkx as nx
@@ -443,6 +443,8 @@ def run_markov_chain(graph, steps = 100, temperature = .5):
     
     return samples
 
-graph = nx.grid_graph([5,5])
+graph = nx.grid_graph([7,7])
 
-samples = run_markov_chain(graph, 1000, 1)
+samples = run_markov_chain(graph, 1000, .5)
+
+#Question: Can we tune temp so that we get both rapid mixing AND polynomial concentration on the zero contradiction assignments??
