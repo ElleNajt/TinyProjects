@@ -9,6 +9,7 @@ import networkx as nx
 import copy
 import random
 import numpy as np
+import math
 
 def partition_extendable(graph, in_set):
     coloring = graph.graph["coloring"] 
@@ -180,9 +181,9 @@ def test_rejection_sample(graph, steps = 1000):
             samples.append(new)
             sample_colors.append(graph.graph["coloring"])
         
-    k = 2
-    edge_set = samples[k]
-    coloring = sample_colors[k]
+    #k = 2
+    #edge_set = samples[k]
+    #coloring = sample_colors[k]
     #viz(graph, edge_set, coloring)
     
     print("Got ", number, " samples")
@@ -424,7 +425,7 @@ def step(graph, cut_edges, non_cut_edges, temperature):
         
         
 def run_markov_chain(graph, steps = 100, temperature = .5):
-    
+    #Return a sample as [Cutedges, non_cutedges, coloring]
     
     #temperature = .8
     #steps = 1000
@@ -445,25 +446,150 @@ def run_markov_chain(graph, steps = 100, temperature = .5):
     
     return samples
 
+def function_to_partition(function):
+    #Takes a function, and returns the fiber partition of the ground set
+    
+    blocks = []
+    list_of_values = list(set(function.values()))
+    ground_set = list(function.keys())
+    for val in list_of_values:
+        block = []
+        for x in ground_set:
+            if function[x] == val:
+                block.append(x)
+        blocks.append(block)
+    return blocks
 
-def statistic(samples_1, samples_2):
+def bell_number(n):
+    #Computes the Nth bell number
+    if n == 4:
+        return 15
+    print("you didn'twriteme")
+
+def dobinski_random_variable(n):
+    
+    '''
+    This returns a sample from the distribution on N distributed like P(U = u) = (1 / eB_n) (u^n )/ n! 
+    By Dobinski's formula this is well defined
+    '''
+    
+    b = bell_number(n)
+    
+    c = np.random.uniform(0,1)
+    i = 0
+    cumulative_probability = 0
+    
+    while cumulative_probability < c:
+        i += 1
+        cumulative_probability += (i**n)/(math.factorial(i)*np.e*b)
+    
+    return i
     
     
+        
+
+def sample_partition(input_set):
+    #returns a uniformly random partition of input_set
+    
+    #For the correctness of this algorithm: https://www.sciencedirect.com/science/article/pii/0097316583900092
+    
+    num_urns = dobinski_random_variable(len(input_set))
+    while num_urns == 0:
+        num_urns = np.random.poisson()
+    urns = list(range(num_urns))
+    function = {}
+    for x in input_set:
+        color = random.choice(urns)
+        function[x]= color
+    
+    partition = function_to_partition(function)
+    
+    return partition
+
+def sample_partitions(input_set, number):
+    partitions = []
+    for i in range(number):
+        partitions.append(sample_partition(input_set))
+    return partitions
+
+def test_complete_graph():
+    size_of_graph = 4
+
+    graph = nx.complete_graph(size_of_graph)
+    
+    samples = run_markov_chain(graph, 30000,1)
+    #samples_as_subgraphs = [nx.edge_subgraph(graph, x[1]) for x in samples]
+    #samples_as_partitions = [ (list(nx.connected_components( nx.edge_subgraph(graph, x[1])) )) for x in samples]
+    
+    sample_num_components = [len (set(x[2].values())) for x in samples]
+    print(np.mean(sample_num_components))
+    
+    true_samples = sample_partitions(list(range(size_of_graph)), 7000)
+    true_samples_num_components = [len (x) for x in true_samples]
+    print(np.mean(true_samples_num_components))
+    
+
+def test():
+    
+        
+    graph = nx.grid_graph([8,8])
+    MC_steps = 10000
+    true_sample_trials = 1000000
+    
+    samples = run_markov_chain(graph, MC_steps, .1)
+    
+    #viz(graph, samples[-10][1], samples[-10][2])
+    
+    #The question: Can we tune temp so that we get both rapid mixing AND polynomial concentration on the zero contradiction assignments??
+    
+    #We can falsify rapid mixing using the totally uniform samples that we have.
+    
+    non_cut_sets = [len(s[1]) for s in samples]
+    
+    sample_num_components = [len (list(
+    nx.connected_components( nx.edge_subgraph(graph, x[1])) )) for x in samples]
+    
+    true_samples = test_rejection_sample(graph, true_sample_trials)
+    
+    true_non_cut_sets = [len(x) for x in true_samples]
+    true_num_components = [len (list( nx.connected_components( nx.edge_subgraph(graph, x)) )) for x in true_samples]
+    
+    print(np.mean(non_cut_sets), " vs. ", np.mean(true_non_cut_sets))
+    
+    
+    print(np.mean(sample_num_components), " vs. ", np.mean(true_num_components))
+
+    ##It seems to pass this test.
+'''
+
+On a 6x6 with steps= 10000 for both, with temperature = .1
+
+6053
+Got  18  samples
+22.7127044441  vs.  22.8333333333
+
+With only 1000 MC steps, 26.9242618742  vs.  22.8333333333
+
+----
+
+graph = nx.grid_graph([8,8])
+MC_steps = 10000
+true_sample_trials = 100000
 
 
-graph = nx.grid_graph([6,6])
 
-samples = run_markov_chain(graph, 10000, .1)
+'''
 
-#viz(graph, samples[-10][1], samples[-10][2])
+'''
+A stricter test to try?
 
-#The question: Can we tune temp so that we get both rapid mixing AND polynomial concentration on the zero contradiction assignments??
+-- Probably will fail on large complete graphs, because you have to move througe high contradiction arrangements to get a one without a contradiction.
 
-#We can falsify rapid mixing using the totally uniform samples that we have.
 
-non_cut_sets = [len(s[1]) for s in samples]
+Whatabout number of colors?
 
-true_samples = test_rejection_sample(graph, 10000)
+-- 
+'''
 
-true_non_cut_sets = [len(x) for x in true_samples]
-print(np.mean(non_cut_sets), " vs. ", np.mean(true_non_cut_sets))
+
+    
