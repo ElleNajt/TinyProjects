@@ -10,6 +10,7 @@ import copy
 import random
 import numpy as np
 import math
+import mpmath
 
 def partition_extendable(graph, in_set):
     coloring = graph.graph["coloring"] 
@@ -460,11 +461,8 @@ def function_to_partition(function):
         blocks.append(block)
     return blocks
 
-def bell_number(n):
-    #Computes the Nth bell number
-    if n == 4:
-        return 15
-    print("you didn'twriteme")
+            
+    
 
 def dobinski_random_variable(n):
     
@@ -473,7 +471,7 @@ def dobinski_random_variable(n):
     By Dobinski's formula this is well defined
     '''
     
-    b = bell_number(n)
+    b = int(mpmath.bell(n))
     
     c = np.random.uniform(0,1)
     i = 0
@@ -513,11 +511,11 @@ def sample_partitions(input_set, number):
     return partitions
 
 def test_complete_graph():
-    size_of_graph = 4
+    size_of_graph = 8
 
     graph = nx.complete_graph(size_of_graph)
     
-    samples = run_markov_chain(graph, 30000,1)
+    samples = run_markov_chain(graph, 300000,.5)
     #samples_as_subgraphs = [nx.edge_subgraph(graph, x[1]) for x in samples]
     #samples_as_partitions = [ (list(nx.connected_components( nx.edge_subgraph(graph, x[1])) )) for x in samples]
     
