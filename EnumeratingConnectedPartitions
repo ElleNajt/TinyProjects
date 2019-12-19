@@ -511,20 +511,23 @@ def sample_partitions(input_set, number):
     return partitions
 
 def test_complete_graph():
-    size_of_graph = 8
-
-    graph = nx.complete_graph(size_of_graph)
-    
-    samples = run_markov_chain(graph, 300000,.5)
-    #samples_as_subgraphs = [nx.edge_subgraph(graph, x[1]) for x in samples]
-    #samples_as_partitions = [ (list(nx.connected_components( nx.edge_subgraph(graph, x[1])) )) for x in samples]
-    
-    sample_num_components = [len (set(x[2].values())) for x in samples]
-    print(np.mean(sample_num_components))
-    
-    true_samples = sample_partitions(list(range(size_of_graph)), 7000)
-    true_samples_num_components = [len (x) for x in true_samples]
-    print(np.mean(true_samples_num_components))
+    for size_of_graph in [20,25,30,35,40,45]:
+        
+        parameter_values = [i / size_of_graph for i in range(1,5)]
+        for parameter in parameter_values:
+            print("parameter: ", parameter, "size: ", size_of_graph)
+            graph = nx.complete_graph(size_of_graph)
+            
+            samples = run_markov_chain(graph, 300000,parameter)
+            #samples_as_subgraphs = [nx.edge_subgraph(graph, x[1]) for x in samples]
+            #samples_as_partitions = [ (list(nx.connected_components( nx.edge_subgraph(graph, x[1])) )) for x in samples]
+            
+            sample_num_components = [len (set(x[2].values())) for x in samples]
+            print(np.mean(sample_num_components))
+            
+        true_samples = sample_partitions(list(range(size_of_graph)), 7000)
+        true_samples_num_components = [len (x) for x in true_samples]
+        print("true:",np.mean(true_samples_num_components))
     
 
 def test():
