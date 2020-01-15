@@ -122,8 +122,7 @@ def run_chain():
     graph = nx.grid_graph([m,m])
     graph.name = "grid_size:" + str(m)
     for x in graph.nodes():
-        
-        graph.node[x]["pos"] = np.array([x[0], x[1]])
+        graph.nodes[x]["pos"] = np.array([x[0], x[1]])
     graph = preprocess(graph)
     cycle = dict()
     for e in graph.edges():

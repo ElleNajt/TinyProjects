@@ -17,20 +17,20 @@ def compute_rotation_system(graph):
     #Graph nodes must have "pos"
     #The rotation system is  clockwise (0,2) -> (1,1) -> (0,0) around (0,1)
     for v in graph.nodes():
-        graph.node[v]["pos"] = np.array(graph.node[v]["pos"])
+        graph.nodes[v]["pos"] = np.array(graph.nodes[v]["pos"])
     
     for v in graph.nodes():
         locations = []
         neighbor_list = list(graph.neighbors(v))
         for w in neighbor_list:
-            locations.append(graph.node[w]["pos"] - graph.node[v]["pos"])
+            locations.append(graph.nodes[w]["pos"] - graph.nodes[v]["pos"])
         angles = [float(np.arctan2(x[0], x[1])) for x in locations]
         neighbor_list.sort(key=dict(zip(neighbor_list, angles)).get)
         #sorted_neighbors = [x for _,x in sorted(zip(angles, neighbor_list))]
         rotation_system = {}
         for i in range(len(neighbor_list)):
             rotation_system[neighbor_list[i]] = neighbor_list[(i + 1) % len(neighbor_list)]
-        graph.node[v]["rotation"] = rotation_system
+        graph.nodes[v]["rotation"] = rotation_system
     return graph
 
 def transform(x):
@@ -44,7 +44,7 @@ def transform(x):
 
 def is_clockwise(graph,face, average):
     #given a face (with respect to the rotation system computed), determine if it belongs to a the orientation assigned to bounded faces
-    angles = [transform(float(np.arctan2(graph.node[x]["pos"][0] - average[0], graph.node[x]["pos"][1] - average[1])))  for x in face]
+    angles = [transform(float(np.arctan2(graph.nodes[x]["pos"][0] - average[0], graph.nodes[x]["pos"][1] - average[1])))  for x in face]
     first = min(angles)
     rotated = [x - first for x in angles]
     next_smallest = min([x for x in rotated if x != 0])
@@ -57,11 +57,11 @@ def is_clockwise(graph,face, average):
 def cycle_around_face(graph, e):
     face = list([e[0], e[1]])
     last_point = e[1]
-    current_point = graph.node[e[1]]["rotation"][e[0]]
+    current_point = graph.nodes[e[1]]["rotation"][e[0]]
     next_point = current_point
     while next_point != e[0]:
         face.append(current_point)
-        next_point = graph.node[current_point]["rotation"][last_point]
+        next_point = graph.nodes[current_point]["rotation"][last_point]
         last_point = current_point
         current_point = next_point
     return face
@@ -84,7 +84,7 @@ def compute_face_data(graph):
     for face in faces:
         run_sum = np.array([0,0]).astype('float64')
         for x in face:
-            run_sum += np.array(graph.node[x]["pos"]).astype('float64')
+            run_sum += np.array(graph.nodes[x]["pos"]).astype('float64')
         average = run_sum / len(face)
         if is_clockwise(graph,face, average):
             bounded_faces.append(face)
@@ -131,7 +131,7 @@ def canonical_order(graph, face):
     locations = []
     neighbor_list = list(local_cycle.neighbors(v))
     for w in neighbor_list:
-        locations.append(graph.node[w]["pos"] - graph.node[v]["pos"])
+        locations.append(graph.nodes[w]["pos"] - graph.nodes[v]["pos"])
     angles = [float(np.arctan2(x[1], x[0])) for x in locations]
     neighbor_list.sort(key=dict(zip(neighbor_list, angles)).get)
     
@@ -170,8 +170,8 @@ def face_refine(graph):
         location = np.array([0,0]).astype("float64")
         for v in face:
             graph.add_edge(face, v)
-            location += graph.node[v]["pos"].astype("float64")
-        graph.node[face]["pos"] = location / len(face)
+            location += graph.nodes[v]["pos"].astype("float64")
+        graph.nodes[face]["pos"] = location / len(face)
     return graph
 
 def edge_refine(graph):
@@ -182,8 +182,8 @@ def edge_refine(graph):
         location = np.array([0,0]).astype("float64")
         for v in e:
             graph.add_edge(str(e), v)
-            location += graph.node[v]["pos"].astype("float64")
-        graph.node[str(e)]["pos"] = location / 2
+            location += graph.nodes[v]["pos"].astype("float64")
+        graph.nodes[str(e)]["pos"] = location / 2
     return graph
 
 def refine(graph):
@@ -221,8 +221,8 @@ def restricted_planar_dual(graph):
         dual_graph.add_node(face)
         location = np.array([0,0]).astype("float64")
         for v in face:
-            location += graph.node[v]["pos"].astype("float64")
-        dual_graph.node[face]["pos"] = location / len(face)
+            location += graph.nodes[v]["pos"].astype("float64")
+        dual_graph.nodes[face]["pos"] = location / len(face)
     ##handle edges
     for e in graph.edges():
         for face in graph.graph["faces"]:
@@ -236,7 +236,7 @@ def restricted_planar_dual(graph):
 
 def draw_with_location(graph):
 #    for x in graph.nodes():
-#        graph.node[x]["pos"] = [graph.node[x]["X"], graph.node[x]["Y"]]
+#        graph.nodes[x]["pos"] = [graph.nodes[x]["X"], graph.nodes[x]["Y"]]
 
     nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 20, width = .5, cmap=plt.get_cmap('jet'))
 ## 
@@ -245,7 +245,7 @@ def draw_with_location(graph):
 #graph.name = "grid_size:" + str(m)
 #for x in graph.nodes():
 #    
-#    graph.node[x]["pos"] = np.array([x[0], x[1]])
+#    graph.nodes[x]["pos"] = np.array([x[0], x[1]])
 #
 ###graph = depth_k_refine(graph,0)
 ##graph = depth_k_barycentric(graph, 4)
