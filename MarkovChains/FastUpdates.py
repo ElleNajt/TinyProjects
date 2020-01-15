@@ -116,7 +116,7 @@ def run_steps(graph, cycle, steps = 10):
     return cycle
 
 def run_chain():
-    m = 200
+    m = 30
     steps = 10000
     print("starting preprocessing")
     graph = nx.grid_graph([m,m])
