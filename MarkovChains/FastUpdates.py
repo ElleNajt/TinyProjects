@@ -158,9 +158,9 @@ def subgraph_is_simpel_cycle(graph, cycle):
 def viz(graph, cycle):
     k = 20
 
-    values = [int(cycle[frozenset(x)] == 1 ) for x in graph.edges()]
+    values = [1 - int(cycle[frozenset(x)] == 1 ) for x in graph.edges()]
 
-    nx.draw(graph, pos=nx.get_node_attributes(graph, "pos"), node_size = 1, width =2, cmap=plt.get_cmap('magma'),  edge_color=values)
+    nx.draw(graph, pos=nx.get_node_attributes(graph, "pos"), node_size = 1, width =2, cmap=plt.get_cmap('magma_r'),  edge_color=values)
 
     
 cycle = run_chain()
