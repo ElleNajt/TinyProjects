@@ -160,22 +160,29 @@ def node_weights_to_edge_weights(graph):
         
     return graph
 
-uniques = 0
-num_trials = 1
-for i in range(num_trials):
-    graph = create_layered_digraph(10,8)
-    graph = pure_hashing_assign_weights(graph, hash_once = False, expander_hash = False)
-    #viz(graph)
-    graph = node_weights_to_edge_weights(graph)
-    paths = find_min_paths(graph)
-    if len(paths) == 1:
-        uniques += 1
-print(uniques / num_trials)
-viz(graph)
+
+num_trials = 100
+for width in [10,15,20]:
+    for density in [.1, .25,.5]:
+        for l in range(4,7):
+            uniques = 0
+            for i in range(num_trials):
+                graph = create_layered_digraph(12,l, density)
+                graph = pure_hashing_assign_weights(graph, hash_once = False, expander_hash = True)
+                #viz(graph)
+                graph = node_weights_to_edge_weights(graph)
+                paths = find_min_paths(graph)
+                if len(paths) == 1:
+                    uniques += 1
+            print(uniques / num_trials)
+            viz(graph)
 
 '''Observations:
    For Hash-Once = True, on (10,8), chance of min-unique drops to zero.The pictures this produces are pretty though. 
    For Hash-Once = False, on (10,8), chance of min-unique is around .8.
-   For Torus-Expander, on (10,8), chance of min-unique is around .25 -- but there is a large amount of regularity in the picture of the weights, see "looksLessRandom" -- After doing this again I think there was a mistake with that image, since it looks fine to me.
+   For Torus-Expander, on (10,8), chance of min-unique is around .25. This steadily decreases as the number of layers increases. But doesn't increase super fast? Some of the figures it produces are interesting in their similarity to the hash once. 
     
+   TODO: 
+        a) Modify Density
+        b)
 '''
