@@ -98,11 +98,29 @@ def new_hash_function(r):
     b = secrets.randbelow(r)
     
     def hash_function(x):
-        return (a*x + b) % r
+        return (a*x + b) % r, r
+    
+    return hash_function
+
+def torus_step(hash_function):
+    b = hash_function(0)[0]
+    a = hash_function(1)[0] - b
+    r = hash_function(0)[1]
+    neighbors = [(a,b), (a + 1, b), (a, b + 1), (a, a + b), ( -1 * b , a)]
+    
+    step = secrets.choice(neighbors)
+    
+    a = step[0]
+    b = step[1]
+    
+    
+    def hash_function(x):
+        return (a*x + b) % r, r
     
     return hash_function
     
-def pure_hashing_assign_weights(graph, hash_once = False):
+    
+def pure_hashing_assign_weights(graph, hash_once = False, expander_hash = False):
     #Via Pure Hashing Approach
     
 
@@ -112,12 +130,15 @@ def pure_hashing_assign_weights(graph, hash_once = False):
     l = graph.graph["num_layers"]
     n = graph.graph["width"]
     
-    if hash_once == True:
+    if hash_once == True or (hash_once == False and expander_hash == True):
         hash_function = new_hash_function(r_value)
     
     for k in range(l):
         if hash_once == False:
-            hash_function = new_hash_function(r_value)
+            if expander_hash == False:
+                hash_function = new_hash_function(r_value)
+            if expander_hash == True:
+                hash_function = torus_step(hash_function)
         #The middle layers over all blocks of depth 2^{k+1}.  L = Union_{odd i \in [2^{l - k }]} V_{i 2^k}
         #Run through L 
         L = []
@@ -127,7 +148,7 @@ def pure_hashing_assign_weights(graph, hash_once = False):
                     L.append( (j, i * (2**k)))
         #print(L)
         for x in L:
-            graph.nodes[x]["weight"] += hash_function(graph.nodes[x]["label"])
+            graph.nodes[x]["weight"] += hash_function(graph.nodes[x]["label"])[0]
                 
     return graph
 
@@ -140,13 +161,20 @@ def node_weights_to_edge_weights(graph):
     return graph
 
 uniques = 0
-for i in range(100):
-    graph = create_layered_digraph(10,9)
-    graph = pure_hashing_assign_weights(graph, hash_once = True)
+for i in range(1000):
+    graph = create_layered_digraph(10,8)
+    graph = pure_hashing_assign_weights(graph, hash_once = False, expander_hash = True)
     #viz(graph)
     graph = node_weights_to_edge_weights(graph)
     paths = find_min_paths(graph)
     if len(paths) == 1:
         uniques += 1
-print(uniques / 100)
+print(uniques / 1000)
 viz(graph)
+
+'''Observations:
+   For Hash-Once = True, on (10,8), chance of min-unique drops to zero. 
+   For Hash-Once = False, on (10,8), chance of min-unique is around .8.
+   For Torus-Expander, on (10,8), chance of min-unique is around .25
+    
+'''
