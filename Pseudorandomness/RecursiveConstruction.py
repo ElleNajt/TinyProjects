@@ -32,7 +32,7 @@ def viz(graph):
     col = [graph.nodes[x]["weight"] for x in graph.nodes()]
     nx.draw(graph, pos, node_color =col, node_size = 100, width =.5, cmap=plt.get_cmap('hot'))
 
-def create_layered_digraph(n = 4, l = 3):
+def create_layered_digraph(n = 4, l = 3, density = .5):
 
     d = 2**l
     
@@ -54,7 +54,7 @@ def create_layered_digraph(n = 4, l = 3):
     graph.graph["width"] = n
     for l in range(d):
         for k in range(n):
-            for p in range(4):
+            for p in range(int(density*n)):
                 u = random.choice(list(range(n)))
                 graph.add_edge( (k,l), (u, l+1))
                 
@@ -161,20 +161,21 @@ def node_weights_to_edge_weights(graph):
     return graph
 
 uniques = 0
-for i in range(1000):
+num_trials = 1
+for i in range(num_trials):
     graph = create_layered_digraph(10,8)
-    graph = pure_hashing_assign_weights(graph, hash_once = False, expander_hash = True)
+    graph = pure_hashing_assign_weights(graph, hash_once = False, expander_hash = False)
     #viz(graph)
     graph = node_weights_to_edge_weights(graph)
     paths = find_min_paths(graph)
     if len(paths) == 1:
         uniques += 1
-print(uniques / 1000)
+print(uniques / num_trials)
 viz(graph)
 
 '''Observations:
-   For Hash-Once = True, on (10,8), chance of min-unique drops to zero. 
+   For Hash-Once = True, on (10,8), chance of min-unique drops to zero.The pictures this produces are pretty though. 
    For Hash-Once = False, on (10,8), chance of min-unique is around .8.
-   For Torus-Expander, on (10,8), chance of min-unique is around .25
+   For Torus-Expander, on (10,8), chance of min-unique is around .25 -- but there is a large amount of regularity in the picture of the weights, see "looksLessRandom" -- After doing this again I think there was a mistake with that image, since it looks fine to me.
     
 '''
