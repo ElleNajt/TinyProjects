@@ -15,14 +15,25 @@ import secrets
 import sympy
 from sympy import nextprime
 
+'''
+Things to experiment with:
+    
+    1) Expander Steps on Hashes
+    2) Random shifts
+    3) Edge Replacement Gadgets
+    
+Ways to validate experiments:
+    
+    1) Whether min-path is unique. ()
+'''
+
 def viz(graph):
     pos = {x : graph.nodes[x]["pos"] for x in graph.nodes()}
-    nx.draw(graph, pos, node_size = 1, width =2, cmap=plt.get_cmap('magma'))
+    col = [graph.nodes[x]["weight"] for x in graph.nodes()]
+    nx.draw(graph, pos, node_color =col, node_size = 100, width =.5, cmap=plt.get_cmap('hot'))
 
-def create_layered_digraph(n = 4, d = 2**3):
+def create_layered_digraph(n = 4, l = 3):
 
-    n = 4
-    l = 3
     d = 2**l
     
     layered_nodes = itertools.product(range(n), range(d + 1))
@@ -55,13 +66,21 @@ def create_layered_digraph(n = 4, d = 2**3):
         i += 1
         graph.nodes[x]["weight"] = 0
         
-    viz(graph)
-    
+    #viz(graph)
+    graph.graph["s"] = (0,0)
+    graph.graph["t"] = (0,d)
     return graph 
 
-def find_min_paths(graph,s,t):
-    
-    return 0
+def find_min_paths(graph):
+    ##Checks whether there is a unique min weight path from s to t. Algorithm tests the disambiguation requirement layer by layer. [TODO: Maybe another algorithm for testing min-unique st-path would lead to a different disambiguation requirement? Is it possible to use the randomness adaptively, by finding where the min-uniqueness breaks and then rerolling the hash function, e.g. by taking a step on the expander?]
+    #E.g. compare Dijkstra, Bellman-Ford
+    s = graph.graph["s"]
+    t = graph.graph["t"]
+    if nx.has_path(graph, s,t):
+        paths = list(nx.all_shortest_paths(graph, s,t, weight = "weight"))
+        return paths
+    else:
+        return []
     
 def new_hash_function(r):
     # Produces a pairwise independent hash function h : [m]-> [r] 
@@ -102,7 +121,7 @@ def pure_hashing_assign_weights(graph):
             if i % 2 == 1:
                 for j in range(n):
                     L.append( (j, i * (2**k)))
-        print(L)
+        #print(L)
         for x in L:
             graph.nodes[x]["weight"] += hash_function(graph.nodes[x]["label"])
                 
@@ -110,5 +129,20 @@ def pure_hashing_assign_weights(graph):
             
     return graph
 
-graph = create_layered_digraph()
-graph = pure_hashing_assign_weights(graph)
+def node_weights_to_edge_weights(graph):
+    #Updates the edge weights based on node weights. For 
+    for e in graph.edges():
+        graph.edges[e]["weight"] = graph.nodes[e[0]]["weight"] + graph.nodes[e[1]]["weight"]
+        
+    return graph
+
+uniques = 0
+for i in range(100):
+    graph = create_layered_digraph(6,6)
+    graph = pure_hashing_assign_weights(graph)
+    #viz(graph)
+    graph = node_weights_to_edge_weights(graph)
+    paths = find_min_paths(graph)
+    if len(paths) == 1:
+        uniques += 1
+print(uniques / 100)
