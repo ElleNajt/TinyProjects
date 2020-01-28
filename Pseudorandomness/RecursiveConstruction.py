@@ -73,7 +73,7 @@ def create_layered_digraph(n = 4, l = 3):
 
 def find_min_paths(graph):
     ##Checks whether there is a unique min weight path from s to t. Algorithm tests the disambiguation requirement layer by layer. [TODO: Maybe another algorithm for testing min-unique st-path would lead to a different disambiguation requirement? Is it possible to use the randomness adaptively, by finding where the min-uniqueness breaks and then rerolling the hash function, e.g. by taking a step on the expander?]
-    #E.g. compare Dijkstra, Bellman-Ford
+    #E.g. compare Dijkstra, Bellman-Ford, many more here: https://networkx.github.io/documentation/stable/reference/algorithms/shortest_paths.html
     s = graph.graph["s"]
     t = graph.graph["t"]
     if nx.has_path(graph, s,t):
@@ -102,7 +102,7 @@ def new_hash_function(r):
     
     return hash_function
     
-def pure_hashing_assign_weights(graph):
+def pure_hashing_assign_weights(graph, hash_once = False):
     #Via Pure Hashing Approach
     
 
@@ -112,8 +112,12 @@ def pure_hashing_assign_weights(graph):
     l = graph.graph["num_layers"]
     n = graph.graph["width"]
     
-    for k in range(l):
+    if hash_once == True:
         hash_function = new_hash_function(r_value)
+    
+    for k in range(l):
+        if hash_once == False:
+            hash_function = new_hash_function(r_value)
         #The middle layers over all blocks of depth 2^{k+1}.  L = Union_{odd i \in [2^{l - k }]} V_{i 2^k}
         #Run through L 
         L = []
@@ -125,9 +129,8 @@ def pure_hashing_assign_weights(graph):
         for x in L:
             graph.nodes[x]["weight"] += hash_function(graph.nodes[x]["label"])
                 
-            
-            
     return graph
+
 
 def node_weights_to_edge_weights(graph):
     #Updates the edge weights based on node weights. For 
@@ -138,11 +141,12 @@ def node_weights_to_edge_weights(graph):
 
 uniques = 0
 for i in range(100):
-    graph = create_layered_digraph(6,6)
-    graph = pure_hashing_assign_weights(graph)
+    graph = create_layered_digraph(10,9)
+    graph = pure_hashing_assign_weights(graph, hash_once = True)
     #viz(graph)
     graph = node_weights_to_edge_weights(graph)
     paths = find_min_paths(graph)
     if len(paths) == 1:
         uniques += 1
 print(uniques / 100)
+viz(graph)
