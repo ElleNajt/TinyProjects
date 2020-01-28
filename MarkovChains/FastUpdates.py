@@ -116,8 +116,8 @@ def run_steps(graph, cycle, steps = 10):
     return cycle
 
 def run_chain():
-    m = 30
-    steps = 10000
+    m = 40
+    steps = 100000
     print("starting preprocessing")
     graph = nx.grid_graph([m,m])
     graph.name = "grid_size:" + str(m)
@@ -142,7 +142,7 @@ def run_chain():
     viz(graph, cycle)
     return cycle
 
-def subgraph_is_simpel_cycle(graph, cycle):
+def subgraph_is_simple_cycle(graph, cycle):
     '''
     Doublechecks that the induced subgraph is a cycle
     '''
