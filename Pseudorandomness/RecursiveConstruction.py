@@ -46,10 +46,6 @@ def create_layered_digraph(n = 4, l = 3, density = .5):
         #print(x)
         graph.nodes[x]["pos"] = np.array([x[0], x[1]])
         
-         
-    position = {x : graph.nodes[x]["pos"] for x in graph.nodes()}
-    #nx.draw(graph, pos = position, node_size = 1, width =2, cmap=plt.get_cmap('magma'))
-    
     graph.graph["num_layers"] = l
     graph.graph["width"] = n
     for l in range(d):
@@ -73,7 +69,7 @@ def create_layered_digraph(n = 4, l = 3, density = .5):
 
 def find_min_paths(graph):
     ##Checks whether there is a unique min weight path from s to t. Algorithm tests the disambiguation requirement layer by layer. [TODO: Maybe another algorithm for testing min-unique st-path would lead to a different disambiguation requirement? Is it possible to use the randomness adaptively, by finding where the min-uniqueness breaks and then rerolling the hash function, e.g. by taking a step on the expander?]
-    #E.g. compare Dijkstra, Bellman-Ford, many more here: https://networkx.github.io/documentation/stable/reference/algorithms/shortest_paths.html
+    #E.g. compare here: https://networkx.github.io/documentation/stable/reference/algorithms/shortest_paths.html
     s = graph.graph["s"]
     t = graph.graph["t"]
     if nx.has_path(graph, s,t):
@@ -84,13 +80,9 @@ def find_min_paths(graph):
     
 def new_hash_function(r):
     # Produces a pairwise independent hash function h : [m]-> [r] 
-    # bits = secrets.randbits(10) #pass through bin if you want bits
-    
     #We'll assume r > m, and that r is prime.
     
-    #NB: Dropping the modulus keeps the collision probability down, although it's no longer uniform, and the range is different (r^2 instead of r). 
-    
-    # This is similar to shifting? What happens for random shifts? I.e. multiplication in N(atural numbers) against a random number randbelow(r). TODO.
+    #NB: Dropping the modulus keeps the collision probability down, although it's no longer uniform, and the range is different (r^2 instead of r). This is similar to shifting? What happens for random shifts? I.e. multiplication in N(atural numbers) against a random number randbelow(r). TODO.
     if not sympy.isprime(r):
         return False
     
@@ -121,8 +113,6 @@ def step(hash_function, walk = "Expander"):
             target = pow(a, r-2, r)
         neighbors = [(a,b), (a + 1, b), (a - 1, b), (target, b)]
         
-    #neighbors = [(a,b)] #This passes the sanity check, since this behaves
-    #Like the single pure hash case and doesn't work.
     step = secrets.choice(neighbors)
     
     a = step[0]
@@ -138,7 +128,6 @@ def step(hash_function, walk = "Expander"):
 def pure_hashing_assign_weights(graph, hash_once = False, random_walk_on_hashes = False, walk = "Expander"):
     #Via Pure Hashing Approach
     
-
     num_nodes = len(graph.nodes())
     r_value = nextprime(num_nodes**6)
     
@@ -214,6 +203,8 @@ for width in [10]:
         b) Can you find nextprime in log-space? Or do you need to use a different hash function?
         c) For the disambiguation requirement, you don't need the hashes to be uniform, just to have low CP. But isn't this achieved by taking f(x) = ax for a random (nonzero) a? 
         d) The bad set depends on the previously visited hashes (and the layered digraph) -- even if you have bounds on its size (like n^12/n^2), what's to prevent it from clustering up around the current hash function, in the currently chosen graph structure. It seems like some additional structure on the set of bad hashes is necessary. The bad hash functions are those that are the solutions to a set of equations, basically of the form $a = c(s,t,x,x') / (x - x'), where c is the difference of the weights of the relevant min paths. If c can be different from each (x,x'), I think this can be arbitrary, but presumably there is some correlation between them?
+        e) Is it possible to use the randomness adaptively, by finding where the min-uniqueness breaks and then rerolling the hash function, e.g. by taking a step on the expander?
+        f) Maybe instead want a hitting sampler on the set of hash functions? Some discussion here: http://www.wisdom.weizmann.ac.il/~oded/PDF/samplers.pdf but the parameters are not good enough.
     
     The set of bad hash functions is a union of lines. This is since the value of b in ax + b doesn't change the disambiguation requirements p + f(x) = q + f(x'). So only an expander on the first coordinate is necessary... ? 
 '''
