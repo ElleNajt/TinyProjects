@@ -106,6 +106,10 @@ def step(hash_function, walk = "Expander"):
     b = hash_function(0)[0]
     a = hash_function(1)[0] - b
     r = hash_function(0)[1]
+    if walk == "Frozen":
+        neighbors = [(a,b)]
+    if walk == "Fresh":
+        neighbors = [(secrets.randbelow(r), secrets.randbelow(r))]    
     if walk == "Expander":
         neighbors = [(a,b), (a + 1, b), (a, b + 1), (a, a + b), ( -1 * b , a)]
     if walk == "Simple":
@@ -141,15 +145,10 @@ def pure_hashing_assign_weights(graph, hash_once = False, random_walk_on_hashes 
     l = graph.graph["num_layers"]
     n = graph.graph["width"]
     
-    if hash_once == True or (hash_once == False and random_walk_on_hashes == True):
-        hash_function = new_hash_function(r_value)
+    hash_function = new_hash_function(r_value)
     
     for k in range(l):
-        if hash_once == False:
-            if random_walk_on_hashes == False:
-                hash_function = new_hash_function(r_value)
-            if random_walk_on_hashes == True:
-                hash_function = step(hash_function, walk)
+        hash_function = step(hash_function, walk)
         #The middle layers over all blocks of depth 2^{k+1}.  L = Union_{odd i \in [2^{l - k }]} V_{i 2^k}
         #Run through L 
         L = []
@@ -176,20 +175,22 @@ num_trials = 100
 for width in [10]:
     for density in [.5,.1,.01]:
         for l in range(4,9):
-            uniques = 0
-            zeros = 0
-            #Will keep track of how much of the signal is explained by there being no path. 
-            for i in range(num_trials):
-                graph = create_layered_digraph(width,l, density)
-                graph = pure_hashing_assign_weights(graph, hash_once = False, random_walk_on_hashes = True, walk = "Simple")
-                #viz(graph)
-                graph = node_weights_to_edge_weights(graph)
-                paths = find_min_paths(graph)
-                if len(paths) == 1:
-                    uniques += 1
-                if len(paths) == 0:
-                    zeros += 1
-            print(width, density, l, zeros/ num_trials, uniques / num_trials)
+
+            for walk_label in ["Simple", "Expander", "Fresh", "Frozen"]:
+                uniques = 0
+                zeros = 0
+                #Will keep track of how much of the signal is explained by there being no path. 
+                for i in range(num_trials):
+                    graph = create_layered_digraph(width,l, density)
+                    graph = pure_hashing_assign_weights(graph, hash_once = False, random_walk_on_hashes = True, walk = walk_label)
+                    #viz(graph)
+                    graph = node_weights_to_edge_weights(graph)
+                    paths = find_min_paths(graph)
+                    if len(paths) == 1:
+                        uniques += 1
+                    if len(paths) == 0:
+                        zeros += 1
+                print(width, density, l, walk_label, zeros/ num_trials, uniques / num_trials)
 
 #viz(graph)
 
@@ -198,6 +199,9 @@ for width in [10]:
    For Hash-Once = False, on (10,8), chance of min-unique is around .8.
    For Expander, on (10,8), chance of min-unique is around .25. This steadily decreases as the number of layers increases. But doesn't increase super fast? Some of the figures it produces are interesting in their similarity to the hash once. 
    For Torus Random walk -- chance of min unique is similar. I think this is because the bad set is pretty explicit as a bunch of vertical lines? But then why doesn't the single chosen once for all hash work? 
+   
+10 0.5 8 Simple 0.0 0.25
+10 0.5 8 Expander 0.0 0.28
     
    TODO: 
         a) Can you work out the expander hash case in the complete graph version?
