@@ -128,8 +128,7 @@ def step(hash_function, walk = "Expander"):
 def pure_hashing_assign_weights(graph, hash_once = False, random_walk_on_hashes = False, walk = "Expander"):
     #Via Pure Hashing Approach
     
-    num_nodes = len(graph.nodes())
-    r_value = nextprime(num_nodes**6)
+    r_value = nextprime(graph.graph["width"]) #change to n
     
     l = graph.graph["num_layers"]
     n = graph.graph["width"]
@@ -159,21 +158,22 @@ def node_weights_to_edge_weights(graph):
         
     return graph
 
-
+#separate bad instances from bad hash functions
 
 f = open("disambiguation_data.txt", 'w')
 num_trials = 100
-for width in [10]:
+for width in [20]:
     for density in [.8,.5,.3]:
         f.write('\n')
-        for l in range(4,9):
+        for l in range(7,9):
+            
+            graph = create_layered_digraph(width,l, density)
             f.write('\n')
-            for walk_label in ["Simple", "Expander","FirstCoordExpander","Fresh", "Frozen"]:
+            for walk_label in ["Frozen", "Simple", "Expander","FirstCoordExpander","Fresh"]:
                 uniques = 0
                 zeros = 0
                 #Will keep track of how much of the signal is explained by there being no path. 
                 for i in range(num_trials):
-                    graph = create_layered_digraph(width,l, density)
                     graph = pure_hashing_assign_weights(graph, hash_once = False, random_walk_on_hashes = True, walk = walk_label)
                     #viz(graph)
                     graph = node_weights_to_edge_weights(graph)
