@@ -118,7 +118,7 @@ def step(hash_function, walk = "Expander"):
         if a == 0:
             target = 0
         if a != 0:
-            target = pow(a, -1, r)
+            target = pow(a, r-2, r)
         neighbors = [(a,b), (a + 1, b), (a - 1, b), (target, b)]
         
     #neighbors = [(a,b)] #This passes the sanity check, since this behaves
@@ -170,13 +170,17 @@ def node_weights_to_edge_weights(graph):
         
     return graph
 
+f = open("disambiguation_data.txt", 'w')
 
-num_trials = 100
-for width in [10]:
-    for density in [.5,.1,.01]:
+
+
+num_trials = 1000
+for width in [10,30,70]:
+    for density in [.8,.5,.3]:
+        f.write('\n')
         for l in range(4,9):
-
-            for walk_label in ["Simple", "Expander", "Fresh", "Frozen"]:
+            f.write('\n')
+            for walk_label in ["Simple", "Expander","FirstCoordExpander","Fresh", "Frozen"]:
                 uniques = 0
                 zeros = 0
                 #Will keep track of how much of the signal is explained by there being no path. 
@@ -190,7 +194,10 @@ for width in [10]:
                         uniques += 1
                     if len(paths) == 0:
                         zeros += 1
-                print(width, density, l, walk_label, zeros/ num_trials, uniques / num_trials)
+                report = str([width, density, l, walk_label, zeros/ num_trials, uniques / num_trials])
+                print(report)
+                f.write(report)
+                f.write('\n')
 
 #viz(graph)
 
