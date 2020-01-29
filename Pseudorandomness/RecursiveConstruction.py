@@ -170,12 +170,11 @@ def node_weights_to_edge_weights(graph):
         
     return graph
 
+
+
 f = open("disambiguation_data.txt", 'w')
-
-
-
-num_trials = 1000
-for width in [10,30,70]:
+num_trials = 100
+for width in [10]:
     for density in [.8,.5,.3]:
         f.write('\n')
         for l in range(4,9):
@@ -212,7 +211,9 @@ for width in [10,30,70]:
     
    TODO: 
         a) Can you work out the expander hash case in the complete graph version?
-        b) 
+        b) Can you find nextprime in log-space? Or do you need to use a different hash function?
+        c) For the disambiguation requirement, you don't need the hashes to be uniform, just to have low CP. But isn't this achieved by taking f(x) = ax for a random (nonzero) a? 
+        d) The bad set depends on the previously visited hashes (and the layered digraph) -- even if you have bounds on its size (like n^12/n^2), what's to prevent it from clustering up around the current hash function, in the currently chosen graph structure. It seems like some additional structure on the set of bad hashes is necessary. The bad hash functions are those that are the solutions to a set of equations, basically of the form $a = c(s,t,x,x') / (x - x'), where c is the difference of the weights of the relevant min paths. If c can be different from each (x,x'), I think this can be arbitrary, but presumably there is some correlation between them?
     
     The set of bad hash functions is a union of lines. This is since the value of b in ax + b doesn't change the disambiguation requirements p + f(x) = q + f(x'). So only an expander on the first coordinate is necessary... ? 
 '''
