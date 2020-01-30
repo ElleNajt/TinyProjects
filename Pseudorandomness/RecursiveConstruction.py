@@ -166,29 +166,36 @@ def node_weights_to_edge_weights(graph):
 
 f = open("disambiguation_data2.txt", 'w')
 num_trials = 100
-for width in [20]:
-    for density in [.8]:
+num_graphs = 10
+for width in [40]:
+    for density in [.8,.5,.3]:
         f.write('\n')
         for l in range(7,8):
             
-            graph = create_layered_digraph(width,l, density)
+
             f.write('\n')
             for walk_label in ["Frozen", "Simple", "Expander","FirstCoordExpander","Fresh"]:
-                uniques = 0
-                zeros = 0
+
                 #Will keep track of how much of the signal is explained by there being no path. 
-                for i in range(num_trials):
-                    #graph = create_layered_digraph(width,l, density)
-                    graph = pure_hashing_assign_weights(graph, walk = walk_label)
-                    #viz(graph)
-                    graph = node_weights_to_edge_weights(graph)
-                    paths = check_unique_path(graph)
-                    #print(paths)
-                    if paths == 1:
-                        uniques += 1
-                    if paths == 0:
-                        zeros += 1
-                report = str([width, density, l, walk_label, zeros/ num_trials, uniques / num_trials])
+                unique_ratios= []
+                for j in range(num_graphs):
+                    graph = create_layered_digraph(width,l, density)
+                    uniques = 0
+                    zeros = 0
+                    for i in range(num_trials):
+                        #It makes no sense that putting graph resample here changes the aggregate statistics! (?)
+                        #graph = create_layered_digraph(width,l, density)
+                        graph = pure_hashing_assign_weights(graph, walk = walk_label)
+                        #viz(graph)
+                        graph = node_weights_to_edge_weights(graph)
+                        paths = check_unique_path(graph)
+                        #print(paths)
+                        if paths == 1:
+                            uniques += 1
+                        if paths == 0:
+                            zeros += 1
+                    unique_ratios.append(uniques / num_trials)
+                report = str([width, density, l, walk_label, zeros/ num_trials*num_graphs, unique_ratios])
                 print(report)
                 f.write(report)
                 f.write('\n')
