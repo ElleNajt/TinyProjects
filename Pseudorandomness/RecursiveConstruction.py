@@ -118,13 +118,19 @@ def step(hash_function, walk = "Expander"):
         if a != 0:
             target = pow(a, r-2, r)
         neighbors = [(a,b), (a + 1, b), (a - 1, b), (target, b)]
+
+        
         
     step = secrets.choice(neighbors)
     
     a = step[0]
     b = step[1]
     
-    
+    noshift = True
+    #Shift is irrelevant for disambiguation condition.
+    if noshift == True:
+        b = 0
+        
     def hash_function(x):
         return (a*x + b) % r, r
     
@@ -156,7 +162,8 @@ def pure_hashing_assign_weights(graph, walk = "Expander"):
 
 
 def node_weights_to_edge_weights(graph):
-    #Updates the edge weights based on node weights. For 
+    #Updates the edge weights based on node weights.
+    #Profiler says this is the bottleneck. That makes no sense...
     for e in graph.edges():
         graph.edges[e]["weight"] = graph.nodes[e[0]]["weight"] + graph.nodes[e[1]]["weight"]
         
@@ -165,12 +172,12 @@ def node_weights_to_edge_weights(graph):
 #separate bad instances from bad hash functions
 
 f = open("disambiguation_data2.txt", 'w')
-num_trials = 100
-num_graphs = 10
+num_trials = 10
+num_graphs = 2
 for width in [40]:
-    for density in [.8,.5,.3]:
+    for density in [.8]:
         f.write('\n')
-        for l in range(7,8):
+        for l in range(6,7):
             
 
             f.write('\n')
