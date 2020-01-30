@@ -67,16 +67,22 @@ def create_layered_digraph(n = 4, l = 3, density = .5):
     graph.graph["t"] = (0,d)
     return graph 
 
-def find_min_paths(graph):
+def check_unique_path(graph):
     ##Checks whether there is a unique min weight path from s to t. Algorithm tests the disambiguation requirement layer by layer. [TODO: Maybe another algorithm for testing min-unique st-path would lead to a different disambiguation requirement? Is it possible to use the randomness adaptively, by finding where the min-uniqueness breaks and then rerolling the hash function, e.g. by taking a step on the expander?]
     #E.g. compare here: https://networkx.github.io/documentation/stable/reference/algorithms/shortest_paths.html
     s = graph.graph["s"]
     t = graph.graph["t"]
     if nx.has_path(graph, s,t):
-        paths = list(nx.all_shortest_paths(graph, s,t, weight = "weight"))
-        return paths
+        paths = nx.all_shortest_paths(graph, s,t, weight = "weight")
+        path0= next(paths)
+        try:
+            path1 = next(paths)
+            return 2
+            #meaning, at least 2
+        except StopIteration:
+            return 1
     else:
-        return []
+        return 0
     
 def new_hash_function(r):
     # Produces a pairwise independent hash function h : [m]-> [r] 
@@ -125,10 +131,10 @@ def step(hash_function, walk = "Expander"):
     return hash_function    
     
     
-def pure_hashing_assign_weights(graph, hash_once = False, random_walk_on_hashes = False, walk = "Expander"):
+def pure_hashing_assign_weights(graph, walk = "Expander"):
     #Via Pure Hashing Approach
     
-    r_value = nextprime(graph.graph["width"]) #change to n
+    r_value = nextprime(graph.graph["width"]**6) #change to n
     
     l = graph.graph["num_layers"]
     n = graph.graph["width"]
@@ -138,13 +144,11 @@ def pure_hashing_assign_weights(graph, hash_once = False, random_walk_on_hashes 
     for k in range(l):
         hash_function = step(hash_function, walk)
         #The middle layers over all blocks of depth 2^{k+1}.  L = Union_{odd i \in [2^{l - k }]} V_{i 2^k}
-        #Run through L 
         L = []
         for i in range(2**(l - k)):
             if i % 2 == 1:
                 for j in range(n):
                     L.append( (j, i * (2**k)))
-        #print(L)
         for x in L:
             graph.nodes[x]["weight"] += hash_function(graph.nodes[x]["label"])[0]
                 
@@ -160,12 +164,12 @@ def node_weights_to_edge_weights(graph):
 
 #separate bad instances from bad hash functions
 
-f = open("disambiguation_data.txt", 'w')
+f = open("disambiguation_data2.txt", 'w')
 num_trials = 100
 for width in [20]:
-    for density in [.8,.5,.3]:
+    for density in [.8]:
         f.write('\n')
-        for l in range(7,9):
+        for l in range(7,8):
             
             graph = create_layered_digraph(width,l, density)
             f.write('\n')
@@ -174,13 +178,15 @@ for width in [20]:
                 zeros = 0
                 #Will keep track of how much of the signal is explained by there being no path. 
                 for i in range(num_trials):
-                    graph = pure_hashing_assign_weights(graph, hash_once = False, random_walk_on_hashes = True, walk = walk_label)
+                    #graph = create_layered_digraph(width,l, density)
+                    graph = pure_hashing_assign_weights(graph, walk = walk_label)
                     #viz(graph)
                     graph = node_weights_to_edge_weights(graph)
-                    paths = find_min_paths(graph)
-                    if len(paths) == 1:
+                    paths = check_unique_path(graph)
+                    #print(paths)
+                    if paths == 1:
                         uniques += 1
-                    if len(paths) == 0:
+                    if paths == 0:
                         zeros += 1
                 report = str([width, density, l, walk_label, zeros/ num_trials, uniques / num_trials])
                 print(report)
