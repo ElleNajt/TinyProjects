@@ -67,6 +67,35 @@ def create_layered_digraph(n = 4, l = 3, density = .5):
     graph.graph["t"] = (0,d)
     return graph 
 
+def complete_layered_digraph(n = 4, l = 3):
+    d = 2**l
+    layered_nodes = itertools.product(range(n), range(d + 1))
+    graph = nx.DiGraph()
+    graph.add_nodes_from(layered_nodes)
+    
+    for x in graph.nodes():
+        #print(x)
+        graph.nodes[x]["pos"] = np.array([x[0], x[1]])
+        
+    graph.graph["num_layers"] = l
+    graph.graph["width"] = n
+    
+    for i in range(n):
+        for j in range(n):
+            for k in range(d):
+                graph.add_edge( (i,k), (j, k+1))
+    
+    for x in graph.nodes():
+        #print(x)
+        graph.nodes[x]["pos"] = np.array([x[0], x[1]])
+        graph.nodes[x]["label"] = i
+        i += 1
+        graph.nodes[x]["weight"] = 0
+    graph.graph["s"] = (0,0)
+    graph.graph["t"] = (0,d)
+    #viz(graph)          
+    return graph
+
 def create_split_chain_of_diamonds(pre_n = 4, l = 3):
     
     #An attempt at constructing a worst case example
@@ -227,19 +256,23 @@ def node_weights_to_edge_weights(graph):
 
 #separate bad instances from bad hash functions
     
-def test_worst_case():
+def test_parallel_chains_of_diamonds():
+    #Note that the width 1 case is not worst case for fresh; the only way that this fails is if $a = 0$.
+    #The wider cases also do not seem to be worst case.
     
     f = open("worst_case_data.txt", 'w')
-    num_trials = 1000
-    for width in [1,2,3,4]:
+    num_trials = 100
+    for width in [2,5,10,20]:
         f.write('\n')
-        for l in range(4,6):
-            
-
+        for l in range(3,5):
+            graph = create_split_chain_of_diamonds(width, l)
+            #graph= complete_layered_digraph(width, l) #NB: Obviously complete case 
+            #is fine, because as long as weights are distinct the unique min takes one from each row
+            viz(graph)
             f.write('\n')
             #for walk_label in ["Frozen", "Simple", "Expander","FirstCoordExpander","Fresh"]:
             for walk_label in ["Frozen", "Fresh"]:
-                graph = create_split_chain_of_diamonds(width, l)
+
                 uniques = 0
                 zeros = 0
                 for i in range(num_trials):
@@ -258,6 +291,7 @@ def test_worst_case():
                 f.write('\n')
     
 
+test_parallel_chains_of_diamonds()
 
 def test_average_case():
     f = open("disambiguation_data3.txt", 'w')
