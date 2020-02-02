@@ -38,7 +38,7 @@ def create_layered_digraph(n = 4, l = 3, density = .5):
     
     layered_nodes = itertools.product(range(n), range(d + 1))
     
-    graph = nx.Graph()
+    graph = nx.DiGraph()
     graph.add_nodes_from(layered_nodes)
     
     
@@ -140,7 +140,8 @@ def step(hash_function, walk = "Expander"):
 def pure_hashing_assign_weights(graph, walk = "Expander"):
     #Via Pure Hashing Approach
     
-    r_value = nextprime(graph.graph["width"]**6) #change to n
+    #r_value = nextprime(graph.graph["width"]**6) #change to n
+    r_value = nextprime((len(graph))**6) 
     
     l = graph.graph["num_layers"]
     n = graph.graph["width"]
@@ -171,22 +172,27 @@ def node_weights_to_edge_weights(graph):
 
 #separate bad instances from bad hash functions
 
-f = open("disambiguation_data2.txt", 'w')
-num_trials = 10
-num_graphs = 2
-for width in [40]:
-    for density in [.8]:
+f = open("disambiguation_data3.txt", 'w')
+num_trials = 50
+num_graphs = 1000
+bad_graphs = []
+for width in [10]:
+    for density in [.8,.5,.3]:
         f.write('\n')
-        for l in range(6,7):
+        for l in range(4,6):
             
 
             f.write('\n')
-            for walk_label in ["Frozen", "Simple", "Expander","FirstCoordExpander","Fresh"]:
-
+            #for walk_label in ["Frozen", "Simple", "Expander","FirstCoordExpander","Fresh"]:
+            for walk_label in ["Frozen", "Fresh"]:
                 #Will keep track of how much of the signal is explained by there being no path. 
                 unique_ratios= []
                 for j in range(num_graphs):
                     graph = create_layered_digraph(width,l, density)
+                    
+                    while not nx.has_path(graph, graph.graph["s"],graph.graph["t"]):
+                        graph = create_layered_digraph(width,l, density)
+                    graph.graph["density"] = density
                     uniques = 0
                     zeros = 0
                     for i in range(num_trials):
@@ -202,13 +208,73 @@ for width in [40]:
                         if paths == 0:
                             zeros += 1
                     unique_ratios.append(uniques / num_trials)
-                report = str([width, density, l, walk_label, zeros/ num_trials*num_graphs, unique_ratios])
+                    if walk_label == "Frozen" and uniques < 5:
+                        bad_graphs.append(graph)
+                report = str([width, density, l, walk_label, zeros/ num_trials*num_graphs, np.min(unique_ratios)])
                 print(report)
                 f.write(report)
                 f.write('\n')
 
 #viz(graph)
-
+                
+def save():
+                    
+    THIS_FOLDER = 'C:\\Users\\lnajt\\Documents\\GitHub\\TinyProjects\\Pseudorandomness\\Graphs'
+    
+    for graph in bad_graphs:
+        my_file = os.path.join(THIS_FOLDER, str(hash(graph)))
+    
+        nx.write_gpickle(graph, my_file)
+    
+    bad_graphs = []
+    for f in os.listdir('.'):
+        if os.path.isfile(f):
+          bad_graphs.append(nx.read_gpickle(f))
+    #Something is wrong -- graph theory is showing no uniques at all, even for fresh, which is 
+        #guaranteed to work...
+    
+    truly_bad_graphs = []
+    for graph in bad_graphs:
+        num_trials = 100
+        for walk_label in ["Frozen", "Fresh"]:
+        #for walk_label in ["Fresh"]:
+            uniques = 0
+            zeros = 0
+            for i in range(num_trials):
+                graph = pure_hashing_assign_weights(graph, walk = walk_label)
+                graph = node_weights_to_edge_weights(graph)
+                paths = check_unique_path(graph)
+                if paths == 1:
+                    uniques += 1
+                if paths == 0:
+                    zeros += 1
+            if walk_label == "Frozen" and uniques/num_trials <= .1:
+                print("found bad one")
+                truly_bad_graphs.append(graph)
+            print(walk_label, uniques  , zeros)
+            
+            
+            
+    #SOMETHING IS WRONG: These truly bad graphs also give 0 for the fresh hashes. 
+            #Okay, found the problem -- it seems like some up edges are added on the last layer?
+    for graph in truly_bad_graphs:
+        print(nx.has_path(graph, graph.graph["s"],graph.graph["t"]))
+        num_trials = 100000
+        for walk_label in ["Frozen", "Fresh"]:
+        #for walk_label in ["Fresh"]:
+            uniques = 0
+            zeros = 0
+            for i in range(num_trials):
+                graph = pure_hashing_assign_weights(graph, walk = walk_label)
+                graph = node_weights_to_edge_weights(graph)
+                paths = check_unique_path(graph)
+                if paths == 1:
+                    uniques += 1
+                if paths == 0:
+                    zeros += 1
+            print(walk_label, uniques  , zeros)
+        
+    
 '''Observations:
    For Hash-Once = True, on (10,8), chance of min-unique drops to zero.The pictures this produces are pretty though. 
    For Hash-Once = False, on (10,8), chance of min-unique is around .8.
