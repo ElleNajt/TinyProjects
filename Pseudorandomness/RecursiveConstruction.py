@@ -32,6 +32,74 @@ def viz(graph):
     col = [graph.nodes[x]["weight"] for x in graph.nodes()]
     nx.draw(graph, pos, node_color =col, node_size = 100, width =.5, cmap=plt.get_cmap('hot'))
 
+def binary_strings(m):
+    #Is an iterator that gives all binary strings of length m
+    i = 0
+    while i < 2**m:
+        pre_padded = bin(i)[2:]
+        string = pre_padded.zfill(m)
+        yield (string )
+        i += 1
+        
+
+def generate_all_layered_digraphs(n = 4, l = 3):
+    #To find some examples where a single hash function doesn't work, we'll 
+    #Iterate through all examples.
+    
+    d = 2**l
+    
+    layered_nodes = itertools.product(range(n), range(d + 1))
+    
+    graph = nx.DiGraph()
+    graph.add_nodes_from(layered_nodes)
+    
+    
+    for x in graph.nodes():
+        #print(x)
+        graph.nodes[x]["pos"] = np.array([x[0], x[1]])
+        
+    #Iterate through binary strings corresponding to edges
+        
+    def indexing_sub(i,k,n):
+        #Maps [m] x [n] to [mn]
+        
+        return i * n + k
+        
+    def indexing_function(i,k,j,n):
+        #A bijection between [d]x[n]x[n] and [d*n^2]
+        
+        #[n]x[n] -> [n^2] : (k,j) -> ( k -1)*n + j
+
+        a = indexing_sub(k,j,n)
+        
+        #[d]x[n^2] -> [dn^2] (i,a) -> (i - 1) * n^2 + a
+        
+        return indexing_sub(i, a, n**2)
+        
+    for adjacency_matrix in binary_strings(d*(n**2)):
+        for i in range(d):
+            for k in range(n):
+                for j in range(n):
+                    if adjacency_matrix[indexing_function(i,k,j,n)] == '1':
+                        #print(indexing_function(i, k, j, n))
+                        graph.add_edge( (k,i), (j, i+1))
+                        
+        t = 0
+        for x in graph.nodes():
+            #print(x)
+            graph.nodes[x]["pos"] = np.array([x[0], x[1]])
+            graph.nodes[x]["label"] = t
+            t += 1
+            graph.nodes[x]["weight"] = 0
+            
+        #viz(graph)
+        graph.graph["s"] = (0,0)
+        graph.graph["t"] = (0,d)         
+        viz(graph)
+                        
+        yield graph
+        
+
 def create_layered_digraph(n = 4, l = 3, density = .5):
 
     d = 2**l
@@ -291,7 +359,7 @@ def test_parallel_chains_of_diamonds():
                 f.write('\n')
     
 
-test_parallel_chains_of_diamonds()
+#test_parallel_chains_of_diamonds()
 
 def test_average_case():
     f = open("disambiguation_data3.txt", 'w')
