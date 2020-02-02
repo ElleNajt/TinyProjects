@@ -67,6 +67,59 @@ def create_layered_digraph(n = 4, l = 3, density = .5):
     graph.graph["t"] = (0,d)
     return graph 
 
+def create_split_chain_of_diamonds(n = 4, l = 3):
+    
+    #An attempt at constructing a worst case example
+    n = 9
+    l = 3
+    d = 2**l
+    
+    layered_nodes = itertools.product(range(n), range(d + 1))
+    
+    graph = nx.DiGraph()
+    graph.add_nodes_from(layered_nodes)
+    
+    s = (0,0)
+    t = (0,d)
+    
+    for x in graph.nodes():
+        #print(x)
+        graph.nodes[x]["pos"] = np.array([x[0], x[1]])
+        
+    graph.graph["num_layers"] = l
+    graph.graph["width"] = n
+    
+    for i in range(n):
+        if i % 3 == 1:
+            graph.add_edge(s, (i, 1))
+            graph.add_edge( ( i, d - 1), t)
+    
+    for l in range(d):
+        if l % 2 == 1 and l != 0 and l != d- 1:
+            for k in range(n):
+                if k % 3 == 1:
+                    #graph.add_edge( (l, k), (l+1, k-1))
+                    graph.add_edge( (k, l), (k -1, l+1))
+
+                    #graph.add_edge( (l,k), (l + 1, k + 1))
+                    graph.add_edge( (k,l), ( k+1, l+1))
+        if l % 2 == 0 and l != 0 and l != d:
+            for k in range(n):
+                if k % 3 == 1:
+                    #graph.add_edge( (l, k-1), (l+1, k))
+                    graph.add_edge( (k-1, l), (k, l+1))
+                    #graph.add_edge( (l,k + 1), (l + 1, k))
+                    graph.add_edge( (k+1, l), (k, l+1))
+    
+    for x in graph.nodes():
+        #print(x)
+        graph.nodes[x]["pos"] = np.array([x[0], x[1]])
+        graph.nodes[x]["label"] = i
+        i += 1
+        graph.nodes[x]["weight"] = 0
+    viz(graph)          
+    return 
+
 def check_unique_path(graph):
     ##Checks whether there is a unique min weight path from s to t. Algorithm tests the disambiguation requirement layer by layer. [TODO: Maybe another algorithm for testing min-unique st-path would lead to a different disambiguation requirement? Is it possible to use the randomness adaptively, by finding where the min-uniqueness breaks and then rerolling the hash function, e.g. by taking a step on the expander?]
     #E.g. compare here: https://networkx.github.io/documentation/stable/reference/algorithms/shortest_paths.html
@@ -140,8 +193,8 @@ def step(hash_function, walk = "Expander"):
 def pure_hashing_assign_weights(graph, walk = "Expander"):
     #Via Pure Hashing Approach
     
-    #r_value = nextprime(graph.graph["width"]**6) #change to n
-    r_value = nextprime((len(graph))**6) 
+    r_value = nextprime(graph.graph["width"]**6) #change to n
+    #r_value = nextprime((len(graph))**6) 
     
     l = graph.graph["num_layers"]
     n = graph.graph["width"]
@@ -236,7 +289,7 @@ def save():
     truly_bad_graphs = []
     for graph in bad_graphs:
         num_trials = 100
-        for walk_label in ["Frozen", "Fresh"]:
+        for walk_label in ["Frozen", "Fresh", "None"]:
         #for walk_label in ["Fresh"]:
             uniques = 0
             zeros = 0
