@@ -67,11 +67,10 @@ def create_layered_digraph(n = 4, l = 3, density = .5):
     graph.graph["t"] = (0,d)
     return graph 
 
-def create_split_chain_of_diamonds(n = 4, l = 3):
+def create_split_chain_of_diamonds(pre_n = 4, l = 3):
     
     #An attempt at constructing a worst case example
-    n = 9
-    l = 3
+    n = pre_n*3
     d = 2**l
     
     layered_nodes = itertools.product(range(n), range(d + 1))
@@ -117,8 +116,11 @@ def create_split_chain_of_diamonds(n = 4, l = 3):
         graph.nodes[x]["label"] = i
         i += 1
         graph.nodes[x]["weight"] = 0
-    viz(graph)          
-    return 
+    graph.graph["s"] = (0,0)
+    graph.graph["t"] = (0,d)
+    #viz(graph)          
+    return graph
+
 
 def check_unique_path(graph):
     ##Checks whether there is a unique min weight path from s to t. Algorithm tests the disambiguation requirement layer by layer. [TODO: Maybe another algorithm for testing min-unique st-path would lead to a different disambiguation requirement? Is it possible to use the randomness adaptively, by finding where the min-uniqueness breaks and then rerolling the hash function, e.g. by taking a step on the expander?]
@@ -224,13 +226,12 @@ def node_weights_to_edge_weights(graph):
     return graph
 
 #separate bad instances from bad hash functions
-
-f = open("disambiguation_data3.txt", 'w')
-num_trials = 50
-num_graphs = 1000
-bad_graphs = []
-for width in [10]:
-    for density in [.8,.5,.3]:
+    
+def test_worst_case():
+    
+    f = open("worst_case_data.txt", 'w')
+    num_trials = 1000
+    for width in [1,2,3,4]:
         f.write('\n')
         for l in range(4,6):
             
@@ -238,38 +239,72 @@ for width in [10]:
             f.write('\n')
             #for walk_label in ["Frozen", "Simple", "Expander","FirstCoordExpander","Fresh"]:
             for walk_label in ["Frozen", "Fresh"]:
-                #Will keep track of how much of the signal is explained by there being no path. 
-                unique_ratios= []
-                for j in range(num_graphs):
-                    graph = create_layered_digraph(width,l, density)
-                    
-                    while not nx.has_path(graph, graph.graph["s"],graph.graph["t"]):
-                        graph = create_layered_digraph(width,l, density)
-                    graph.graph["density"] = density
-                    uniques = 0
-                    zeros = 0
-                    for i in range(num_trials):
-                        #It makes no sense that putting graph resample here changes the aggregate statistics! (?)
-                        #graph = create_layered_digraph(width,l, density)
-                        graph = pure_hashing_assign_weights(graph, walk = walk_label)
-                        #viz(graph)
-                        graph = node_weights_to_edge_weights(graph)
-                        paths = check_unique_path(graph)
-                        #print(paths)
-                        if paths == 1:
-                            uniques += 1
-                        if paths == 0:
-                            zeros += 1
-                    unique_ratios.append(uniques / num_trials)
-                    if walk_label == "Frozen" and uniques < 5:
-                        bad_graphs.append(graph)
-                report = str([width, density, l, walk_label, zeros/ num_trials*num_graphs, np.min(unique_ratios)])
+                graph = create_split_chain_of_diamonds(width, l)
+                uniques = 0
+                zeros = 0
+                for i in range(num_trials):
+                    graph = pure_hashing_assign_weights(graph, walk = walk_label)
+                    #viz(graph)
+                    graph = node_weights_to_edge_weights(graph)
+                    paths = check_unique_path(graph)
+                    #print(paths)
+                    if paths == 1:
+                        uniques += 1
+                    if paths == 0:
+                        zeros += 1
+                report = str([width, l, walk_label, zeros/ num_trials, uniques / num_trials])
                 print(report)
                 f.write(report)
                 f.write('\n')
+    
 
-#viz(graph)
+
+def test_average_case():
+    f = open("disambiguation_data3.txt", 'w')
+    num_trials = 50
+    num_graphs = 1000
+    bad_graphs = []
+    for width in [10]:
+        for density in [.8,.5,.3]:
+            f.write('\n')
+            for l in range(4,6):
                 
+    
+                f.write('\n')
+                #for walk_label in ["Frozen", "Simple", "Expander","FirstCoordExpander","Fresh"]:
+                for walk_label in ["Frozen", "Fresh"]:
+                    #Will keep track of how much of the signal is explained by there being no path. 
+                    unique_ratios= []
+                    for j in range(num_graphs):
+                        graph = create_layered_digraph(width,l, density)
+                        
+                        while not nx.has_path(graph, graph.graph["s"],graph.graph["t"]):
+                            graph = create_layered_digraph(width,l, density)
+                        graph.graph["density"] = density
+                        uniques = 0
+                        zeros = 0
+                        for i in range(num_trials):
+                            #It makes no sense that putting graph resample here changes the aggregate statistics! (?)
+                            #graph = create_layered_digraph(width,l, density)
+                            graph = pure_hashing_assign_weights(graph, walk = walk_label)
+                            #viz(graph)
+                            graph = node_weights_to_edge_weights(graph)
+                            paths = check_unique_path(graph)
+                            #print(paths)
+                            if paths == 1:
+                                uniques += 1
+                            if paths == 0:
+                                zeros += 1
+                        unique_ratios.append(uniques / num_trials)
+                        if walk_label == "Frozen" and uniques < 5:
+                            bad_graphs.append(graph)
+                    report = str([width, density, l, walk_label, zeros/ num_trials*num_graphs, np.min(unique_ratios)])
+                    print(report)
+                    f.write(report)
+                    f.write('\n')
+    
+    #viz(graph)
+                    
 def save():
                     
     THIS_FOLDER = 'C:\\Users\\lnajt\\Documents\\GitHub\\TinyProjects\\Pseudorandomness\\Graphs'
