@@ -41,7 +41,56 @@ def binary_strings(m):
         yield (string )
         i += 1
         
+def path_to_edge(path):
+    i = 0
+    edge_list = []
+    while i < len(path) -1: 
 
+        edge_list.append( ( path[i], path[i+1]))
+        i += 1
+    return edge_list
+    
+    
+def generate_unions_of_paths(n = 4, l= 3,r = 3):
+    graph = complete_layered_digraph(n, l)
+    paths = nx.all_simple_paths(graph, graph.graph["s"], graph.graph["t"])
+    '''
+    We could do a backtraking tree, where we put edges either into J (the edge set
+    ), or its complement. Checking whether such an assignment can be completed amounts to verifying
+    that the complement is not a cut of the layered complete digraph, so we can delete and 
+    ask networkx for connectivity. In some cases it may be that certain sets of edges
+    will necessarily be included, but maybe sufficiently efficient to find them on later levels of the tree.
+    Of course there are still a lot of connected layered digraphs. ... actually most likely the ones that are unions of paths are most interesting, since we want there to be many paths before we set weights.
+    '''
+    paths_as_edge_sets = [ set(path_to_edge(path)) for path in paths]
+    merged = []
+    num_paths = len(paths_as_edge_sets)
+    
+    '''for i in range(num_paths):
+        for j in range(i+1,num_paths):
+            for k in range(j + 1, num_paths):
+                merge = set().union(paths_as_edge_sets[i], paths_as_edge_sets[j], paths_as_edge_sets[k])
+                merged.append(merge)'''
+    for path_collection in itertools.combinations(paths_as_edge_sets, r):
+        merge = set()
+        for path in path_collection:
+            merge = merge | path
+        subgraph = nx.DiGraph(nx.edge_subgraph(graph, list(merge)))
+        for x in graph.nodes():
+            if x not in subgraph.nodes():
+                subgraph.add_node(x)
+        t = 0
+        for x in subgraph.nodes():
+            #print(x)
+            subgraph.nodes[x]["pos"] = np.array([x[0], x[1]])
+            subgraph.nodes[x]["label"] = t
+            t += 1
+            subgraph.nodes[x]["weight"] = 0
+            
+        
+        yield subgraph
+                
+    
 def generate_all_layered_digraphs(n = 4, l = 3):
     #To find some examples where a single hash function doesn't work, we'll 
     #Iterate through all examples.
@@ -77,6 +126,15 @@ def generate_all_layered_digraphs(n = 4, l = 3):
         return indexing_sub(i, a, n**2)
         
     for adjacency_matrix in binary_strings(d*(n**2)):
+        graph = nx.DiGraph()
+        layered_nodes = itertools.product(range(n), range(d + 1))
+        graph.add_nodes_from(layered_nodes)
+        
+        
+        for x in graph.nodes():
+            #print(x)
+            graph.nodes[x]["pos"] = np.array([x[0], x[1]])
+            
         for i in range(d):
             for k in range(n):
                 for j in range(n):
@@ -93,6 +151,8 @@ def generate_all_layered_digraphs(n = 4, l = 3):
             graph.nodes[x]["weight"] = 0
             
         #viz(graph)
+        graph.graph["num_layers"] = l
+        graph.graph["width"] = n
         graph.graph["s"] = (0,0)
         graph.graph["t"] = (0,d)         
         viz(graph)
@@ -313,6 +373,45 @@ def pure_hashing_assign_weights(graph, walk = "Expander"):
                 
     return graph
 
+
+def search_for_bad_graphs():
+    
+    f = open("search_data.txt", 'w')
+    num_trials = 100
+    n = 3
+    l = 3
+    r = 4
+    index = 0
+    for graph in generate_unions_of_paths(n,l,r):
+            index += 1
+            if index % 1000 == 0:
+                print(index)
+            #viz(graph)
+            if nx.has_path(graph, graph.graph["s"],graph.graph["t"]):
+                f.write('\n')
+                #for walk_label in ["Frozen", "Simple", "Expander","FirstCoordExpander","Fresh"]:
+                for walk_label in ["Frozen", "Fresh"]:
+    
+                    uniques = 0
+                    zeros = 0
+                    for i in range(num_trials):
+                        graph = pure_hashing_assign_weights(graph, walk = walk_label)
+                        #viz(graph)
+                        graph = node_weights_to_edge_weights(graph)
+                        paths = check_unique_path(graph)
+                        #print(paths)
+                        if paths == 1:
+                            uniques += 1
+                        if paths == 0:
+                            zeros += 1
+                    if uniques < 20:
+                        viz(graph)
+                    report = str([walk_label, zeros/ num_trials, uniques / num_trials])
+                    #print(report)
+                    f.write(report)
+                    f.write('\n')
+        
+    
 
 def node_weights_to_edge_weights(graph):
     #Updates the edge weights based on node weights.
