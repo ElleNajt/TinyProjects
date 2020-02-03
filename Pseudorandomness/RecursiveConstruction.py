@@ -49,9 +49,15 @@ def path_to_edge(path):
         edge_list.append( ( path[i], path[i+1]))
         i += 1
     return edge_list
+
+def random_subset_iterator(collection, r):
+    #Returns a random subset of size r of collection on each call
+    while True:
+        subset = random.choices(collection, k = r)
+        yield subset
     
     
-def generate_unions_of_paths(n = 4, l= 3,r = 3):
+def generate_unions_of_paths(n = 4, l= 3,r = 3, random = False):
     graph = complete_layered_digraph(n, l)
     paths = nx.all_simple_paths(graph, graph.graph["s"], graph.graph["t"])
     '''
@@ -66,12 +72,12 @@ def generate_unions_of_paths(n = 4, l= 3,r = 3):
     merged = []
     num_paths = len(paths_as_edge_sets)
     
-    '''for i in range(num_paths):
-        for j in range(i+1,num_paths):
-            for k in range(j + 1, num_paths):
-                merge = set().union(paths_as_edge_sets[i], paths_as_edge_sets[j], paths_as_edge_sets[k])
-                merged.append(merge)'''
-    for path_collection in itertools.combinations(paths_as_edge_sets, r):
+    if random == False:
+        path_iterator = itertools.combinations(paths_as_edge_sets, r)
+    else:
+        path_iterator = random_subset_iterator(paths_as_edge_sets, r)
+    
+    for path_collection in path_iterator:
         merge = set()
         for path in path_collection:
             merge = merge | path
@@ -352,7 +358,7 @@ def step(hash_function, walk = "Expander"):
 def pure_hashing_assign_weights(graph, walk = "Expander"):
     #Via Pure Hashing Approach
     
-    r_value = nextprime(graph.graph["width"]**6) #change to n
+    r_value = nextprime(graph.graph["width"]**6)
     #r_value = nextprime((len(graph))**6) 
     
     l = graph.graph["num_layers"]
@@ -376,13 +382,14 @@ def pure_hashing_assign_weights(graph, walk = "Expander"):
 
 def search_for_bad_graphs():
     
-    f = open("search_data.txt", 'w')
+    f = open("random_search_data.txt", 'w')
     num_trials = 100
-    n = 3
+    n = 10
     l = 3
-    r = 4
+    r = 5
     index = 0
-    for graph in generate_unions_of_paths(n,l,r):
+    bad_graphs = []
+    for graph in generate_unions_of_paths(n,l,r, random = True):
             index += 1
             if index % 1000 == 0:
                 print(index)
@@ -404,10 +411,13 @@ def search_for_bad_graphs():
                             uniques += 1
                         if paths == 0:
                             zeros += 1
-                    if uniques < 20:
-                        viz(graph)
+
                     report = str([walk_label, zeros/ num_trials, uniques / num_trials])
-                    #print(report)
+                    if uniques < 30:
+                        print("found one")
+                        viz(graph)
+                        bad_graphs.append(graph)
+                        print(report)
                     f.write(report)
                     f.write('\n')
         
