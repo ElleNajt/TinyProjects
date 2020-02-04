@@ -50,6 +50,45 @@ def path_to_edge(path):
         i += 1
     return edge_list
 
+def disjoint_paths(n = 5,l = 3):
+    d = 2**l
+    
+    layered_nodes = itertools.product(range(n), range(d + 1))
+    
+    graph = nx.DiGraph()
+    graph.add_nodes_from(layered_nodes)
+    
+    
+    for x in graph.nodes():
+        #print(x)
+        graph.nodes[x]["pos"] = np.array([x[0], x[1]])
+        
+    graph.graph["num_layers"] = l
+    graph.graph["width"] = n
+    for i in range(d):
+        for k in range(n):
+            if i == 0:
+                graph.add_edge( (0,0) , (k,1))
+            if i > 0 and i < d - 1:
+                graph.add_edge( ( k,i) , (k,i+1))
+            if i == d - 1:
+                graph.add_edge( (k,i), (0, d))
+        
+                
+    i = 0
+    for x in graph.nodes():
+        #print(x)
+        graph.nodes[x]["pos"] = np.array([x[0], x[1]])
+        graph.nodes[x]["label"] = i
+        i += 1
+        graph.nodes[x]["weight"] = 0
+        
+    #viz(graph)
+    graph.graph["s"] = (0,0)
+    graph.graph["t"] = (0,d)
+    return graph
+    
+
 def random_subset_iterator(collection, r):
     #Returns a random subset of size r of collection on each call
     while True:
@@ -57,7 +96,7 @@ def random_subset_iterator(collection, r):
         yield subset
     
     
-def generate_unions_of_paths(n = 4, l= 3,r = 3, random = False):
+def generate_unions_of_paths(n = 4, l= 3, r = 3, random = False):
     graph = complete_layered_digraph(n, l)
     paths = nx.all_simple_paths(graph, graph.graph["s"], graph.graph["t"])
     '''
@@ -95,8 +134,7 @@ def generate_unions_of_paths(n = 4, l= 3,r = 3, random = False):
             
         
         yield subgraph
-                
-    
+                    
 def generate_all_layered_digraphs(n = 4, l = 3):
     #To find some examples where a single hash function doesn't work, we'll 
     #Iterate through all examples.
@@ -389,7 +427,9 @@ def search_for_bad_graphs():
     r = 5
     index = 0
     bad_graphs = []
-    for graph in generate_unions_of_paths(n,l,r, random = True):
+    #graph_list = generate_unions_of_paths(n,l,r, random = True)
+    graph_list = [disjoint_paths(n, 2) for n in range(5,10)]
+    for graph in graph_list:
             index += 1
             if index % 1000 == 0:
                 print(index)
@@ -418,9 +458,12 @@ def search_for_bad_graphs():
                         viz(graph)
                         bad_graphs.append(graph)
                         print(report)
-                    f.write(report)
-                    f.write('\n')
-        
+                        f.write(report)
+                        f.write('\n')
+                        THIS_FOLDER = 'C:\\Users\\lnajt\\Documents\\GitHub\\TinyProjects\\Pseudorandomness\\Graphs' 
+                        my_file = os.path.join(THIS_FOLDER, str(hash(graph)))    
+                        nx.write_gpickle(graph, str("badgraph_") + my_file)
+                    print(report)
     
 
 def node_weights_to_edge_weights(graph):
