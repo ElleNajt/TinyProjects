@@ -13,6 +13,7 @@ import numpy as np
 import os
 import secrets
 import sympy
+import copy
 from sympy import nextprime
 
 '''
@@ -49,6 +50,46 @@ def path_to_edge(path):
         edge_list.append( ( path[i], path[i+1]))
         i += 1
     return edge_list
+
+def branching_tree(l):
+    #Creates a doubled layered branching tree with l layers
+    d = 2**l
+    print("not written yet")
+    layered_nodes = itertools.product(range(n), range(d + 1))
+    
+    graph = nx.DiGraph()
+    graph.add_nodes_from(layered_nodes)
+    
+    
+    for x in graph.nodes():
+        #print(x)
+        graph.nodes[x]["pos"] = np.array([x[0], x[1]])
+        
+    graph.graph["num_layers"] = l
+    graph.graph["width"] = n
+    for i in range(d):
+        for k in range(n):
+            if i == 0:
+                graph.add_edge( (0,0) , (k,1))
+            if i > 0 and i < d - 1:
+                graph.add_edge( ( k,i) , (k,i+1))
+            if i == d - 1:
+                graph.add_edge( (k,i), (0, d))
+        
+                
+    i = 0
+    for x in graph.nodes():
+        #print(x)
+        graph.nodes[x]["pos"] = np.array([x[0], x[1]])
+        graph.nodes[x]["label"] = i
+        i += 1
+        graph.nodes[x]["weight"] = 0
+        
+    #viz(graph)
+    graph.graph["s"] = (0,0)
+    graph.graph["t"] = (0,d)    
+    return graph
+    
 
 def disjoint_paths(n = 5,l = 3):
     d = 2**l
@@ -393,6 +434,9 @@ def step(hash_function, walk = "Expander"):
     return hash_function    
     
     
+    
+
+
 def pure_hashing_assign_weights(graph, walk = "Expander"):
     #Via Pure Hashing Approach
     
@@ -419,7 +463,7 @@ def pure_hashing_assign_weights(graph, walk = "Expander"):
 
 
 def search_for_bad_graphs():
-    
+    print("searching for bad graphs")
     f = open("random_search_data.txt", 'w')
     num_trials = 100
     n = 10
@@ -427,9 +471,11 @@ def search_for_bad_graphs():
     r = 5
     index = 0
     bad_graphs = []
-    #graph_list = generate_unions_of_paths(n,l,r, random = True)
-    graph_list = [disjoint_paths(n, 2) for n in range(5,10)]
+    graph_list = generate_unions_of_paths(n,l,r, random = True)
+    #graph_list = [disjoint_paths(n, 6) for n in range(5,10)]
     for graph in graph_list:
+            if index > 1000000:
+                return "Done"
             index += 1
             if index % 1000 == 0:
                 print(index)
@@ -463,7 +509,7 @@ def search_for_bad_graphs():
                         THIS_FOLDER = 'C:\\Users\\lnajt\\Documents\\GitHub\\TinyProjects\\Pseudorandomness\\Graphs' 
                         my_file = os.path.join(THIS_FOLDER, str(hash(graph)))    
                         nx.write_gpickle(graph, str("badgraph_") + my_file)
-                    print(report)
+                
     
 
 def node_weights_to_edge_weights(graph):
@@ -476,9 +522,31 @@ def node_weights_to_edge_weights(graph):
 
 #separate bad instances from bad hash functions
     
+
+
+def test_custom_graph(graph, num_trials = 100):
+    #tests how many hash functions cause graph to have a unique min path
+    uniques = 0
+    zeros = 0
+    for i in range(num_trials):
+        graph = pure_hashing_assign_weights(graph, walk = "Frozen")
+        graph = node_weights_to_edge_weights(graph)
+        paths = check_unique_path(graph)
+        #print(paths)
+        if paths == 1:
+            uniques += 1
+        if paths == 0:
+            zeros += 1
+    report = str([zeros/ num_trials, uniques / num_trials])
+    print(report)
+    return uniques / num_trials
+    
 def test_parallel_chains_of_diamonds():
-    #Note that the width 1 case is not worst case for fresh; the only way that this fails is if $a = 0$.
+    '''
+    #
+    Note that the width 1 case is not worst case for fresh; the only way that this fails is if $a = 0$.
     #The wider cases also do not seem to be worst case.
+    '''
     
     f = open("worst_case_data.txt", 'w')
     num_trials = 100
@@ -516,24 +584,24 @@ def test_parallel_chains_of_diamonds():
 def test_average_case():
     f = open("disambiguation_data3.txt", 'w')
     num_trials = 50
-    num_graphs = 1000
+    num_graphs = 4
     bad_graphs = []
-    for width in [10]:
-        for density in [.8,.5,.3]:
+    for width in [80]:
+        for density in [.3 , .2,.1,.05]:
             f.write('\n')
-            for l in range(4,6):
+            for l in range(11,13):
                 
     
                 f.write('\n')
                 #for walk_label in ["Frozen", "Simple", "Expander","FirstCoordExpander","Fresh"]:
-                for walk_label in ["Frozen", "Fresh"]:
-                    #Will keep track of how much of the signal is explained by there being no path. 
+                for walk_label in ["Frozen"]:
                     unique_ratios= []
                     for j in range(num_graphs):
                         graph = create_layered_digraph(width,l, density)
                         
                         while not nx.has_path(graph, graph.graph["s"],graph.graph["t"]):
                             graph = create_layered_digraph(width,l, density)
+                        #print("doing trials")
                         graph.graph["density"] = density
                         uniques = 0
                         zeros = 0
@@ -556,10 +624,11 @@ def test_average_case():
                     print(report)
                     f.write(report)
                     f.write('\n')
-    
+    #save(bad_graphs)
     #viz(graph)
-                    
-def save():
+   
+#test_average_case()                 
+def save(bad_graphs):
                     
     THIS_FOLDER = 'C:\\Users\\lnajt\\Documents\\GitHub\\TinyProjects\\Pseudorandomness\\Graphs'
     
@@ -616,6 +685,71 @@ def save():
                     zeros += 1
             print(walk_label, uniques  , zeros)
         
+
+#search_for_bad_graphs()
+
+    
+def deletion_search(l = 2, n = 3, num_trials = 10):
+    '''
+    
+    initial_graph is the initial graph
+    
+    If there exists a hash function of weight size r that causes F to be min-unique
+    Then deletes one of the edges of graph that is part of the min-unique set
+    Keeps running until either min-uniqueness is broken for all hash functions h
+    or graph is disconnected.
+    
+    instead of trying every single hash function, will try num_trials random hashes
+    
+    '''
+    initial_graph = complete_layered_digraph(l,n)
+    graph = copy.deepcopy(initial_graph) 
+    s = graph.graph["s"]
+    t = graph.graph["t"]
+    i = 0
+    
+    while nx.has_path(graph, s,t):
+        i += 1
+
+        uniques = 0
+        for i in range(num_trials):
+                graph = pure_hashing_assign_weights(graph, walk = "Frozen")
+                graph = node_weights_to_edge_weights(graph)
+                paths = check_unique_path(graph)
+                if paths == 1:
+                    uniques += 1
+                    path = list(nx.all_shortest_paths(graph, s,t, weight = "weight"))[0]
+                    path_edges = path_to_edge(path)
+                    edge = random.choice(path_edges)
+                    graph.remove_edge(edge[0], edge[1])
+                    
+        if nx.has_path(graph, graph.graph["s"], graph.graph["t"]):
+            if uniques == 0:
+                print("found graph", len(graph.edges()))
+                viz(graph)
+                return graph
+        else:
+            #print("disconnected, restarting")
+            graph = copy.deepcopy(initial_graph)
+            s = graph.graph["s"]
+            t = graph.graph["t"]
+    
+for i in range(10):
+    num_repairs = 40
+    candidate = deletion_search(4, 4, num_repairs)
+    #This means that candidate was patched for num_repairs hash functions, and remained connected
+    test_custom_graph(candidate) 
+        
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     
 '''Observations:
    For Hash-Once = True, on (10,8), chance of min-unique drops to zero.The pictures this produces are pretty though. 

@@ -104,7 +104,8 @@ def preprocess(graph):
     graph = Facefinder.compute_rotation_system(graph)
     graph = Facefinder.compute_all_faces(graph)
     return graph
-    
+
+
 def run_steps(graph, cycle, steps = 10):
     successes = 0
     for step in range(steps):
