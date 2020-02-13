@@ -733,13 +733,14 @@ def deletion_search(l = 2, n = 3, num_trials = 10):
             graph = copy.deepcopy(initial_graph)
             s = graph.graph["s"]
             t = graph.graph["t"]
-    
-for i in range(10):
-    num_repairs = 40
-    candidate = deletion_search(4, 4, num_repairs)
-    #This means that candidate was patched for num_repairs hash functions, and remained connected
-    test_custom_graph(candidate) 
-        
+
+for num_repairs in [20,25,30]:
+    print(num_repairs)
+    for i in range(10):
+        candidate = deletion_search(4, 4, num_repairs)
+        #This means that candidate was patched for num_repairs hash functions, and remained connected
+        test_custom_graph(candidate) 
+            
     
     
     
