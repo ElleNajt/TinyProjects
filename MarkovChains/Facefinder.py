@@ -14,11 +14,12 @@ import matplotlib.pyplot as plt
 
 
 def compute_rotation_system(graph):
-    #Graph nodes must have "pos"
+    #Graph nodes must have "pos" and is promised that the embedding is a straight line embedding
+    #The graph will be returned in a way that every node has a dictionary that gives you the next edge clockwise around that node
     #The rotation system is  clockwise (0,2) -> (1,1) -> (0,0) around (0,1)
     for v in graph.nodes():
         graph.nodes[v]["pos"] = np.array(graph.nodes[v]["pos"])
-    
+
     for v in graph.nodes():
         locations = []
         neighbor_list = list(graph.neighbors(v))
@@ -39,7 +40,7 @@ def transform(x):
         return x
     if x < 0:
         return 2 * np.pi + x
-    
+
 
 
 def is_clockwise(graph,face, average):
@@ -56,6 +57,7 @@ def is_clockwise(graph,face, average):
 
 def cycle_around_face(graph, e):
     face = list([e[0], e[1]])
+    #starts off with the two vertices of the edge e
     last_point = e[1]
     current_point = graph.nodes[e[1]]["rotation"][e[0]]
     next_point = current_point
@@ -74,10 +76,12 @@ def compute_face_data(graph):
 
     for e in graph.edges():
         #need to make sure you get both possible directions for each edge..
-        
+
         face = cycle_around_face(graph, e)
         faces.append(tuple(face))
+        #has to get passed to a tuple because networkx wants the names of vertices to be frozen
         face = cycle_around_face(graph, [ e[1], e[0]])
+        #also cycle in the other direction 
         faces.append(tuple(face))
     #detect the unbounded face based on orientation
     bounded_faces = []
@@ -86,7 +90,9 @@ def compute_face_data(graph):
         for x in face:
             run_sum += np.array(graph.nodes[x]["pos"]).astype('float64')
         average = run_sum / len(face)
+        #associate each face to the average of the vertices
         if is_clockwise(graph,face, average):
+            #figures out whether a face is bounded or not based on clockwise orientation
             bounded_faces.append(face)
     faces_set = [frozenset(face) for face in bounded_faces]
     graph.graph["faces"] = set(faces_set)
@@ -99,14 +105,14 @@ def compute_all_faces(graph):
 
     for e in graph.edges():
         #need to make sure you get both possible directions for each edge..
-        
+
         face = cycle_around_face(graph, e)
         faces.append(tuple(face))
         face = cycle_around_face(graph, [ e[1], e[0]])
         faces.append(tuple(face))
-    
+
     #This overcounts, have to delete cyclic repeats now:
-        
+
     sorted_faces = list(set([tuple(canonical_order(graph,x)) for x in faces]))
     cleaned_faces = [ tuple([ y for y in F]) for F in sorted_faces]
     graph.graph["faces"] = cleaned_faces
@@ -115,18 +121,18 @@ def compute_all_faces(graph):
 def canonical_order(graph, face):
     '''
     Outputs the coordinates of the nodes of the face in a canonical order
-    in particular, the first one is the lex-min. 
-    
+    in particular, the first one is the lex-min.
+
     You need to use the graph structure to make this work
     '''
-    
+
     lex_sorted_nodes = sorted(face)
     first_node = lex_sorted_nodes[0]
     cycle_sorted_nodes = [first_node]
     local_cycle = nx.subgraph( graph, face)
 
     #Compute the second node locally based on angle orientation
-    
+
     v = first_node
     locations = []
     neighbor_list = list(local_cycle.neighbors(v))
@@ -134,20 +140,20 @@ def canonical_order(graph, face):
         locations.append(graph.nodes[w]["pos"] - graph.nodes[v]["pos"])
     angles = [float(np.arctan2(x[1], x[0])) for x in locations]
     neighbor_list.sort(key=dict(zip(neighbor_list, angles)).get)
-    
+
     second_node = neighbor_list[0]
     cycle_sorted_nodes.append(second_node)
     ##Now compute a canonical ordering of local_cycle, clockwise, starting
     ##from first_node
-    
-  
+
+
     while len(cycle_sorted_nodes) < len(lex_sorted_nodes):
-        
+
         v = cycle_sorted_nodes[-1]
         neighbor_list = list(local_cycle.neighbors(v))
         neighbor_list.remove(cycle_sorted_nodes[-2])
         cycle_sorted_nodes.append(neighbor_list[0])
-    
+
     return cycle_sorted_nodes
 
 
@@ -156,15 +162,15 @@ def delete_copies_up_to_permutation(array):
     Given an array of tuples, return an array consisting of one representative
     for each element in the orbit of the reordering action.
     '''
-    
+
     cleaned_array = list(set([tuple(canonical_order(x)) for x in array]))
-    
+
     return cleaned_array
 
 def face_refine(graph):
     #graph must already have the face data computed
     #this adds a vetex in the middle of each face, and connects that vertex to the edges of that face...
-    
+
     for face in graph.graph["faces"]:
         graph.add_node(face)
         location = np.array([0,0]).astype("float64")
@@ -210,7 +216,7 @@ def barycentric_subdivision(graph):
     graph = edge_refine(graph)
     graph = refine(graph)
     return graph
-    
+
 
 def restricted_planar_dual(graph):
     #computes dual without unbounded face
@@ -235,24 +241,31 @@ def restricted_planar_dual(graph):
 
 
 def draw_with_location(graph):
+    '''
+    draws graph with 'pos' as the xy coordinate of each nodes
+    initialized by something like graph.nodes[x]["pos"] = np.array([x[0], x[1]])
+    '''
 #    for x in graph.nodes():
 #        graph.nodes[x]["pos"] = [graph.nodes[x]["X"], graph.nodes[x]["Y"]]
 
     nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 20, width = .5, cmap=plt.get_cmap('jet'))
-## 
-#m= 3
-#graph = nx.grid_graph([m,m])
-#graph.name = "grid_size:" + str(m)
-#for x in graph.nodes():
-#    
-#    graph.nodes[x]["pos"] = np.array([x[0], x[1]])
-#
+##
+m= 5
+graph = nx.grid_graph([m,m])
+graph.name = "grid_size:" + str(m)
+for x in graph.nodes():
+
+    graph.nodes[x]["pos"] = np.array([x[0], x[1]])
+
 ###graph = depth_k_refine(graph,0)
 ##graph = depth_k_barycentric(graph, 4)
-#draw_with_location(graph)
+draw_with_location(graph)
 #graph = compute_rotation_system(graph)
-#graph = compute_face_data(graph) 
+#This makes it so that the graph has the rotation system around each vertex
+
+#graph = compute_face_data(graph)
 ##print(len(graph.graph["faces"]))
 ##
-#dual = restricted_planar_dual(graph)
-#draw_with_location(dual)
+dual = restricted_planar_dual(graph)
+draw_with_location(dual)
+#Every node of the dual is a crozenset of the vertices of the face.
