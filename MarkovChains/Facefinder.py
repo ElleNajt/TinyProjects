@@ -56,6 +56,7 @@ def is_clockwise(graph,face, average):
         return True
 
 def cycle_around_face(graph, e):
+    #Faces are being stored as the list of vertices
     face = list([e[0], e[1]])
     #starts off with the two vertices of the edge e
     last_point = e[1]
@@ -81,7 +82,7 @@ def compute_face_data(graph):
         faces.append(tuple(face))
         #has to get passed to a tuple because networkx wants the names of vertices to be frozen
         face = cycle_around_face(graph, [ e[1], e[0]])
-        #also cycle in the other direction 
+        #also cycle in the other direction
         faces.append(tuple(face))
     #detect the unbounded face based on orientation
     bounded_faces = []
@@ -231,11 +232,12 @@ def restricted_planar_dual(graph):
         dual_graph.nodes[face]["pos"] = location / len(face)
     ##handle edges
     for e in graph.edges():
-        for face in graph.graph["faces"]:
+        for face1 in graph.graph["faces"]:
             for face2 in graph.graph["faces"]:
-                if face != face2:
-                    if (e[0] in face) and (e[1] in face) and (e[0] in face2) and (e[1] in face2):
-                        dual_graph.add_edge(face, face2)
+                if face1 != face2:
+                    if (e[0] in face1) and (e[1] in face1) and (e[0] in face2) and (e[1] in face2):
+                        dual_graph.add_edge(face1, face2)
+                        dual_graph.edges[ (face1, face2) ]["original_name"] = e
     return dual_graph
 
 
