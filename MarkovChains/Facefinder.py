@@ -86,6 +86,7 @@ def compute_face_data(graph):
         faces.append(tuple(face))
     #detect the unbounded face based on orientation
     bounded_faces = []
+    unbounded_face = 0
     for face in faces:
         run_sum = np.array([0,0]).astype('float64')
         for x in face:
@@ -95,8 +96,18 @@ def compute_face_data(graph):
         if is_clockwise(graph,face, average):
             #figures out whether a face is bounded or not based on clockwise orientation
             bounded_faces.append(face)
-    faces_set = [frozenset(face) for face in bounded_faces]
-    graph.graph["faces"] = set(faces_set)
+        else:
+            unbounded_face = face
+    #print(unbounded_face)
+    bounded_faces_list = [frozenset(face) for face in bounded_faces]
+    graph.graph["bounded_faces"] = set(bounded_faces_list)
+    #print(bounded_faces_list)
+    all_faces = bounded_faces_list + [frozenset(unbounded_face)]
+    
+    
+    graph.graph["all_faces"] = set(all_faces)
+    
+    
     return graph
 
 def compute_all_faces(graph):
@@ -218,13 +229,20 @@ def barycentric_subdivision(graph):
     graph = refine(graph)
     return graph
 
-
+    
 def restricted_planar_dual(graph):
+    return planar_dual(graph, True)
+
+def planar_dual(graph, restricted = False):
     #computes dual without unbounded face
     graph = compute_rotation_system(graph)
     graph = compute_face_data(graph)
+    if restricted == True:
+        faces = graph.graph["bounded_faces"]
+    else:
+        faces = graph.graph["all_faces"]
     dual_graph = nx.Graph()
-    for face in graph.graph["faces"]:
+    for face in faces:
         dual_graph.add_node(face)
         location = np.array([0,0]).astype("float64")
         for v in face:
@@ -232,8 +250,8 @@ def restricted_planar_dual(graph):
         dual_graph.nodes[face]["pos"] = location / len(face)
     ##handle edges
     for e in graph.edges():
-        for face1 in graph.graph["faces"]:
-            for face2 in graph.graph["faces"]:
+        for face1 in faces:
+            for face2 in faces:
                 if face1 != face2:
                     if (e[0] in face1) and (e[1] in face1) and (e[0] in face2) and (e[1] in face2):
                         dual_graph.add_edge(face1, face2)
@@ -268,6 +286,6 @@ draw_with_location(graph)
 #graph = compute_face_data(graph)
 ##print(len(graph.graph["faces"]))
 ##
-dual = restricted_planar_dual(graph)
+dual = planar_dual(graph, False)
 draw_with_location(dual)
 #Every node of the dual is a crozenset of the vertices of the face.
