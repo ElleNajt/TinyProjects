@@ -166,11 +166,12 @@ def find_supernode(graph):
     return False
 
 def statistics():
-    trials = 5000
-    samples = trials*200
-    m= 5
+    trials = 1000
+    samples = trials*1000
+    m= 20
     graph = nx.grid_graph([m,m])
     graph.name = "grid_size:" + str(m)
+    print(graph.name)
     for x in graph.nodes():
         graph.nodes[x]["pos"] = np.array([x[0], x[1]])
 
@@ -179,8 +180,6 @@ def statistics():
     dual = Facefinder.planar_dual(graph)
     W_trees = []
     branches = []
-    for i in range(samples):
-        W_trees.append( nx.to_undirected(random_spanning_tree_wilson(dual)))
 
     supernode = find_supernode(dual)
     boundary_faces = list(dual.neighbors(supernode))
@@ -193,14 +192,6 @@ def statistics():
         print("OK2")
 
     cycles = []
-    for tree in W_trees:
-        available_edges = set(dual.edges())
-        available_edges = available_edges - set(tree.edges())
-        e = random.choice(list(available_edges))
-        unicycle = copy.deepcopy(tree)
-        unicycle = nx.Graph(unicycle)
-        unicycle.add_edge( e[0], e[1])
-        cycles.append(simple_cycle(unicycle))
 
     cycles_containing_prescribed_faces = []
     corresponding_walks = []
@@ -212,7 +203,16 @@ def statistics():
 
     print("testing", boundary_faces_frequencies[ ( face_1, face_2)])
 
-    for cycle in cycles:
+    for i in range(samples):
+        tree = nx.to_undirected(random_spanning_tree_wilson(dual))
+        available_edges = set(dual.edges())
+        available_edges = available_edges - set(tree.edges())
+        e = random.choice(list(available_edges))
+        unicycle = copy.deepcopy(tree)
+        unicycle = nx.Graph(unicycle)
+        unicycle.add_edge( e[0], e[1])
+        #cycles.append(simple_cycle(unicycle))
+        cycle = simple_cycle(unicycle)
         #faces = [x[0] for x in cycle] + [x[1] for x in cycle]
         #faces = set(faces)
         #print(faces)
