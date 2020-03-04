@@ -166,8 +166,8 @@ def find_supernode(graph):
     return False
 
 def statistics():
-    trials = 1000
-    samples = trials*1000
+    trials = 100
+    #samples = trials*500
     m= 20
     graph = nx.grid_graph([m,m])
     graph.name = "grid_size:" + str(m)
@@ -186,10 +186,10 @@ def statistics():
     face_1 = boundary_faces[0]
     face_2 = boundary_faces[ int(len(boundary_faces)/2) + 1]
 
-    if (face_1, supernode) or (supernode, face_1) in dual.edges():
-        print("OK")
-    if (face_2, supernode) or (supernode, face_2) in dual.edges():
-        print("OK2")
+    #if (face_1, supernode) or (supernode, face_1) in dual.edges():
+    #    print("OK")
+    #if (face_2, supernode) or (supernode, face_2) in dual.edges():
+    #    print("OK2")
 
     cycles = []
 
@@ -201,9 +201,10 @@ def statistics():
         for face_b in boundary_faces:
             boundary_faces_frequencies[ (face_a, face_b)] = 0
 
-    print("testing", boundary_faces_frequencies[ ( face_1, face_2)])
-
-    for i in range(samples):
+    #print("testing", boundary_faces_frequencies[ ( face_1, face_2)])
+    done = False
+    sample_counter = 0
+    while not done:
         tree = nx.to_undirected(random_spanning_tree_wilson(dual))
         available_edges = set(dual.edges())
         available_edges = available_edges - set(tree.edges())
@@ -231,13 +232,17 @@ def statistics():
                 walk = nx.Graph(nx.edge_subgraph(dual, cycle))
                 walk.remove_node(supernode)
                 corresponding_walks.append(walk)
+                sample_counter += 1
+                print(sample_counter)
+        if sample_counter == trials:
+            done = True
 
     #print("testing2", boundary_faces_frequencies[ (face_1, face_2)])
     #print(corresponding_walks[0].edges())
     #print(len(cycles_containing_prescribed_faces))
 
     #print(boundary_faces_frequencies)
-
+    print("finished with cycle portions")
     LERW = []
     dual.remove_node(supernode)
     #Because we are testing whether the distributions looks like a LERW in the grid
