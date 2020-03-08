@@ -148,7 +148,7 @@ def rejection_sample(graph):
             return False
     return [J, coloring]
 
-def viz(graph, edge_set, coloring):
+def viz(graph, edge_set, coloring, name):
 
 
     convert = {}
@@ -166,9 +166,9 @@ def viz(graph, edge_set, coloring):
     node_values = [convert[coloring[x]] for x in graph.nodes()]
     f = plt.figure()
     nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_color = node_values, edge_color = values, labels = coloring_convert, width = 4, node_size= 65, font_size = 7)
-    f.savefig(str(int(time.time())) + ".png")
+    f.savefig(name + str(int(time.time())) + ".png")
 
-def test_rejection_sample(graph, steps = 1000):
+def test_rejection_sample(graph, goal = 1):
 
     samples = []
 
@@ -176,7 +176,7 @@ def test_rejection_sample(graph, steps = 1000):
 
     number = 0
 
-    for i in range(steps):
+    while number < goal:
         new = rejection_sample(graph)
 
         if new != False:
@@ -463,10 +463,6 @@ def function_to_partition(function):
                 block.append(x)
         blocks.append(block)
     return blocks
-
-
-
-
 def dobinski_random_variable(n):
 
     '''
@@ -485,10 +481,6 @@ def dobinski_random_variable(n):
         cumulative_probability += (i**n)/(math.factorial(i)*np.e*b)
 
     return i
-
-
-
-
 def sample_partition(input_set):
     #returns a uniformly random partition of input_set
 
@@ -506,13 +498,11 @@ def sample_partition(input_set):
     partition = function_to_partition(function)
 
     return partition
-
 def sample_partitions(input_set, number):
     partitions = []
     for i in range(number):
         partitions.append(sample_partition(input_set))
     return partitions
-
 def test_complete_graph():
     for size_of_graph in [20,25,30,35,40,45]:
 
@@ -531,19 +521,21 @@ def test_complete_graph():
         true_samples = sample_partitions(list(range(size_of_graph)), 7000)
         true_samples_num_components = [len (x) for x in true_samples]
         print("true:",np.mean(true_samples_num_components))
-
-
 def test_grid_graph():
 
+    size = 15
+    graph = nx.grid_graph([size, size])
+    MC_steps = 100000
+    MC_temperature = .7
+    num_true_samples = 0
 
-    graph = nx.grid_graph([20,20])
-    MC_steps = 1000000
-    true_sample_trials = 1
+    samples = run_markov_chain(graph, MC_steps, MC_temperature)
+    #Higher temperatures -- the chain mixes faster, but the is less likely to give you a connected partition.
+    #So, set the temperature higher if you want to be more confident that any samples you get are uniform.
 
-    samples = run_markov_chain(graph, MC_steps, .1)
     #for sample in true_samples:
     #    viz(graph, sample[0], sample[1])
-    viz(graph, samples[-10][1], samples[-10][2])
+    viz(graph, samples[-10][1], samples[-10][2], "markov_chain")
 
     #The question: Can we tune temp so that we get both rapid mixing AND polynomial concentration on the zero contradiction assignments??
 
@@ -554,19 +546,22 @@ def test_grid_graph():
     sample_num_components = [len (list(
     nx.connected_components( nx.edge_subgraph(graph, x[1])) )) for x in samples]
 
-    true_samples = test_rejection_sample(graph, true_sample_trials)
+    true_samples = test_rejection_sample(graph, num_true_samples)
 
     true_non_cut_sets = [len(x[0]) for x in true_samples]
     true_num_components = [len (list( nx.connected_components( nx.edge_subgraph(graph, x[0])) )) for x in true_samples]
 
     print(np.mean(non_cut_sets), " vs. ", np.mean(true_non_cut_sets))
 
+    print(len(true_samples))
     for sample in true_samples:
-        viz(graph, sample[0], sample[1])
+        viz(graph, sample[0], sample[1],"true_uniform")
 
     print(np.mean(sample_num_components), " vs. ", np.mean(true_num_components))
 
     ##It seems to pass this test.
+
+test_grid_graph()
 '''
 This Markov chain won't mix rapidly in general. We can look for miracles in the structure
 of the flats for the grid graph case. Places to look:
@@ -574,7 +569,7 @@ of the flats for the grid graph case. Places to look:
 1) In the backgtracking tree, we can look for an unusual degree of symmetry.
 It might make more sense to look at the torus graph.
 2) We can look for lower bounds on the number of flats in this case. Maybe
-there are so many of them that 
+there are so many of them that
 '''
 
 
