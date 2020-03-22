@@ -2,10 +2,21 @@
 """
 Created on Sat Oct 13 19:39:52 2018
 
-@author: Temporary
+@author: Lorenzo Najt
 """
 
 ###This will take a graph that (I know is) planar along with position data on the nodes, and construct face data.
+
+'''
+Assumptions: The embedding is plane and the edges are straight lines.
+Here is how the algorithm works: for each node, we orient its edges clockwise, using the data about the positions of the neighboring nodes
+and a little trigonometry. Then, we use the following observation: let v be a node and e be an edge. 
+We define an update rule: from (v,e) update this to $(u,f)$ where $f$ is the next edge in clockwise order around v after e, and u is the node other than v incident to f.
+Then if we choose a particular (v,e) this procedure will run through all of the edges in one of the faces containing e. Using (v',e) if e = {v,v'} will give the other face.
+
+
+'''
+
 
 import networkx as nx
 import numpy as np
