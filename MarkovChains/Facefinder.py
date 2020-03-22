@@ -14,7 +14,7 @@ and a little trigonometry. Then, we use the following observation: let v be a no
 We define an update rule: from (v,e) update this to $(u,f)$ where $f$ is the next edge in clockwise order around v after e, and u is the node other than v incident to f.
 Then if we choose a particular (v,e) this procedure will run through all of the edges in one of the faces containing e. Using (v',e) if e = {v,v'} will give the other face.
 
-
+It is the same as the algorithm described in the answer here: https://mathoverflow.net/questions/23811/reporting-all-faces-in-a-planar-graph
 '''
 
 
