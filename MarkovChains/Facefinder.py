@@ -260,6 +260,8 @@ def planar_dual(graph, restricted = False):
             location += graph.nodes[v]["pos"].astype("float64")
         dual_graph.nodes[face]["pos"] = location / len(face)
     ##handle edges
+    
+    #Construct
     incidence = {}
     for v in graph.nodes():
         incidence[v] = set()
@@ -268,7 +270,7 @@ def planar_dual(graph, restricted = False):
         for v in face:
             incidence[v].add(face)
     
-    print(incidence)
+    #print(incidence)
     
     
     for e in graph.edges():
