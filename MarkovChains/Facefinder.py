@@ -10,7 +10,7 @@ Created on Sat Oct 13 19:39:52 2018
 '''
 Assumptions: The embedding is plane and the edges are straight lines.
 Here is how the algorithm works: for each node, we orient its edges clockwise, using the data about the positions of the neighboring nodes
-and a little trigonometry. Then, we use the following observation: let v be a node and e be an edge. 
+and a little trigonometry. Then, we use the following observation: let v be a node and e be an edge.
 We define an update rule: from (v,e) update this to $(u,f)$ where $f$ is the next edge in clockwise order around v after e, and u is the node other than v incident to f.
 Then if we choose a particular (v,e) this procedure will run through all of the edges in one of the faces containing e. Using (v',e) if e = {v,v'} will give the other face.
 
@@ -114,11 +114,11 @@ def compute_face_data(graph):
     graph.graph["bounded_faces"] = set(bounded_faces_list)
     #print(bounded_faces_list)
     all_faces = bounded_faces_list + [frozenset(unbounded_face)]
-    
-    
+
+
     graph.graph["all_faces"] = set(all_faces)
-    
-    
+
+
     return graph
 
 def compute_all_faces(graph):
@@ -240,7 +240,7 @@ def barycentric_subdivision(graph):
     graph = refine(graph)
     return graph
 
-    
+
 def restricted_planar_dual(graph):
     return planar_dual(graph, True)
 
@@ -260,15 +260,37 @@ def planar_dual(graph, restricted = False):
             location += graph.nodes[v]["pos"].astype("float64")
         dual_graph.nodes[face]["pos"] = location / len(face)
     ##handle edges
+    incidence = {}
+    for v in graph.nodes():
+        incidence[v] = set()
+        
+    for face in faces:
+        for v in face:
+            incidence[v].add(face)
+    
+    print(incidence)
+    
+    
     for e in graph.edges():
-        for face1 in faces:
-            for face2 in faces:
+        v = e[0]
+        for face1 in incidence[v]:
+            for face2 in incidence[v]:
                 if face1 != face2:
                     if (e[0] in face1) and (e[1] in face1) and (e[0] in face2) and (e[1] in face2):
                         dual_graph.add_edge(face1, face2)
                         dual_graph.edges[ (face1, face2) ]["original_name"] = e
     return dual_graph
 
+
+def cut_set_to_dual(dual_graph, cut_set):
+
+    dual_cycle = []
+    for edge in dual_graph.edges:
+        if dual_graph.edges[edge]["original_name"] in cut_set:
+            dual_cycle.append(edge)
+        #?? maybe something bad happens because of the [e[1], e[0]] thing
+
+    return dual_cycle
 
 
 def draw_with_location(graph):
@@ -281,7 +303,7 @@ def draw_with_location(graph):
 
     nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 20, width = .5, cmap=plt.get_cmap('jet'))
 ##
-m= 5
+m= 7
 graph = nx.grid_graph([m,m])
 graph.name = "grid_size:" + str(m)
 for x in graph.nodes():
@@ -297,6 +319,6 @@ draw_with_location(graph)
 #graph = compute_face_data(graph)
 ##print(len(graph.graph["faces"]))
 ##
-dual = planar_dual(graph, False)
+dual = planar_dual(graph, True)
 draw_with_location(dual)
 #Every node of the dual is a crozenset of the vertices of the face.
