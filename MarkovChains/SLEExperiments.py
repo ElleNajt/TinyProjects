@@ -17,6 +17,7 @@ import multiprocessing as mp
 import cProfile
 import pickle
 import copy
+import Facefinder
 import scipy.stats
 def dist(v, w):
     return np.linalg.norm(np.array(v) - np.array(w))
@@ -61,13 +62,13 @@ def create_disc_graph(r):
     dual_grid = nx.grid_graph([4*r, 4*r])
     relabels = {}
     for v in grid.nodes():
-        grid.node[v]["coord"]= [ v[0]/r - 2, v[1]/r - 2]
-        dual_grid.node[v]["coord"] = [ ( v[0]+ .5)/r - 2, (v[1] + .5)/r - 2]
-        relabels[v]= str(grid.node[v]["coord"])
+        grid.nodes[v]["coord"]= [ v[0]/r - 2, v[1]/r - 2]
+        dual_grid.nodes[v]["coord"] = [ ( v[0]+ .5)/r - 2, (v[1] + .5)/r - 2]
+        relabels[v]= str(grid.nodes[v]["coord"])
     #
     # Actually don't, because it is useful to have integral names
-    intersection_nodes = [v for v in grid.nodes() if np.linalg.norm(grid.node[v]["coord"]) < 1]
-    intersection_faces = [v for v in dual_grid.nodes() if face_contained_in_disc(dual_grid.node[v]["coord"])]
+    intersection_nodes = [v for v in grid.nodes() if np.linalg.norm(grid.nodes[v]["coord"]) < 1]
+    intersection_faces = [v for v in dual_grid.nodes() if face_contained_in_disc(dual_grid.nodes[v]["coord"])]
     # Now this gives exactly the dual verites whose facesare in the unit disc.
 
     disc_graph = nx.subgraph(grid, intersection_nodes)
@@ -79,11 +80,11 @@ def create_disc_graph(r):
     minus_one = list(disc_graph.nodes())[0]
     plus_one = list(disc_graph.nodes())[0]
     for v in disc_graph.nodes():
-        if dist(disc_graph.node[v]["coord"], [-1,0]) < dist(disc_graph.node[minus_one]["coord"], [-1,0]):
+        if dist(disc_graph.nodes[v]["coord"], [-1,0]) < dist(disc_graph.nodes[minus_one]["coord"], [-1,0]):
             minus_one = v
-        if dist(disc_graph.node[v]["coord"], [1,0]) < dist(disc_graph.node[plus_one]["coord"], [1,0]):
+        if dist(disc_graph.nodes[v]["coord"], [1,0]) < dist(disc_graph.nodes[plus_one]["coord"], [1,0]):
             plus_one = v
-    print(disc_graph.node[plus_one]["coord"], disc_graph.node[minus_one]["coord"])
+    print(disc_graph.nodes[plus_one]["coord"], disc_graph.nodes[minus_one]["coord"])
     disc_graph.graph["plus_one"] = plus_one
     disc_graph.graph["minus_one"] = minus_one
     disc_graph.graph["scale"] = r
@@ -98,16 +99,16 @@ def integral_disc(r):
     relabels = {}
     dual_relabels = {}
     for v in grid.nodes():
-        grid.node[v]["coord"] = (v[0] - 2*r, v[1] - 2*r)
-        grid.node[v]["top"] = 0
-        grid.node[v]["bot"] = 0
-        dual_grid.node[v]["coord"] = ((v[0] + .5) - 2*r, (v[1] + .5) - 2*r)
-        relabels[v] = grid.node[v]["coord"]
-        dual_relabels[v] = dual_grid.node[v]["coord"]
+        grid.nodes[v]["coord"] = (v[0] - 2*r, v[1] - 2*r)
+        grid.nodes[v]["top"] = 0
+        grid.nodes[v]["bot"] = 0
+        dual_grid.nodes[v]["coord"] = ((v[0] + .5) - 2*r, (v[1] + .5) - 2*r)
+        relabels[v] = grid.nodes[v]["coord"]
+        dual_relabels[v] = dual_grid.nodes[v]["coord"]
     grid = nx.relabel_nodes(grid, relabels)
     dual_grid = nx.relabel_nodes(dual_grid, dual_relabels)
-    intersection_nodes = [v for v in grid.nodes() if np.linalg.norm(grid.node[v]["coord"]) < r + .5]
-    intersection_faces = [v for v in dual_grid.nodes() if face_contained_in_disc(dual_grid.node[v]["coord"], r + .5)]
+    intersection_nodes = [v for v in grid.nodes() if np.linalg.norm(grid.nodes[v]["coord"]) < r + .5]
+    intersection_faces = [v for v in dual_grid.nodes() if face_contained_in_disc(dual_grid.nodes[v]["coord"], r + .5)]
     # Now this gives exactly the dual verites whose facesare in the unit disc.
 
     disc_graph = nx.subgraph(grid, intersection_nodes)
@@ -124,9 +125,9 @@ def integral_disc(r):
 
     for face in dual_disc_graph.nodes():
 
-        vertices, edges = edges_of_dual_face(dual_disc_graph.node[face]["coord"])
-        dual_disc_graph.node[face]["vertices"] = set(vertices)
-        dual_disc_graph.node[face]["edges"] = edges
+        vertices, edges = edges_of_dual_face(dual_disc_graph.nodes[face]["coord"])
+        dual_disc_graph.nodes[face]["vertices"] = set(vertices)
+        dual_disc_graph.nodes[face]["edges"] = edges
 
     disc_graph.graph["dual"] = dual_disc_graph
 
@@ -138,10 +139,10 @@ def viz(T, path):
 
     for x in T.nodes():
         if x in path:
-            T.node[x]["col"] = 0
+            T.nodes[x]["col"] = 0
         else:
-            T.node[x]["col"] = 1
-    values = [T.node[x]["col"] for x in T.nodes()]
+            T.nodes[x]["col"] = 1
+    values = [T.nodes[x]["col"] for x in T.nodes()]
 
     nx.draw(T, pos=nx.get_node_attributes(T, 'coord'), node_size = 1, width = .1, cmap=plt.get_cmap('jet'),  node_color=values)
 
@@ -149,11 +150,11 @@ def viz_top_bot(disc):
 
 
     for x in disc.nodes():
-        t = disc.node[x]["top"]
-        b = disc.node[x]["bot"]
-        disc.node[x]["col"] = t / (t + b + 1)
+        t = disc.nodes[x]["top"]
+        b = disc.nodes[x]["bot"]
+        disc.nodes[x]["col"] = t / (t + b + 1)
 
-    values = [disc.node[x]["col"] for x in disc.nodes()]
+    values = [disc.nodes[x]["col"] for x in disc.nodes()]
 
     nx.draw(disc, pos=nx.get_node_attributes(disc, 'coord'), node_size = 1, width = .0, cmap=plt.get_cmap('jet'),  node_color=values)
 
@@ -180,7 +181,7 @@ def test_create_and_map():
     viz(disc, path)
 
     for v in disc.nodes():
-        disc.node[v]["coord"]=  map_up(disc.node[v]["coord"])
+        disc.nodes[v]["coord"]=  map_up(disc.nodes[v]["coord"])
 
     viz(disc)
     # THere are some serious distortions here!This is going to be an issue probably, b
@@ -288,14 +289,14 @@ def try_add_faces(path, vertices, edges):
 def propose_step(disc, path):
     dual = disc.graph["dual"]
     face = random.choice(list(dual.nodes()))
-    vertices = dual.node[face]["vertices"]
-    edges = dual.node[face]["edges"]
+    vertices = dual.nodes[face]["vertices"]
+    edges = dual.nodes[face]["edges"]
 
     new_path = try_add_faces(path, vertices, edges)
 
     while new_path is False:
         face = random.choice(list(dual.nodes()))
-        new_path = try_add_faces(path, dual.node[face]["vertices"], dual.node[face]["edges"])
+        new_path = try_add_faces(path, dual.nodes[face]["vertices"], dual.nodes[face]["edges"])
 
     if check_self_avoiding(new_path):
         path = new_path
@@ -316,12 +317,9 @@ def SLE_step(disc,path, fugacity):
 def run_steps(disc, path, steps, fugacity = 2.63815853):
     sample_trajectory = [path]
     for i in range(steps):
+        path = SLE_step(disc, path, fugacity)
+        sample_trajectory.append(path)
 
-        try:
-            path = SLE_step(disc, path, fugacity)
-            sample_trajectory.append(path)
-        except:
-            print("failed")
     return [path, sample_trajectory]
     return path
 
@@ -330,10 +328,8 @@ def test_run(disc):
 
 
     for i in range(10000):
-        try:
-            path = SLE_step(disc, path)
-        except:
-            print("failed")
+        path = SLE_step(disc, path, 2.63815853)
+
     edge_path = convert_node_sequence_to_edge(path)
     viz_edge(disc, edge_path)
 
@@ -361,8 +357,10 @@ def estimate_probabilities(disc, radius, num_samples, num_steps):
 
     count = 0
 
-    pool = mp.Pool(processes=28)
-    results = pool.map(make_sample, [[disc, num_steps, x] for x in range(num_samples)])
+    #pool = mp.Pool(processes=1)
+    #results = pool.map(make_sample, [[disc, num_steps, x] for x in range(num_samples)])
+
+    results = [make_sample([disc, num_steps,x]) for x in range(num_samples)]
 
     num_samples = len(results)
 
@@ -431,32 +429,44 @@ def do_test():
 
     experimental_results = []
 
-    r = 10
-    for r in [10,11,12,13,14,15]:
-        radius = .818610421572298  # (The radius for the half disc ... this value makes the RV Bernoulii(1/2)
-        true_mean = 1 - (1 - radius ** 2) ** (5 / 8)
-        num_samples = 100
-        num_steps = 100000
-        disc = integral_disc(r)
-        prob, samples = estimate_probabilities(disc, radius, num_samples, num_steps)
-        print("for r", r)
-        print("correct value",  1-(1-radius**2)**(5/8))
-        # https://arxiv.org/pdf/math/0112246.pdf
-        print("estimated probabiltiy", prob)
-        result_vector = [r, prob, samples, disc]
-        name = str(r) + "_samples" + str(num_samples) + "_steps" + str(num_steps)
-        #experimental_results.append(result_vector)
-        create_plots([result_vector], name)
-        with open(str(r) + '_steps:' + str(num_steps) + 'data.data', 'wb') as outfile:
-            pickle.dump(result_vector, outfile)
-        result_vector = []
+    small = 10
+    large = 11
+    base_num_steps = 1
+    desired_error = .5
+    for num_steps in [base_num_steps,10*base_num_steps,100*base_num_steps]:
+        for r in range(small,large,10):
+            print("num_steps:", num_steps)
+            print("r:", r)
+            radius = .818610421572298  # (The radius for the half disc ... this value makes the RV Bernoulii(1/2)
+            true_mean = 1 - (1 - radius ** 2) ** (5 / 8)
+            true_mean = 1 - (1 - radius ** 2) ** (5 / 8)
+            true_variance = true_mean*(1 - true_mean)
+            var_times_accuracy_sq = true_variance * ( 1 / desired_error)**2
+            desired_confidence = .05
+            # Want
+            num_samples = round(var_times_accuracy_sq / desired_confidence) + 1
+            print(num_samples)
+            disc = integral_disc(r)
+            prob, samples = estimate_probabilities(disc, radius, num_samples, num_steps)
+            print("for r", r)
+            print("correct value",  1-(1-radius**2)**(5/8))
+            # https://arxiv.org/pdf/math/0112246.pdf
+            print("estimated probabiltiy", prob)
+            result_vector = [r, prob, samples, disc]
+            name = str(r) + "_samples" + str(num_samples) + "_steps" + str(num_steps)
+            #experimental_results.append(result_vector)
+            create_plots([result_vector], name)
+            with open(str(r) + '_steps:' + str(num_steps) + 'data.data', 'wb') as outfile:
+                pickle.dump(result_vector, outfile)
+            result_vector = []
 
     test = []
 
-    for r in [10,11,12,13,14,15]:
-        with open(str(r) + '_steps:' + str(num_steps) + 'data.data', 'rb') as f:
-            test = pickle.load(f)
-        print('r', search_for_conflict(test))
+    for num_steps in [base_num_steps,10*base_num_steps,100*base_num_steps]:
+        for r in range(small,large,10):
+            with open(str(r) + '_steps:' + str(num_steps) + 'data.data', 'rb') as f:
+                test = pickle.load(f)
+            print('r', search_for_conflict(test))
 
     #print("results:")
     #for x in experimental_results:
@@ -505,21 +515,44 @@ def create_plots(experimental_results, name):
 
 def test():
     r = 8
-    radius = .818610421572298  # (The radius for the half disc ... this value makes the RV Bernoulii(1/2)
-    desired_error = .1
-    true_mean = 1 - (1 - radius ** 2) ** (5 / 8)
-    true_variance = true_mean*(1 - true_mean)
-    var_times_accuracy_sq = true_variance * ( 1 / desired_error)**2
-    desired_confidence = .05
-    # Want
-    num_samples = round(var_times_accuracy_sq / desired_confidence) + 1
+    small = 10
+    large = 15
+    
+    for r in range(small, large):
+        radius = .818610421572298  # (The radius for the half disc ... this value makes the RV Bernoulii(1/2)
+        desired_error = .1
+        true_mean = 1 - (1 - radius ** 2) ** (5 / 8)
+        true_variance = true_mean*(1 - true_mean)
+        var_times_accuracy_sq = true_variance * ( 1 / desired_error)**2
+        desired_confidence = .05
+        # Want
+        num_samples = round(var_times_accuracy_sq / desired_confidence) + 1
+    
+        print("need", num_samples)
+        num_steps = 10000
+        disc = integral_disc(r)
+        path = initial_path(disc)
+        #sample_path = run_steps(disc, path, num_steps)
+        #estimate_probabilities_given_sample(disc, r, sample_path)
+        prob, samples = estimate_probabilities(disc, radius, num_samples, num_steps)
+        print("for r", r)
+        print("correct value",  1-(1-radius**2)**(5/8))
+        # https://arxiv.org/pdf/math/0112246.pdf
+        print("estimated probabiltiy", prob)
+        result_vector = [r, prob, samples, disc]
+        name = str(r) + "_samples" + str(num_samples) + "_steps" + str(num_steps)
+        #experimental_results.append(result_vector)
+        create_plots([result_vector], name)
+        with open(str(r) + '_steps:' + str(num_steps) + 'data.data', 'wb') as outfile:
+            pickle.dump(result_vector, outfile)
+        result_vector = []
 
-    num_samples = 1
-    print("need", num_samples)
-    num_steps = 10000
-    disc = integral_disc(r)
-    path = initial_path(disc)
-    sample_path = run_steps(disc, path, num_steps)
+    test = []
+
+    for r in range(small,large):
+        with open(str(r) + '_steps:' + str(num_steps) + 'data.data', 'rb') as f:
+            test = pickle.load(f)
+        print('r', search_for_conflict(test))
 
 def profile():
     disc = integral_disc(8)
@@ -529,7 +562,7 @@ def profile():
     dual = disc.graph["dual"]
     face = random.choice(list(dual.nodes()))
 
-    cProfile.run('try_add_faces(path, dual.node[face]["vertices"], dual.node[face]["edges"])')
+    cProfile.run('try_add_faces(path, dual.nodes[face]["vertices"], dual.nodes[face]["edges"])')
 def save(experimental_results):
 
     with open(str(experimental_results[0][1]), 'w') as f:
@@ -661,15 +694,14 @@ def sign_top_bot(disc, sample_path):
         bot = components[0]
 
     for x in top:
-        disc.graph["dual"].node[x]["top"] += 1
+        disc.graph["dual"].nodes[x]["top"] += 1
     for x in bot:
-        disc.graph["dual"].node[x]["bot"] += 1
+        disc.graph["dual"].nodes[x]["bot"] += 1
 
     return disc
 
 
 def more_tests():
-    #This is just for first data -- beacuse I lost it
     data = open_file()
 
 
@@ -688,7 +720,7 @@ def more_tests():
         #viz_edge(disc, convert_node_sequence_to_edge(sample_path))
 
         for v in disc.nodes():
-            disc.node[v]["coord"] = map_up(disc.node[v]["coord"],r)
+            disc.nodes[v]["coord"] = map_up(disc.nodes[v]["coord"],r)
 
         #viz_edge(disc, convert_node_sequence_to_edge(sample_path))
 
@@ -752,3 +784,5 @@ def top_bot_halfies_test(disc):
     #viz_top_bot(disc)
 
     #This is wrong because you need to be considering the dual path anyway... ok, fix this ...
+
+#do_test()

@@ -261,7 +261,8 @@ def planar_dual(graph, restricted = False):
         dual_graph.nodes[face]["pos"] = location / len(face)
     ##handle edges
     
-    #Construct
+    #Construct incidence table --
+    #We use this to efficiently construc the edges in the dual.
     incidence = {}
     for v in graph.nodes():
         incidence[v] = set()
@@ -288,10 +289,10 @@ def cut_set_to_dual(dual_graph, cut_set):
 
     dual_cycle = []
     for edge in dual_graph.edges:
-        if dual_graph.edges[edge]["original_name"] in cut_set:
+        e = dual_graph.edges[edge]["original_name"]
+        e2 = (e[1],e[0])
+        if e in cut_set or e2 in cut_set:
             dual_cycle.append(edge)
-        #?? maybe something bad happens because of the [e[1], e[0]] thing
-
     return dual_cycle
 
 
@@ -304,23 +305,25 @@ def draw_with_location(graph):
 #        graph.nodes[x]["pos"] = [graph.nodes[x]["X"], graph.nodes[x]["Y"]]
 
     nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 20, width = .5, cmap=plt.get_cmap('jet'))
-##
-m= 7
-graph = nx.grid_graph([m,m])
-graph.name = "grid_size:" + str(m)
-for x in graph.nodes():
-
-    graph.nodes[x]["pos"] = np.array([x[0], x[1]])
-
-###graph = depth_k_refine(graph,0)
-##graph = depth_k_barycentric(graph, 4)
-draw_with_location(graph)
-#graph = compute_rotation_system(graph)
-#This makes it so that the graph has the rotation system around each vertex
-
-#graph = compute_face_data(graph)
-##print(len(graph.graph["faces"]))
-##
-dual = planar_dual(graph, True)
-draw_with_location(dual)
-#Every node of the dual is a crozenset of the vertices of the face.
+    
+def test():
+    ##
+    m= 100
+    graph = nx.grid_graph([m,m])
+    graph.name = "grid_size:" + str(m)
+    for x in graph.nodes():
+    
+        graph.nodes[x]["pos"] = np.array([x[0], x[1]])
+    
+    ###graph = depth_k_refine(graph,0)
+    ##graph = depth_k_barycentric(graph, 4)
+    draw_with_location(graph)
+    #graph = compute_rotation_system(graph)
+    #This makes it so that the graph has the rotation system around each vertex
+    
+    #graph = compute_face_data(graph)
+    ##print(len(graph.graph["faces"]))
+    ##
+    dual = planar_dual(graph, True)
+    draw_with_location(dual)
+    #Every node of the dual is a crozenset of the vertices of the face.
