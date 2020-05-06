@@ -66,7 +66,7 @@ def conformal_automorphism(x,y,p):
     x, y, p = rotate(x,y,p)
     #rotates y to 1, and x and p come along for the ride.
 
-    p_new = map_down( map_up(p) - map_up(x))
+    p_new = map_down( np.array(map_up(p)) - np.array(map_up(x)))
     #mpa_down( map_up(z) - map_up(x)) causes x to move to -1, and keeps 1 where it is.
     
     return p_new
@@ -76,7 +76,7 @@ def conformally_align(path):
     #Given a sequence of points inside a disc of radius 1.
     
     x = path[0]
-    y = path[1]
+    y = path[-1]
     
     aligned_path = [ conformal_automorphism(x,y,p) for p in path[0:-1] ] + [[0,1]]
     #have to skip the last step to avoid infinities.
@@ -122,6 +122,18 @@ def integral_disc(r):
 
 
 
+def convert_path_graph_to_sequence_of_nodes(path):
+    
+    ends = []
+    for x in path.nodes():
+        if path.degree[x] == 1:
+            ends.append(x)
+            
+    a = ends[0]
+    b = ends[1]
+    
+    sequence = nx.shortest_path(path, source = a, target = b)
+    return [path.nodes[x]["pos"] for x in sequence]
 
 
 

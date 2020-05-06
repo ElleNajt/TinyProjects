@@ -74,7 +74,7 @@ def make_sample(data_vector):
     disc_partition = initial_partition(disc)
     observed_partition = run_chain(disc, disc_partition, num_steps)
     boundary_path = convert_partition_to_boundary(disc, observed_partition)
-    
+    boundary_path = convert_path_graph_to_sequence_of_nodes(boundary_path)
     aligned_boundary = conformally_align(boundary_path) 
     #Applies a conformal map moving endpoints to -1 and 1.
     
@@ -83,7 +83,7 @@ def make_sample(data_vector):
 
 def debug():
     
-    num_steps = 1000
+    num_steps = 100000
     disc = integral_disc(10)
     disc_partition = initial_partition(disc)
     exp_chain = MarkovChain(slow_reversible_propose_bi ,Validator([single_flip_contiguous#,boundary_condition
@@ -98,9 +98,16 @@ def debug():
     bd = convert_partition_to_boundary(disc, observation)
 
     Facefinder.draw_with_location(disc)
-    Facefinder.draw_with_location(bd)
+    Facefinder.draw_with_location(bd, "red")
     
-    return observation
+    path = convert_path_graph_to_sequence_of_nodes(bd)
+
+    aligned_boundary = conformally_align(path) 
+    
+    return aligned_boundary
+
+
+
 
 def run_chain(disc, disc_partition, num_steps):
     

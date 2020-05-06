@@ -296,7 +296,7 @@ def cut_set_to_dual(dual_graph, cut_set):
     return dual_cycle
 
 
-def draw_with_location(graph):
+def draw_with_location(graph, color = "blue"):
     '''
     draws graph with 'pos' as the xy coordinate of each nodes
     initialized by something like graph.nodes[x]["pos"] = np.array([x[0], x[1]])
@@ -304,7 +304,7 @@ def draw_with_location(graph):
 #    for x in graph.nodes():
 #        graph.nodes[x]["pos"] = [graph.nodes[x]["X"], graph.nodes[x]["Y"]]
 
-    nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 20, width = .5, cmap=plt.get_cmap('jet'))
+    nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 1, width = .4, node_color = color, cmap=plt.get_cmap('jet'))
     
 def test():
     ##
