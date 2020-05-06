@@ -561,7 +561,7 @@ def test_grid_graph():
 
     ##It seems to pass this test.
 
-test_grid_graph()
+#test_grid_graph()
 '''
 This Markov chain won't mix rapidly in general. We can look for miracles in the structure
 of the flats for the grid graph case. Places to look:
