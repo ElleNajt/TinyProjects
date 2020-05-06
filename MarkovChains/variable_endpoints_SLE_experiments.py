@@ -79,7 +79,7 @@ def make_sample(data_vector):
     #Applies a conformal map moving endpoints to -1 and 1.
     
     observed_trajectory = []
-    return [observed_partition, observed_trajectory, x]
+    return [aligned_boundary, observed_trajectory, x]
 
 def debug():
     
@@ -146,14 +146,14 @@ def variable_endpoints_estimate_probabilities(disc, radius, num_samples, num_ste
     num_samples = len(results)
 
     for sample_path in results:
-        if SLEExperiments.in_disc([1,0], radius, disc, sample_path[0]):
+        if in_disc([1,0], radius, disc, sample_path[0]):
             count += 1
 
     right_prob = count / num_samples
 
     count = 0
     for sample_path in results:
-        if SLEExperiments.in_disc([-1,0], radius, disc, sample_path[0]):
+        if in_disc([-1,0], radius, disc, sample_path[0]):
             count += 1
 
     left_prob = count / num_samples
@@ -162,15 +162,15 @@ def variable_endpoints_estimate_probabilities(disc, radius, num_samples, num_ste
 
 
 def test():
-    bases = [mu]
+    #bases = [mu]
     
     experimental_results = []
 
     small = 10
     large = 11
-    base_num_steps = 1
-    desired_error = .5
-    for num_steps in [base_num_steps,10*base_num_steps,100*base_num_steps]:
+    base_num_steps = 1000
+    desired_error = .2
+    for num_steps in [(10**r) * base_num_steps for r in range(1,2)]:
         for r in range(small,large,10):
             print("num_steps:", num_steps)
             print("r:", r)
@@ -195,7 +195,7 @@ def test():
             result_vector = [r, prob, samples, disc]
             name = str(r) + "_samples" + str(num_samples) + "_steps" + str(num_steps)
             #experimental_results.append(result_vector)
-            SLEExperiments.create_plots([result_vector], name)
+            create_plots([result_vector], name)
             with open(str(r) + '_steps:' + str(num_steps) + 'data.data', 'wb') as outfile:
                 pickle.dump(result_vector, outfile)
             result_vector = []

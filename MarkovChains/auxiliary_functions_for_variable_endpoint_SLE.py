@@ -78,9 +78,9 @@ def conformally_align(path):
     x = path[0]
     y = path[-1]
     
-    aligned_path = [ conformal_automorphism(x,y,p) for p in path[0:-1] ] + [[0,1]]
+    aligned_path = [ conformal_automorphism(x,y,p) for p in path[0:-1] ] + [[1,0]]
     #have to skip the last step to avoid infinities.
-
+    return aligned_path
 
 
 #################
@@ -89,12 +89,72 @@ def dist(v, w):
     return np.linalg.norm(np.array(v) - np.array(w))
 
 
+
+
+def in_disc(translate, rad, disc, path):
+    #Checks if the sampled path is in $x + aD$ in $\mathbb{H}$.
+    points = [ map_up(x) for x in path]
+    for p in points:
+        if dist(p, translate) < rad:
+            return True
+    return False
+
+##################
+
+
 def plot(fairness_vector):
     plt.plot(fairness_vector)
     plt.show()
 
-##################
 
+def create_plots(experimental_results, name):
+    for results_vector in experimental_results:
+        vary_radius(results_vector[0], results_vector[2], name)
+
+
+
+def vary_radius(r, samples, name):
+    disc = integral_disc(r)
+    left_estimates = []
+    right_estimates = []
+    means = []
+    density = 100
+    for radius in range(1,density):
+        radius = radius / (density + 1)
+        true_mean = 1 - (1 - radius ** 2) ** (5 / 8)
+        estimations = estimate_probabilities_given_sample(disc, radius, samples)
+        means.append(true_mean)
+        left_estimates.append(estimations[0])
+        right_estimates.append(estimations[1])
+
+    plt.plot(means, color = 'r')
+    plt.plot(left_estimates)
+    plt.plot(right_estimates)
+    plt.savefig(name)
+    plt.close()
+
+def estimate_probabilities_given_sample(disc, radius, results):
+    count = 0
+    num_samples = len(results)
+
+    for sample_path in results:
+        if in_disc([1,0], radius, disc, sample_path[0]):
+            count += 1
+
+    right_prob = count / num_samples
+
+    count = 0
+    for sample_path in results:
+        if in_disc([-1,0], radius, disc, sample_path[0]):
+            count += 1
+
+    left_prob = count / num_samples
+
+    return [right_prob, left_prob]
+
+
+
+###############
 
 
 
