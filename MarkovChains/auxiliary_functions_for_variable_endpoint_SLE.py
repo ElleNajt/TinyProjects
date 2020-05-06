@@ -42,6 +42,9 @@ def rotate(x,y,p):
 def map_up(point):
     # This sends a point to the upperhalf plane via the map $g(z) = i ( z + 1)/(-z + 1 )$
     # In this, -1 is sent to 0, and 1 is sent to infinity. So these are the marked points.
+    if point[0] == 1:
+        return [np.inf,0]
+    
     complex_point = (point[0] + point[1]*1j)
     new_value = 1j * (complex_point + 1)/(-1*complex_point + 1)
     return [new_value.real, new_value.imag]
@@ -93,6 +96,7 @@ def dist(v, w):
 
 def in_disc(translate, rad, disc, path):
     #Checks if the sampled path is in $x + aD$ in $\mathbb{H}$.
+
     points = [ map_up(x) for x in path]
     for p in points:
         if dist(p, translate) < rad:

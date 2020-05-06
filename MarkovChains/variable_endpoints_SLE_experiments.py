@@ -23,8 +23,8 @@ from gerrychain.proposals import recom
 from gerrychain.metrics import mean_median, efficiency_gap
 from gerrychain.tree import recursive_tree_part, bipartition_tree_random, PopulatedGraph, contract_leaves_until_balanced_or_none, find_balanced_edge_cuts
 
-
-
+import pickle
+import copy 
 import Facefinder
 import SLEExperiments
 from auxiliary_functions_for_variable_endpoint_SLE import *
@@ -193,6 +193,8 @@ def test():
             # https://arxiv.org/pdf/math/0112246.pdf
             print("estimated probabiltiy", prob)
             result_vector = [r, prob, samples, disc]
+            
+            
             name = str(r) + "_samples" + str(num_samples) + "_steps" + str(num_steps)
             #experimental_results.append(result_vector)
             create_plots([result_vector], name)
