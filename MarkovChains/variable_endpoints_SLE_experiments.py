@@ -46,8 +46,8 @@ the boundary curve.
 def initial_partition(disc):
     
     
-    updaters = {'population': Tally('population'),'base':new_base,                                 'b_nodes':b_nodes_bi,
-                        'cut_edges': cut_edges,
+    updaters = {'population': Tally('population'),'base':new_base, 'b_nodes':b_nodes_bi,
+                        'cut_edges': cut_edges, "boundary":bnodes_p,
                         'step_num': step_num, 'geom' : geom_wait,
                         }
     
@@ -166,10 +166,10 @@ def test():
     
     experimental_results = []
 
-    small = 10
-    large = 11
-    base_num_steps = 1000
-    desired_error = .2
+    small = 30
+    large = 31
+    base_num_steps = 10000
+    desired_error = .5
     for num_steps in [(10**r) * base_num_steps for r in range(1,2)]:
         for r in range(small,large,10):
             print("num_steps:", num_steps)
@@ -203,3 +203,5 @@ def test():
             result_vector = []
 
     test = []
+    
+test()

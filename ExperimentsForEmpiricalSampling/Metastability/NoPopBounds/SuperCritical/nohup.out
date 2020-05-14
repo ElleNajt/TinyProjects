@@ -1,0 +1,6 @@
+Unable to init server: Could not connect: Connection refused
+Unable to init server: Could not connect: Connection refused
+
+(main.py:2752633): Gdk-CRITICAL **: 09:44:33.817: gdk_cursor_new_for_display: assertion 'GDK_IS_DISPLAY (display)' failed
+
+(main.py:2752633): Gdk-CRITICAL **: 09:44:33.817: gdk_cursor_new_for_display: assertion 'GDK_IS_DISPLAY (display)' failed

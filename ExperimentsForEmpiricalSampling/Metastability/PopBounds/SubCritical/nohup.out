@@ -1,0 +1,59 @@
+Unable to init server: Could not connect: Connection refused
+Unable to init server: Could not connect: Connection refused
+
+(main.py:2721726): Gdk-CRITICAL **: 23:25:28.073: gdk_cursor_new_for_display: assertion 'GDK_IS_DISPLAY (display)' failed
+
+(main.py:2721726): Gdk-CRITICAL **: 23:25:28.074: gdk_cursor_new_for_display: assertion 'GDK_IS_DISPLAY (display)' failed
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+Traceback (most recent call last):
+  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_agg.py", line 149, in draw_path
+    self._renderer.draw_path(gc, path, transform, rgbFace)
+OverflowError: In draw_path: Exceeded cell block limit
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "main.py", line 480, in <module>
+    plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "slope.png")
+  File "/usr/lib/python3/dist-packages/matplotlib/pyplot.py", line 689, in savefig
+    res = fig.savefig(*args, **kwargs)
+  File "/usr/lib/python3/dist-packages/matplotlib/figure.py", line 2094, in savefig
+    self.canvas.print_figure(fname, **kwargs)
+  File "/usr/lib/python3/dist-packages/matplotlib/backend_bases.py", line 2075, in print_figure
+    **kwargs)
+  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_agg.py", line 510, in print_png
+    FigureCanvasAgg.draw(self)
+  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_agg.py", line 402, in draw
+    self.figure.draw(self.renderer)
+  File "/usr/lib/python3/dist-packages/matplotlib/artist.py", line 50, in draw_wrapper
+    return draw(artist, renderer, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/matplotlib/figure.py", line 1649, in draw
+    renderer, self, artists, self.suppressComposite)
+  File "/usr/lib/python3/dist-packages/matplotlib/image.py", line 138, in _draw_list_compositing_images
+    a.draw(renderer)
+  File "/usr/lib/python3/dist-packages/matplotlib/artist.py", line 50, in draw_wrapper
+    return draw(artist, renderer, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/matplotlib/axes/_base.py", line 2628, in draw
+    mimage._draw_list_compositing_images(renderer, self, artists)
+  File "/usr/lib/python3/dist-packages/matplotlib/image.py", line 138, in _draw_list_compositing_images
+    a.draw(renderer)
+  File "/usr/lib/python3/dist-packages/matplotlib/artist.py", line 50, in draw_wrapper
+    return draw(artist, renderer, *args, **kwargs)
+  File "/usr/lib/python3/dist-packages/matplotlib/lines.py", line 771, in draw
+    renderer.draw_path(gc, tpath, affine.frozen())
+  File "/usr/lib/python3/dist-packages/matplotlib/backends/backend_agg.py", line 151, in draw_path
+    raise OverflowError("Exceeded cell block limit (set "
+OverflowError: Exceeded cell block limit (set 'agg.path.chunksize' rcparam)

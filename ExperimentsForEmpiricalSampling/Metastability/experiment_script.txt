@@ -1,0 +1,20 @@
+cd PopBounds
+cd Critical
+nohup python3 -u main.py &
+cd ..
+cd SubCritical
+nohup python3 -u main.py &
+cd ..
+cd SuperCritical
+nohup python3 -u main.py &
+cd ..
+cd ..
+cd NoPopBounds
+cd Critical
+nohup python3 -u main.py &
+cd ..
+cd SubCritical
+nohup python3 -u main.py &
+cd ..
+cd SuperCritical
+nohup python3 -u main.py &

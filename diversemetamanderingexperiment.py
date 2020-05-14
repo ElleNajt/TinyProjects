@@ -12,6 +12,7 @@ import json
 import geopandas as gpd
 import functools
 import datetime
+import copy
 import matplotlib
 # matplotlib.use('Agg')
 
@@ -38,6 +39,8 @@ from gerrychain.partition import Partition
 from gerrychain.proposals import recom
 from gerrychain.metrics import mean_median, efficiency_gap
 from gerrychain.tree import recursive_tree_part, bipartition_tree_random, PopulatedGraph, contract_leaves_until_balanced_or_none, find_balanced_edge_cuts
+
+
 '''
 def get_spanning_tree_u_w(G):
     node_set = set(G.nodes())
@@ -389,6 +392,19 @@ def anti_four_squares(m):
         G.nodes[n]['pos'] = (n[0], n[1])
     return G
 
+
+def random_anti_four_squares(m):
+    G = nx.grid_graph([6 * m, 6 * m])
+    #width = 2.5
+
+    for n in G.nodes():
+        if ( ( width * m - 1 <= n[0] <= (6 - width) * m - 1) and n[1] <= 6* m - 3)  or ( n[0] <= 6* m - 3 and (width * m - 1) <= n[1] <=  (6 - width) * m - 2):
+            G.add_edge(n, (n[0] + 1, n[1] + 1))
+        G.nodes[n]['pos'] = (n[0], n[1])
+    return G
+
+
+
 def center_square(m):
     G = nx.grid_graph([6 * m, 6 * m])
     for n in G.nodes():
@@ -396,6 +412,7 @@ def center_square(m):
             G.add_edge(n, (n[0] + 1, n[1] + 1))
         G.nodes[n]['pos'] = (n[0], n[1])
     return G
+
 
 def random_mandering(m, p_1 = .9, p_2 = .2):
     G = nx.grid_graph([6 * m, 6 * m])
@@ -422,18 +439,97 @@ def random_mandering(m, p_1 = .9, p_2 = .2):
                 c = random.uniform(0,1)
                 if c < ( p_1 - p_2)/ (1 - p_2):
                     #This makes the probability for including such an edge p_1
-                    if ((6 - width) * m - 1 <= n[0] <= 6 * m - 2 or 0 <= n[0] <= width * m - 1) and 0 <= n[1] <= 6 * m - 2:
+                    if (0 <= n[0] <= .3 * width * m - 1) or (.7 * width * m - 1 <= n[0] <= 1 * width * m - 1)  or ( (6 - width) * m - 1 <= n[0] <= (6 - width) * m + .7 * m) or ((6 - width) * m + 1.7 * m <= n[0] <= 6 * m - 2 ):
                         G.add_edge(n, (n[0] + 1, n[1] + 1))
         G.nodes[n]['pos'] = (n[0], n[1])
     return G
 
+
+def four_vert(m, p_1 = .9, p_2 = .2):
+    G = nx.grid_graph([6 * m, 6 * m])
+    
+    #This one randomly adds diagonal edges, with a bias towards adding edges 
+    #along the 2-partition
+    #Goal is to figure out how much we can disguise metamandering
+    #width = 2.5
+    
+    #p_1 = .9 #Probability to include one of the edges causing metamandering
+    #p_2 = .2 #Probability to include one of the non-metamandering edges 
+    #The edges causing metamandering -- I mean the ones that would have been
+    #included by the biased diagonals above.
+    if p_2 > p_1 :
+        print("you set the p_i wrong")
+        exit 
+
+    for n in G.nodes():
+        if ( 0 <= n[0] <=6 * m - 2) and (0 <= n[1] <= 6 * m - 2):
+            c = random.uniform(0,1)
+            if c < p_2:
+                G.add_edge(n, (n[0] + 1, n[1] + 1))
+            else:
+                c = random.uniform(0,1)
+                if c < ( p_1 - p_2)/ (1 - p_2):
+                    #This makes the probability for including such an edge p_1
+                    if (0 <= n[0] <= .3 * width * m - 1) or (.7 * width * m - 1 <= n[0] <= 1 * width * m - 1)  or ( (6 - width) * m - 1 <= n[0] <= (6 - width) * m + .7 * m) or ((6 - width) * m + 1.7 * m <= n[0] <= 6 * m - 2 ):
+                        G.add_edge(n, (n[0] + 1, n[1] + 1))
+        G.nodes[n]['pos'] = (n[0], n[1])
+    return G
+
+
+### Metamanders for anti_four_square_population
+
+def anti_four_square_meta_mander_1(graph):
+    graph = nx.grid_graph([6*m, 6*m])
+    for n in graph.nodes():
+        if not ( (1.5*m < n[0] <= 2.5 * m) or ( 3.5 * m < n[0] <= 4.5*m)):
+            if not ((2.5*m < n[0] <= 3.5*m ) and ( 2* m < n[1] <= 3*m)):
+                if n[1] < 6*m - 2 and n[0] < 6 * m - 1:
+                    graph.add_edge(n, (n[0] + 1, n[1] + 1))
+
+            #graph.add_edge(n, (n[0] + 1, n[1] + 1))
+        graph.nodes[n]['pos'] = (n[0], n[1])
+    return graph
+####Population Constructions
+
+def anti_four_square_population(graph):
+    p_width = 1.8
+    #this choice of parameter assigns about 60 percent to party 1
+    for n in graph.nodes():
+        if ( ( p_width * m - 1 <= n[0] <= (6 - p_width) * m - 1) and n[1] <= 6* m - 3)  or ( n[0] <= 6* m - 3 and (p_width * m - 1) <= n[1] <=  (6 - p_width) * m - 2):
+            graph.nodes[n]['vote'] = 1
+        else:
+            graph.nodes[n]['vote'] = 0
+            
+    print( sum( [ graph.nodes[n]['vote'] for n in graph.nodes()]) / len(graph.nodes()))
+    
+    return graph
+##Other:
+
+
+def build_balanced_k_partition(graph, k, pop_col, pop_target, epsilon):
+    
+    assignment = recursive_tree_part(graph, k, pop_target, pop_col, epsilon)
+    updaters = {'population': Tally('population'),
+                                    "boundary": bnodes_p,
+                                    'cut_edges': cut_edges,
+                                    'step_num': step_num,
+                                    'b_nodes': b_nodes_bi,
+                                    'base': new_base,
+                                    'geom': geom_wait,
+                                    # "Pink-Purple": Election("Pink-Purple", {"Pink":"pink","Purple":"purple"})
+                                    }
+    partition = Partition(graph, assignment=assignment, updaters=updaters)
+    return partition
+    
     
 
 ##############3
 
-steps = 200
+steps = 300
 ns = 1
 m = 10
+blocks = 4
+
 
 pop1 = .01
 #widths = [0,.5,1,1.5,2,2.5,3]
@@ -457,23 +553,27 @@ tree_types = ["uniform_tree", "tree"]
 diagonal_bias = "anti_four_squares"
 diagonal_bias = "center_square"
 diagonal_bias = "one_line"
-diagonal_bias = "random_mander"
-p_1 = .7
-p_2 = .4
-for trial in range(10):
-    print("trial:", trial)
-    for p_2 in [.3]:
-        for p_diff in [.25]:
+diagonal_bias = "anti_four_square_meta_mander_1"
+p_1 = 1
+p_2_values = [0]
+trial = 0
+for diagonal_bias in ["anti_four_square_meta_mander_1", "four_vert", "four_squares", "none"]:
+    print("trial:", diagonal_bias)
+    for p_2 in p_2_values:
+        for p_diff in [1]:
             p_1 = min(1, p_2 + p_diff)
     
             
-            for chaintype in ["uniform_tree", "tree"]:
+            for chaintype in ["tree"]:
                 print(chaintype)
                 widths = [2.5]
                 for p in [.6]:
                     proportion = p * 6
                     for width in widths:
-            
+                        if diagonal_bias == "none":
+                            graph = nx.grid_graph([6 * m, 6 * m])
+                            for n in graph.nodes():
+                                graph.nodes[n]['pos'] = (n[0], n[1])
                         if diagonal_bias == "biased":
                             graph = biased_diagonals(m)
                         if diagonal_bias == "debiased":
@@ -488,6 +588,8 @@ for trial in range(10):
                             graph = one_line(m)
                         if diagonal_bias == "random_mander":
                             graph = random_mandering(m, p_1, p_2)
+                        if diagonal_bias == "anti_four_square_meta_mander_1":
+                            graph = anti_four_square_meta_mander_1(m)
                         plt.figure()
                         nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 1, width = 1, cmap=plt.get_cmap('jet'))
                         plt.savefig("./plots/Attractor/" + "_trial_" + str(trial)  +  "_p_1" + str(p_1) +  "_p_2" + str(p_2) +  "Size" + str(m) + "WIDTH" + str(width) + "Bias" + str(diagonal_bias) +  "UnderlyingGraph.png" )
@@ -564,8 +666,12 @@ for trial in range(10):
             
                         #########BUILD PARTITION
             
-                        grid_partition = Partition(graph, assignment=cddict, updaters=updaters)
+                        #grid_partition = Partition(graph, assignment=cddict, updaters=updaters)
+                        
+                        ideal_population = sum([graph.nodes[x]["population"] for x in graph.nodes()]) / blocks
             
+                        
+                        grid_partition = build_balanced_k_partition(graph, list(range(blocks)), "population", ideal_population, pop1)
                         base = 1
                         # ADD CONSTRAINTS
                         popbound = within_percent_of_ideal_population(grid_partition, pop1)
@@ -578,8 +684,7 @@ for trial in range(10):
                         plt.close()'''
             
                         #########Setup Proposal
-                        ideal_population = sum(grid_partition["population"].values()) / len(grid_partition)
-            
+
                         tree_proposal = partial(recom,
                                                 pop_col="population",
                                                 pop_target=ideal_population,
@@ -628,13 +733,27 @@ for trial in range(10):
                         st = time.time()
             
                         t = 0
-                        seats = [[],[]]
+                        seats_anti_four_square = []
+                        seats_horizontal = []
+                        seats_vertical = []
                         vote_counts = [[],[]]
                         old = 0
                         #skip = next(exp_chain)
                         #skip the first partition
                         k = 0
                         num_cuts_list = []
+                        seats_won_table = []
+                        
+                        graph = anti_four_square_population(graph)
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        found_best = 0
+                        
                         for part in exp_chain:
                             if k > 0:
                                 #if part.assignment == old:
@@ -654,26 +773,99 @@ for trial in range(10):
                                         abs(t - graph.nodes[f]["last_flipped"]))
                                     graph.nodes[f]["last_flipped"] = t
                                     graph.nodes[f]["num_flips"] = graph.nodes[f]["num_flips"] + 1
-                                for i in [0, 1]:
-                                    top = []
-                                    bottom = []
+                                    
+                                #The vertical cut voting pattern:   
+                                seats_won = 0
+                                for i in range(blocks):
+                                    maj_pop = 0 #majority population
+                                    min_pop = 0 #minority population
+                                    #proportion = p * 6, width of graph is 6m
                                     for n in graph.nodes():
-                                        if part.assignment[n] == 1:
-                                            top.append( int(n[i] < proportion*m))
-                                        if part.assignment[n] == -1:
-                                            bottom.append( int( n[i] < proportion*m))
-            
-                                    top_seat = int(np.mean(top) > .5)
-                                    bottom_seat = int(np.mean(bottom) > .5)
-                                    total_seats = top_seat + bottom_seat
-                                    seats[i].append(total_seats)
+                                        if part.assignment[n] == i:
+                                            if graph.nodes[n]['vote'] == 1:
+                                                maj_pop += 1
+                                            else:
+                                                min_pop += 1
+                                    block_won = int(maj_pop > min_pop)
+                                    seats_won += block_won     
+                                seats_anti_four_square.append(seats_won)
+                                
+                                
+                                #The horizontal cut voting pattern:
+                                seats_won = 0
+                                for i in range(blocks):
+                                    maj_pop = 0 #majority population
+                                    min_pop = 0 #minority population
+                                    #proportion = p * 6, width of graph is 6m
+                                    for n in graph.nodes():
+                                        if part.assignment[n] == i:
+                                            maj_pop += int(n[1] < proportion*m)
+                                            min_pop += int(n[1] >= proportion*m)
+                                    block_won = int(maj_pop > min_pop)
+                                    seats_won += block_won     
+                                seats_horizontal.append(seats_won)
+                                
+                                #vertical voting pattern:
+                                    
+                                seats_won = 0
+                                for i in range(blocks):
+                                    maj_pop = 0 #majority population
+                                    min_pop = 0 #minority population
+                                    #proportion = p * 6, width of graph is 6m
+                                    for n in graph.nodes():
+                                        if part.assignment[n] == i:
+                                            maj_pop += int(n[0] < proportion*m)
+                                            min_pop += int(n[0] >= proportion*m)
+                                    block_won = int(maj_pop > min_pop)
+                                    seats_won += block_won     
+                                seats_vertical.append(seats_won)
+                                
+                                if seats_won == 10000:
+                                    print("found a good one")
+                                    best = part
+                                    A2 = np.zeros([6 * m, 6 * m])
+                                    for n in graph.nodes():
+                                        #print(n[0], n[1] - 1, dict(part.assignment)[n])
+                                        A2[n[0], n[1]] = dict(part.assignment)[n]
+                        
+                                    plt.figure()
+                                    plt.imshow(A2, cmap = 'jet')
+                                    plt.axis('off')
+                                    plt.savefig("./plots/" + "best" + "_sample_partition.png" )
+                                    plt.close()
+   
                                 #old = part.assignment
                             t += 1
                             k += 1
+                        
+                        tag = "num_blocks" + str(blocks) + "_trial_" + str(trial)  +  "_p_1" + str(p_1) +  "_p_2" + str(p_2) + str(alignment) + "SAMPLES" + str(steps) + "Size" + str(m) + "WIDTH" + str(width) + "chaintype" +str(chaintype) +  "Bias" + str(diagonal_bias) +  "P" + str(
+                            int(100 * pop1))
+                        
+                        
+                        
+                        plt.figure()
+                        plt.hist(seats_anti_four_square, bins = 10)    
+                        name = "./plots/histograms_four_square/" + tag +".png"
+                        plt.savefig(name)
+                        plt.close()    
+                        
+                        plt.figure()
+                        plt.hist(seats_horizontal, bins = 10)    
+                        name = "./plots/histograms_horizontal/" + tag +".png"
+                        plt.savefig(name)
+                        plt.close()    
+                        
+                        plt.figure()
+                        plt.hist(seats_vertical, bins = 10)    
+                        name = "./plots/histograms_vertical/" + tag +".png"
+                        plt.savefig(name)
+                        plt.close() 
+                        '''
                         print("average cut size", np.mean(num_cuts_list))
                         f = open("./plots/Attractor/" + "_trial_" + str(trial)  +  "_p_1" + str(p_1) +  "_p_2" + str(p_2) + str(alignment) + "SAMPLES" + str(steps) + "Size" + str(m) + "chaintype" + str(chaintype) + "Bias" + str(diagonal_bias) + "P" + str(
                             int(100 * pop1)) + "proportion" + str(p) + "edges.txt", 'a')
             
+
                         means = np.mean(seats,1)
                         stds = np.std(seats,1)
             
@@ -684,7 +876,7 @@ for trial in range(10):
                         f.close()
                         print("_p_1: " + str(p_1) +  " p_2: " + str(p_2) + "  " + str( means[0] ) + "(" + str(stds[0]) + ")," + str( means[1] ) + "(" + str(stds[1]) + ")" )
                         #print(seats)
-            
+                        '''
                         plt.figure()
                         nx.draw(graph, pos={x: x for x in graph.nodes()}, node_color=[0 for x in graph.nodes()], node_size=1,
                                 edge_color=[graph[edge[0]][edge[1]]["cut_times"] for edge in graph.edges()], node_shape='s',
@@ -692,7 +884,7 @@ for trial in range(10):
                         plt.savefig("./plots/Attractor/" + "_trial_" + str(trial)  +  "_p_1" + str(p_1) +  "_p_2" + str(p_2) + str(alignment) + "SAMPLES" + str(steps) + "Size" + str(m) + "WIDTH" + str(width) + "chaintype" +str(chaintype) +  "Bias" + str(diagonal_bias) +  "P" + str(
                             int(100 * pop1)) + "edges.png" )
                         plt.close()
-            
+
                         A2 = np.zeros([6 * m, 6 * m])
                         for n in graph.nodes():
                             #print(n[0], n[1] - 1, dict(part.assignment)[n])
@@ -707,3 +899,4 @@ for trial in range(10):
             
                         #plt.figure()
                         #plt.hist(seats)
+

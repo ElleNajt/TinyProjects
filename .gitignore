@@ -1,3 +1,7 @@
+# Images
+*.png
+*.eps
+
 # Windows image file caches
 Thumbs.db
 ehthumbs.db
@@ -47,3 +51,4 @@ Temporary Items
 .apdisk
 
 MarkovChains/plots/
+plots\
