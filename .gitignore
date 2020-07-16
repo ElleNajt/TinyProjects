@@ -1,6 +1,7 @@
 # Images
 *.png
 *.eps
+plots\
 
 # Windows image file caches
 Thumbs.db
