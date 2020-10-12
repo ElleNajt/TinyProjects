@@ -288,6 +288,15 @@ def slow_reversible_propose(partition):
     return partition.flip({flip[0]: flip[1]})
 
 
+def node_assignment_flip(x):
+    if x == 0:
+        return 1
+    if x == 1:
+        return 0
+    
+    return "Error"
+
+
 def slow_reversible_propose_bi(partition):
     """Proposes a random boundary flip from the partition in a reversible fasion
     by selecting uniformly from the (node, flip) pairs.
@@ -301,7 +310,7 @@ def slow_reversible_propose_bi(partition):
 
     fnode = random.choice(list(partition["b_nodes"]))
 
-    return partition.flip({fnode: -1 * partition.assignment[fnode]})
+    return partition.flip({fnode: node_assignment_flip(partition.assignment[fnode])})
 
 
 def geom_wait(partition):
@@ -339,9 +348,9 @@ def biased_diagonals(m):
     G = nx.grid_graph([6 * m, 6 * m])
 
     for n in G.nodes():
-        if ((6 - width) * m - 1 <= n[0] <= 6 * m - 2 or 0 <= n[0] <= width * m - 1) and 2 * m <= n[1] <= 4 * m:
+        if ((6 - width) * m - 1 <= n[0] <= 6 * m - 2 or 0 <= n[0] <= width * m - 1) and n[1] <= 6* m - 2:
             G.add_edge(n, (n[0] + 1, n[1] + 1))
-        G.node[n]['pos'] = (n[0], n[1])
+        G.nodes[n]['pos'] = (n[0], n[1])
     return G
 
 def debiased_diagonals(m):
@@ -349,15 +358,35 @@ def debiased_diagonals(m):
 
     for n in G.nodes():
         if n[0] % 2 == 0:
-            if ((6 - width) * m - 1 <= n[0] <= 6 * m - 2 or 0 <= n[0] <= width * m - 1) and 2 * m - 1<= n[1] <= 4 * m:
+            if ((6 - width) * m - 1 <= n[0] <= 6 * m - 2 or 0 <= n[0] <= width * m - 1) and n[1] <= 6* m - 2:
                 G.add_edge(n, (n[0] + 1, n[1] + 1))
         if n[0] % 2 == 1:
-            if ((6 - width) * m - 1 <= n[0] <= 6 * m - 2 or 0 <= n[0] <= width * m - 1) and 2 * m <= n[1] <= 4 * m + 1:
+            if ((6 - width) * m - 1 <= n[0] <= 6 * m - 2 or 0 <= n[0] <= width * m - 1) and n[1] <= 6* m - 2:
                 G.add_edge(n, (n[0] + 1, n[1] - 1))
-        G.node[n]['pos'] = (n[0], n[1])
+        G.nodes[n]['pos'] = (n[0], n[1])
 
 
+def biased_diagonals_1(m):
+    G = nx.grid_graph([4 * m, 4 * m])
+    width = 1.5
+    for n in G.nodes():
+        if ((4 - width) * m - 1 <= n[1] <= 4 * m - 2 or 0 <= n[1] <= width * m - 1) and n[0] <= 4* m - 2:
+            G.add_edge(n, (n[0] + 1, n[1] + 1))
+        G.nodes[n]['pos'] = (n[0], n[1])
+    return G
 
+def debiased_diagonals_1(m):
+    G = nx.grid_graph([4 * m, 4 * m])
+
+    for n in G.nodes():
+        if n[0] % 2 == 0:
+            if ((4 - width) * m - 1 <= n[0] <= 4 * m - 2 or 0 <= n[0] <= width * m - 1) and n[1] <= 4* m - 2:
+                G.add_edge(n, (n[0] + 1, n[1] + 1))
+        if n[0] % 2 == 1:
+            if ((4 - width) * m - 1 <= n[0] <= 4 * m - 2 or 0 <= n[0] <= width * m - 1) and n[1] <= 4* m - 2:
+                G.add_edge(n, (n[0] + 1, n[1] - 1))
+        G.nodes[n]['pos'] = (n[0], n[1])
+    return G
 
     #nx.draw(G, pos=nx.get_node_attributes(graph, 'pos'), node_size = 1, width = 1, cmap=plt.get_cmap('jet'))
     return G
@@ -525,11 +554,10 @@ def build_balanced_k_partition(graph, k, pop_col, pop_target, epsilon):
 
 ##############3
 
-steps = 300
+steps = 1000
 ns = 1
 m = 10
-blocks = 4
-
+blocks = 2
 
 pop1 = .01
 #widths = [0,.5,1,1.5,2,2.5,3]
@@ -538,6 +566,9 @@ pop1 = .01
 widths = [0]
 chaintype = "uniform_tree"
 #chaintype = "tree"
+
+chaintype = "tree"
+
 p = .6
 proportion = p*6
 #####
@@ -557,14 +588,14 @@ diagonal_bias = "anti_four_square_meta_mander_1"
 p_1 = 1
 p_2_values = [0]
 trial = 0
-for diagonal_bias in ["anti_four_square_meta_mander_1", "four_vert", "four_squares", "none"]:
+for diagonal_bias in ["biased_1"]:
     print("trial:", diagonal_bias)
     for p_2 in p_2_values:
         for p_diff in [1]:
             p_1 = min(1, p_2 + p_diff)
     
             
-            for chaintype in ["tree"]:
+            for chaintype in ["flip"]:
                 print(chaintype)
                 widths = [2.5]
                 for p in [.6]:
@@ -574,8 +605,8 @@ for diagonal_bias in ["anti_four_square_meta_mander_1", "four_vert", "four_squar
                             graph = nx.grid_graph([6 * m, 6 * m])
                             for n in graph.nodes():
                                 graph.nodes[n]['pos'] = (n[0], n[1])
-                        if diagonal_bias == "biased":
-                            graph = biased_diagonals(m)
+                        if diagonal_bias == "biased_1":
+                            graph = biased_diagonals_1(m)
                         if diagonal_bias == "debiased":
                             graph = debiased_diagonals(m)
                         if diagonal_bias == "four_squares":
@@ -591,6 +622,7 @@ for diagonal_bias in ["anti_four_square_meta_mander_1", "four_vert", "four_squar
                         if diagonal_bias == "anti_four_square_meta_mander_1":
                             graph = anti_four_square_meta_mander_1(m)
                         plt.figure()
+                        
                         nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_size = 1, width = 1, cmap=plt.get_cmap('jet'))
                         plt.savefig("./plots/Attractor/" + "_trial_" + str(trial)  +  "_p_1" + str(p_1) +  "_p_2" + str(p_2) +  "Size" + str(m) + "WIDTH" + str(width) + "Bias" + str(diagonal_bias) +  "UnderlyingGraph.png" )
                         plt.close()
