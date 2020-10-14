@@ -16,6 +16,6 @@ import PhaseTransitionExperimentCode
 mu = 2.63815853
 bases = [4*mu]
 pops = [1]
-time_between_outputs = 100000
-total_run_length =     2000000
+time_between_outputs = 5000000
+total_run_length =     200000000
 #PhaseTransitionExperimentCode.run_experiment(bases,  pops, time_between_outputs, total_run_length)

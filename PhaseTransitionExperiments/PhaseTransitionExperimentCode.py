@@ -45,8 +45,8 @@ from PhaseTransitionExperimentTools import *
 #def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outputs = 10000,     total_run_length = 100000000000000  ):
 
 mu = 2.63815853
-subsequence_step_size = 10000
-balances_burn_in = 100
+subsequence_step_size = 100000
+balances_burn_in = 10000
 
 for pop1 in pops:
     for base in bases:
@@ -253,21 +253,6 @@ for pop1 in pops:
                 waits.append(wait_time_rv)
                 total_waits += wait_time_rv
                 rbn.append(len(list(part["b_nodes"])))
-                #print(part["slope"])
-                #temp = part["slope"]
-
-
-                #enda = ((temp[0][0][0]+temp[0][1][0])/2,(temp[0][0][1]+temp[0][1][1])/2)
-                #endb = ((temp[1][0][0]+temp[1][1][0])/2,(temp[1][0][1]+temp[1][1][1])/2)
-
-                #if endb[0]!= enda[0]:
-
-                #    slope = (endb[1]-enda[1])/(endb[0]-enda[0])
-                #   angle = np.arctan2( (endb[0]-enda[0]) , (endb[1]-enda[1]) )
-
-                #else:
-                #    slope = np.Inf
-                #    angle = np.pi/2
 
 
                 #Calculating the slopes. Memory intensive so only take every N=50.
@@ -278,17 +263,10 @@ for pop1 in pops:
                     ends = boundary_ends(part)
                     if ends:
                         ends_vector = np.asarray(ends[1]) - np.asarray(ends[0])
-                        #angle_safe = np.arctan2 ( ends_vector[0], ends_vector[1])
-                        #ends[3]
-                        #slopes.append(slope)
-                        #angles.append(angle)
-
-
-                        #angles_safe.append(angle_safe)
-
                         ends_vector_normalized = ends_vector / np.linalg.norm(ends_vector)
+                        
                         if ends_vectors_normalized.last:
-                            #We choose the vector that preserves continuity
+                            # We choose the vector that preserves continuity
                             previous = ends_vectors_normalized.last_value()
                             d_previous = np.linalg.norm( ends_vector_normalized - previous)
                             d_previous_neg = np.linalg.norm( ends_vector_normalized + previous )
@@ -306,13 +284,13 @@ for pop1 in pops:
                         continuous_lift = [0,0]
                         #ends_vectors_normalized.append( np.asarray([0,0]))
 
+
+                    # Pop balance stuff:
                     left_pop, right_pop = part["population"].values()
                     ideal_population = (left_pop + right_pop)/2
-
-
                     left_bal = (left_pop/ideal_population)
                     right_bal = (right_pop/ideal_population)
-
+                            
 
 
                     while subsequence_timer < total_waits:
@@ -328,22 +306,14 @@ for pop1 in pops:
                         if subsequence_timer > balances_burn_in:
                             left_bal_rounded = int( left_bal * 100)/100
                             right_bal_rounded = int( right_bal * 100)/100
-                            balances[left_bal_rounded] += left_bal_rounded
-                            balances[right_bal_rounded] += right_bal_rounded
+                            balances[left_bal_rounded] += 1 #left_bal_rounded
+                            balances[right_bal_rounded] += 1 # right_bal_rounded
                             #NB wait times are accounted for by the while loops
 
                 for edge in part["cut_edges"]:
                     graph[edge[0]][edge[1]]["cut_times"] += wait_time_rv
                     #print(graph[edge[0]][edge[1]]["cut_times"])
 
-
-
-                #anga = (temp[0][0]-20,temp[0][1]-20)
-                #angb = (temp[1][0]-20,temp[1][1]-20)
-                #anga = (enda[0]-20,enda[1]-20)
-                #angb = (endb[0]-20,endb[1]-20)
-
-                #angles.append(np.arccos(np.clip(np.dot(anga / np.linalg.norm(anga),angb / np.linalg.norm(angb)),-1,1)))
 
                 if part.flips is not None:
                     f = list(part.flips.keys())[0]
@@ -353,12 +323,29 @@ for pop1 in pops:
                     graph.nodes[f]["num_flips"]=graph.nodes[f]["num_flips"]+wait_time_rv
 
                 t+=1
-                """
-                plt.figure()
-                nx.draw(graph, pos = {x:x for x in graph.nodes()}, node_color = [dict(part.assignment)[x] for x in graph.nodes()] ,node_size = ns, node_shape ='s',cmap = 'tab20')
-                plt.savefig(f"./Figures/recom_{part['step_num']:02d}.png")
-                plt.close()
-                """
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 if t % time_between_outputs == 0:
 
                     #ends_vectors_normalized[1:] #Remove teh first one because it will overlap with last one of previous dump
@@ -369,8 +356,10 @@ for pop1 in pops:
                     with open("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1)) + "wait.txt",'w') as wfile:
                         wfile.write(str(sum(waits)))
 
-                    with open("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1)) + "ends_vectors.txt",'w') as wfile:
-                        wfile.write(str(ends_vectors_normalized))
+                    #with open("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1)) + "ends_vectors.txt",'w') as wfile:
+                    #    wfile.write(str(ends_vectors_normalized))
+
+
 
                     #with open("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1)) + "ends_vectors.pkl",'wb') as wfile:
                     #    pickle.dump(ends_vectors_normalized, wfile)
@@ -430,46 +419,28 @@ for pop1 in pops:
                     plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "end2.svg")
                     plt.close()
 
-
+                    '''
                     plt.figure()
                     nx.draw(graph, pos = {x:x for x in graph.nodes()}, node_color = [graph.nodes[x]["normalized_part_sum"] for x in graph.nodes()] ,node_size = ns, node_shape ='s',cmap = 'jet')
                     plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "wca.svg")
                     plt.close()
 
-
                     A2 = np.zeros([40,40])
-
                     for n in graph.nodes():
                         A2[n[0],n[1]] = graph.nodes[n]["normalized_part_sum"]
-
-
                     plt.figure()
                     plt.imshow(A2,cmap='jet')
                     plt.colorbar()
-
                     plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "wca2.svg")
                     plt.close()
-
+                    '''
+                    
                     plt.figure()
                     plt.title("Balances")
                     #plt.hist(balances)
                     plt.bar(balances.keys(), balances.values(), .01, color='g')
                     plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "balances.svg")
                     plt.close()
-
-
-                    #plt.figure()
-                    #plt.title("Slopes")
-                    #plt.plot(slopes)
-                    #plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "slope.svg")
-                    #plt.close()
-
-                    #plt.figure()
-                    #plt.title("Angle")
-                    #plt.plot(angles)
-                    #plt.ylim([0,6.3])
-                    #plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "angle.svg")
-                    #plt.close()
 
 
 
@@ -479,7 +450,6 @@ for pop1 in pops:
                     plt.figure()
                     fig = plt.figure()
                     ax2=fig.add_axes([0,0,1,1])
-
                     ax = plt.subplot(111, projection='polar')
                     ax.set_axis_off()
 
@@ -487,11 +457,6 @@ for pop1 in pops:
                     max_time = ends_vectors_normalized.last.end_time
                     plot_resolution = 20
 
-                    #plotting_data = [ [ np.arctan2(x.data[1], x.data[0]) for x in ends_vectors_normalized] , list(range(len(ends_vectors_normalized)))]
-
-                    #plotting_data_interpolated = polar_interpolation(plotting_data[0], plotting_data[1])
-                    #plt.title("Angle_Safe")
-                    
 
                     non_simply_connected_intervals = [ [x.start_time , x.end_time ] for x in ends_vectors_normalized if type(x.data) == bool ]
                     
@@ -503,28 +468,32 @@ for pop1 in pops:
                             
                             times = [x.start_time, x.end_time]
                             angles = [x.data] * len( times)
-                            #angle_test = [x.data for x in ends_vectors_normalized]
-                            #time_test = [x.start_time for x in ends_vectors_normalized]
                             plt.polar ( angles,times, lw = .3, color = 'b')
                             
-                            next_point = x.next
+                            
+                            next_point = x.next                            
                             if x.next != None:
                                 if type(x.data) != bool:
                                     plt.polar ( [x.data, next_point.data],[x.end_time, next_point.start_time], lw = .3, color = 'b')
-                            
-                    #ax.plot([ t * ends_vectors_normalized[t][0]  for t in range(len(ends_vectors_normalized))] , [ t * ends_vectors_normalized[t][1]  for t in range(len(ends_vectors_normalized))] )
-                    #ax.circle( (0,0), .1)
-                    for k in range(11):
-                        plt.polar ( np.arange(0, (2 * np.pi), 0.01), [int(max_time/10) * k ] * len( np.arange(0, (2 * np.pi), 0.01)), lw = .2, color = 'g' )
+                           
+
+
+                    # Create the regular segments corresponding to time 
+                    #for k in range(11):
+                    #    plt.polar ( np.arange(0, (2 * np.pi), 0.01), [int(max_time/10) * k ] * len( np.arange(0, (2 * np.pi), 0.01)), lw = .2, color = 'g' )
                         
-                        
+                    # Create the intervals representing when the partition is null.
+                    # Removing these might be just as good, and a little cleaner.
+                    '''
                     for interval in non_simply_connected_intervals:
                         start = interval[0]
                         end = interval[1]
                         for s in np.linspace(start,end,plot_resolution):
                             plt.polar ( np.arange(0, (2 * np.pi), 0.01), s * np.ones(len( np.arange(0, (2 * np.pi), 0.01))), lw = .3, color = 'r' )
-                        
-                    plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1)) + str("proposals_") + str( max_time * subsequence_step_size ) + "boundary_slope.svg")
+                    '''
+                    
+                    
+                    #plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1)) + str("proposals_") + str( max_time * subsequence_step_size ) + "boundary_slope.svg")
                     plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1)) + str("proposals_") + str( max_time * subsequence_step_size ) + "boundary_slope.png")
                     plt.close()
                     plt.close(fig)
@@ -537,7 +506,7 @@ for pop1 in pops:
 
 
 
-
+                    '''
                     plt.figure()
                     plt.title("Flips")
                     nx.draw(graph,pos= {x:x for x in graph.nodes()},node_color=[graph.nodes[x]["num_flips"] for x in graph.nodes()],node_size=ns,node_shape='s',cmap="jet")
@@ -580,3 +549,4 @@ for pop1 in pops:
                     plt.close()
 
                     plt.close('all')
+                    '''

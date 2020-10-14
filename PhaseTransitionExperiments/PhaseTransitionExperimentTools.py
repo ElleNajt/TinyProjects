@@ -80,7 +80,7 @@ class Node:
     
     
 class LinkedList:
-    #Modified linked list optimizedm for storing the boundary slope plots
+    #Modified linked list optimized for storing the boundary slope plots
     
     def __init__(self):
         self.head = None
