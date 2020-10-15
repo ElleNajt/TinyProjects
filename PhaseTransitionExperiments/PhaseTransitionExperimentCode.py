@@ -464,12 +464,16 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                                 angles = [x.data] * len( times)
                                 plt.polar ( angles,times, lw = .3, color = 'b')
                                 
-                                '''
+                                
                                 next_point = x.next                            
                                 if x.next != None:
                                     if type(x.data) != bool:
-                                        plt.polar ( [x.data, next_point.data],[x.end_time, next_point.start_time], lw = .3, color = 'b')
-                               '''
+                                        if np.abs( (x.data - x.next.data)) % 2 * np.pi   < .1:
+                                            # added that last if to avoid
+                                            # the big jumps that happen with
+                                            # small size subcritical
+                                            plt.polar ( [x.data, next_point.data],[x.end_time, next_point.start_time], lw = .3, color = 'b')
+                               
     
     
                         # Create the regular segments corresponding to time 
@@ -488,7 +492,7 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                         
                         
                         #plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1)) + str("proposals_") + str( max_time * subsequence_step_size ) + "boundary_slope.svg")
-                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1)) + str("proposals_") + str( max_time * subsequence_step_size ) + "boundary_slope.png")
+                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1)) + str("proposals_") + str( max_time * subsequence_step_size ) + "boundary_slope.png", dpi=500)
                         
                         plt.close()
                         plt.close(fig)
