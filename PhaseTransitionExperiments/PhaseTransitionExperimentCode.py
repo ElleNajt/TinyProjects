@@ -470,12 +470,12 @@ for pop1 in pops:
                             angles = [x.data] * len( times)
                             plt.polar ( angles,times, lw = .3, color = 'b')
                             
-                            
+                            '''
                             next_point = x.next                            
                             if x.next != None:
                                 if type(x.data) != bool:
                                     plt.polar ( [x.data, next_point.data],[x.end_time, next_point.start_time], lw = .3, color = 'b')
-                           
+                           '''
 
 
                     # Create the regular segments corresponding to time 
@@ -493,8 +493,9 @@ for pop1 in pops:
                     '''
                     
                     
-                    #plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1)) + str("proposals_") + str( max_time * subsequence_step_size ) + "boundary_slope.svg")
+                    plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1)) + str("proposals_") + str( max_time * subsequence_step_size ) + "boundary_slope.svg")
                     plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1)) + str("proposals_") + str( max_time * subsequence_step_size ) + "boundary_slope.png")
+                    
                     plt.close()
                     plt.close(fig)
 

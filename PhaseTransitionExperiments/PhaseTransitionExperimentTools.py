@@ -391,8 +391,11 @@ def boundary_ends(partition):
     #probably there's a better way
 
     #Note: IN the case that ends is empty, that means that the boundary was a circle. One of the districts wasn't simply connected.
+    ## The case that ends consists of 1 element is also exceptional.
+    
     #There's no natural order here, so make sure to mod out by that in the graphing.
-
+    
+    
     return ends
 
 def angle_distance(angle_1, angle_2):
