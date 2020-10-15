@@ -205,7 +205,7 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                 #######BUILD MARKOV CHAINS
     
     
-                exp_chain = MarkovChain(slow_reversible_propose_bi ,Validator([single_flip_contiguous#,popbound#,boundary_condition
+                exp_chain = MarkovChain(slow_reversible_propose_bi ,Validator([single_flip_contiguous,popbound#,boundary_condition
                 ]), accept = cut_accept, initial_state=grid_partition,
                 total_steps = total_run_length)
     
