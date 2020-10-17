@@ -435,9 +435,12 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
     
                         # now clears the ends vectors list
                         last = ends_vectors_normalized.last
+                        last_nonzero = ends_vectors_normalized.last_non_zero
                         ends_vectors_normalized = LinkedList()
-                        ends_vectors_normalized.append(last)
-                        
+                        ends_vectors_normalized.head = last
+                        ends_vectors_normalized.last = last
+                        ends_vectors_normalized.last_non_zero = last_nonzero # can be ahead of head...
+                        print(last)
                         '''
 
                         plt.figure()
