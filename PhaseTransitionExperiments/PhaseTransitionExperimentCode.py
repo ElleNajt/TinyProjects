@@ -282,7 +282,7 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                                     #ends_vectors_normalized.append(-1 * ends_vector_normalized)
     
                             else:
-                                continuous_lift = ends_vector_normalized *random.choice([-1,1])
+                                continuous_lift = ends_vector_normalized # *random.choice([-1,1])
                                 # just to debias it, in the regime of very unbalanced partitions
                                 # that touch the empty partition frequently
                                 

@@ -418,7 +418,6 @@ def draw_other_plots(balances, graph, alignment, identifier_string, base, pop1, 
     
     plt.figure()
     plt.title("Balances")
-    #plt.hist(balances)
     plt.bar(balances.keys(), balances.values(), .01, color='g')
     plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "balances.svg")
     plt.close()
