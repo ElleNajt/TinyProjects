@@ -40,7 +40,16 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
     
     mu = 2.63815853
     subsequence_step_size = 100000
-    balances_burn_in = 10000 #ignore the first 10000 balances
+    balances_burn_in = 1000000 #ignore the first 10000 balances
+    
+    # creating the boundary figure plot
+    plt.figure()
+    fig = plt.figure()
+    ax2=fig.add_axes([0,0,1,1])
+    ax = plt.subplot(111, projection='polar')
+    ax.set_axis_off()
+
+    
     
     for pop1 in pops:
         for base in bases:
@@ -186,10 +195,10 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                 #ADD CONSTRAINTS
                 popbound=within_percent_of_ideal_population(grid_partition,pop1)
     
-                plt.figure()
-                nx.draw(graph, pos = {x:x for x in graph.nodes()}, node_color = [dict(grid_partition.assignment)[x] for x in graph.nodes()] ,node_size = ns, node_shape ='s',cmap = 'tab20')
-                plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+"start.png")
-                plt.close()
+                #plt.figure()
+                #nx.draw(graph, pos = {x:x for x in graph.nodes()}, node_color = [dict(grid_partition.assignment)[x] for x in graph.nodes()] ,node_size = ns, node_shape ='s',cmap = 'tab20')
+                #plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+"start.png")
+                #plt.close()
     
     
                 #########Setup Proposal
@@ -320,29 +329,12 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
     
     
                     if t % time_between_outputs == 0:
     
-                        #ends_vectors_normalized[1:] #Remove teh first one because it will overlap with last one of previous dump
+                        #ends_vectors_normalized[1:] #Remove the first one because it will overlap with last one of previous dump
     
                         identifier_string = "state_after_num_steps" + str(t) + "and_time" + str(st-time.time())
     
@@ -386,67 +378,11 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                                 graph.nodes[n]["normalized_part_sum"] = 0
     
                         #print(len(rsw[-1]))
-                        print(graph[(1,0)][(0,1)]["cut_times"])
-    
-                        plt.figure()
-                        nx.draw(graph, pos = {x:x for x in graph.nodes()}, node_color = [0 for x in graph.nodes()] ,node_size = 10, edge_color = [graph[edge[0]][edge[1]]["cut_times"] for edge in graph.edges()], node_shape ='s',cmap = 'jet',width =5)
-                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "edges.svg")
-                        plt.close()
-    
-    
-    
-                        plt.figure()
-                        nx.draw(graph, pos = {x:x for x in graph.nodes()}, node_color = [dict(part.assignment)[x] for x in graph.nodes()] ,node_size = ns, node_shape ='s',cmap = 'tab20')
-                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "end.svg")
-                        plt.close()
-    
-    
-                        A2 = np.zeros([40,40])
-    
-                        for n in graph.nodes():
-                            A2[n[0],n[1]] = dict(part.assignment)[n]
-    
-    
-                        plt.figure()
-                        plt.imshow(A2,cmap='jet')
-                        plt.colorbar()
-                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "end2.svg")
-                        plt.close()
-    
-                        '''
-                        plt.figure()
-                        nx.draw(graph, pos = {x:x for x in graph.nodes()}, node_color = [graph.nodes[x]["normalized_part_sum"] for x in graph.nodes()] ,node_size = ns, node_shape ='s',cmap = 'jet')
-                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "wca.svg")
-                        plt.close()
-    
-                        A2 = np.zeros([40,40])
-                        for n in graph.nodes():
-                            A2[n[0],n[1]] = graph.nodes[n]["normalized_part_sum"]
-                        plt.figure()
-                        plt.imshow(A2,cmap='jet')
-                        plt.colorbar()
-                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "wca2.svg")
-                        plt.close()
-                        '''
-                        
-                        plt.figure()
-                        plt.title("Balances")
-                        #plt.hist(balances)
-                        plt.bar(balances.keys(), balances.values(), .01, color='g')
-                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "balances.svg")
-                        plt.close()
-    
-    
+                        #print(graph[(1,0)][(0,1)]["cut_times"])
     
                         
                         print("creating boundary plot")
-    
-                        plt.figure()
-                        fig = plt.figure()
-                        ax2=fig.add_axes([0,0,1,1])
-                        ax = plt.subplot(111, projection='polar')
-                        ax.set_axis_off()
-    
+
          
                         max_time = ends_vectors_normalized.last.end_time
                         plot_resolution = 20
@@ -462,7 +398,7 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                                 
                                 times = [x.start_time, x.end_time]
                                 angles = [x.data] * len( times)
-                                plt.polar ( angles,times, lw = .3, color = 'b')
+                                plt.polar ( angles,times, lw = .1, color = 'b')
                                 
                                 
                                 next_point = x.next                            
@@ -472,7 +408,7 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                                             # added that last if to avoid
                                             # the big jumps that happen with
                                             # small size subcritical
-                                            plt.polar ( [x.data, next_point.data],[x.end_time, next_point.start_time], lw = .3, color = 'b')
+                                            plt.polar ( [x.data, next_point.data],[x.end_time, next_point.start_time], lw = .1, color = 'b')
                                
     
     
@@ -492,13 +428,49 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                         
                         
                         #plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1)) + str("proposals_") + str( max_time * subsequence_step_size ) + "boundary_slope.svg")
-                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1)) + str("proposals_") + str( max_time * subsequence_step_size ) + "boundary_slope.png", dpi=500)
+                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1)) + str("proposals_") + str( max_time * subsequence_step_size )  + identifier_string + "boundary_slope.png", dpi=500)
                         
-                        plt.close()
-                        plt.close(fig)
+                        #plt.close()
+                        #plt.close(fig)
     
                         #angle_test = []
                         #time_test = []
+    
+
+
+                        '''
+
+                        plt.figure()
+                        nx.draw(graph, pos = {x:x for x in graph.nodes()}, node_color = [0 for x in graph.nodes()] ,node_size = 10, edge_color = [graph[edge[0]][edge[1]]["cut_times"] for edge in graph.edges()], node_shape ='s',cmap = 'jet',width =5)
+                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "edges.svg")
+                        plt.close()
+    
+    
+    
+                        plt.figure()
+                        nx.draw(graph, pos = {x:x for x in graph.nodes()}, node_color = [dict(part.assignment)[x] for x in graph.nodes()] ,node_size = ns, node_shape ='s',cmap = 'tab20')
+                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "end.svg")
+                        plt.close()
+    
+    
+                        A2 = np.zeros([40,40])
+    
+                        for n in graph.nodes():
+                            A2[n[0],n[1]] = dict(part.assignment)[n]
+    
+                        plt.figure()
+                        plt.imshow(A2,cmap='jet')
+                        plt.colorbar()
+                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "end2.svg")
+                        plt.close()
+                        
+                        plt.figure()
+                        plt.title("Balances")
+                        #plt.hist(balances)
+                        plt.bar(balances.keys(), balances.values(), .01, color='g')
+                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "balances.svg")
+                        plt.close()
+    
     
     
     
@@ -545,4 +517,4 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                         plt.close()
 
                         plt.close('all')
-                        
+                        '''
