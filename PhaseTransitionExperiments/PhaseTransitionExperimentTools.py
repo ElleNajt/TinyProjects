@@ -187,6 +187,8 @@ class LinkedList:
             
     def last_value(self):
         return self.last_non_zero.data
+    
+
 '''
 test = LinkedList()
 for i in [False, 0, np.pi/4, False]: # np.pi/2, False, 3* np.pi/2]:

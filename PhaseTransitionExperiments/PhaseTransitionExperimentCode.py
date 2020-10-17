@@ -428,16 +428,16 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                         
                         
                         #plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1)) + str("proposals_") + str( max_time * subsequence_step_size ) + "boundary_slope.svg")
-                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1)) + str("proposals_") + str( max_time * subsequence_step_size )  + identifier_string + "boundary_slope.png", dpi=500)
+                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1)) + str("proposals_") + identifier_string + "boundary_slope.png", dpi=500)
                         
                         #plt.close()
                         #plt.close(fig)
     
-                        #angle_test = []
-                        #time_test = []
-    
-
-
+                        # now clears the ends vectors list
+                        last = ends_vectors_normalized.last
+                        ends_vectors_normalized = LinkedList()
+                        ends_vectors_normalized.append(last)
+                        
                         '''
 
                         plt.figure()
