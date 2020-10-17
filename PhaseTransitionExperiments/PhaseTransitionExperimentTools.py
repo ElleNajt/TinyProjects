@@ -408,3 +408,91 @@ def angle_distance(angle_1, angle_2):
     if d > np.pi:
         return 2 * np.pi - d
     return d
+
+
+
+def draw_other_plots(balances, graph, alignment, identifier_string, base, pop1, part, ns):
+    # Put here to avoid interfering with the ongoing
+    # plt environment -- probably not the right way
+    # to do things
+    
+    plt.figure()
+    plt.title("Balances")
+    #plt.hist(balances)
+    plt.bar(balances.keys(), balances.values(), .01, color='g')
+    plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "balances.svg")
+    plt.close()
+
+
+
+    plt.figure()
+    nx.draw(graph, pos = {x:x for x in graph.nodes()}, node_color = [0 for x in graph.nodes()] ,node_size = 10, edge_color = [graph[edge[0]][edge[1]]["cut_times"] for edge in graph.edges()], node_shape ='s',cmap = 'jet',width =5)
+    plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "edges.svg")
+    plt.close()
+
+
+
+    plt.figure()
+    nx.draw(graph, pos = {x:x for x in graph.nodes()}, node_color = [dict(part.assignment)[x] for x in graph.nodes()] ,node_size = ns, node_shape ='s',cmap = 'tab20')
+    plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "end.svg")
+    plt.close()
+    
+    '''
+    A2 = np.zeros([40,40])
+
+    for n in graph.nodes():
+        A2[n[0],n[1]] = dict(part.assignment)[n]
+
+    plt.figure()
+    plt.imshow(A2,cmap='jet')
+    plt.colorbar()
+    plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "end2.svg")
+    plt.close()
+    
+
+
+
+
+
+    plt.figure()
+    plt.title("Flips")
+    nx.draw(graph,pos= {x:x for x in graph.nodes()},node_color=[graph.nodes[x]["num_flips"] for x in graph.nodes()],node_size=ns,node_shape='s',cmap="jet")
+    plt.title("Flips")
+    plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "flip.svg")
+    plt.close()
+
+
+    A2 = np.zeros([40,40])
+
+    for n in graph.nodes():
+        A2[n[0],n[1]] = graph.nodes[n]["num_flips"]
+
+
+    plt.figure()
+    plt.imshow(A2,cmap='jet')
+    plt.colorbar()
+    plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "flip2.svg")
+    plt.close()
+
+
+    plt.figure()
+    plt.title("Flips")
+    nx.draw(graph,pos= {x:x for x in graph.nodes()},node_color=[graph.nodes[x]["lognum_flips"] for x in graph.nodes()],node_size=ns,node_shape='s',cmap="jet")
+    plt.title("Flips")
+    plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "logflip.svg")
+    plt.close()
+
+
+    A2 = np.zeros([40,40])
+
+    for n in graph.nodes():
+        A2[n[0],n[1]] = graph.nodes[n]["lognum_flips"]
+
+
+    plt.figure()
+    plt.imshow(A2,cmap='jet')
+    plt.colorbar()
+    plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "logflip2.svg")
+    plt.close()
+
+'''

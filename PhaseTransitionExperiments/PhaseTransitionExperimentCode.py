@@ -21,6 +21,7 @@ from functools import partial
 import networkx as nx
 import numpy as np
 import pickle
+import gc
 
 from gerrychain import Graph
 from gerrychain import MarkovChain
@@ -281,7 +282,10 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                                     #ends_vectors_normalized.append(-1 * ends_vector_normalized)
     
                             else:
-                                continuous_lift = ends_vector_normalized
+                                continuous_lift = ends_vector_normalized *random.choice([-1,1])
+                                # just to debias it, in the regime of very unbalanced partitions
+                                # that touch the empty partition frequently
+                                
                                 #ends_vectors_normalized.append(ends_vector_normalized)
                         else:
                             continuous_lift = [0,0]
@@ -384,8 +388,8 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                         print("creating boundary plot")
 
          
-                        max_time = ends_vectors_normalized.last.end_time
-                        plot_resolution = 20
+                        #max_time = ends_vectors_normalized.last.end_time
+                        #plot_resolution = 20
     
     
                         non_simply_connected_intervals = [ [x.start_time , x.end_time ] for x in ends_vectors_normalized if type(x.data) == bool ]
@@ -435,89 +439,19 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
     
                         # now clears the ends vectors list
                         last = ends_vectors_normalized.last
-                        last_nonzero = ends_vectors_normalized.last_non_zero
+                        last_non_zero = ends_vectors_normalized.last_non_zero
+                        
+                        # Explicit Garbage collection https://stackoverflow.com/questions/1316767/how-can-i-explicitly-free-memory-in-python
+                        del ends_vectors_normalized
+                        gc.collect()
+                        
+                        
+                        
                         ends_vectors_normalized = LinkedList()
                         ends_vectors_normalized.head = last
                         ends_vectors_normalized.last = last
-                        ends_vectors_normalized.last_non_zero = last_nonzero # can be ahead of head...
-                        print(last)
-                        '''
+                        ends_vectors_normalized.last_non_zero = last_non_zero # can be ahead of head...
+                        #print(last)
 
-                        plt.figure()
-                        nx.draw(graph, pos = {x:x for x in graph.nodes()}, node_color = [0 for x in graph.nodes()] ,node_size = 10, edge_color = [graph[edge[0]][edge[1]]["cut_times"] for edge in graph.edges()], node_shape ='s',cmap = 'jet',width =5)
-                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "edges.svg")
-                        plt.close()
-    
-    
-    
-                        plt.figure()
-                        nx.draw(graph, pos = {x:x for x in graph.nodes()}, node_color = [dict(part.assignment)[x] for x in graph.nodes()] ,node_size = ns, node_shape ='s',cmap = 'tab20')
-                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "end.svg")
-                        plt.close()
-    
-    
-                        A2 = np.zeros([40,40])
-    
-                        for n in graph.nodes():
-                            A2[n[0],n[1]] = dict(part.assignment)[n]
-    
-                        plt.figure()
-                        plt.imshow(A2,cmap='jet')
-                        plt.colorbar()
-                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "end2.svg")
-                        plt.close()
-                        
-                        plt.figure()
-                        plt.title("Balances")
-                        #plt.hist(balances)
-                        plt.bar(balances.keys(), balances.values(), .01, color='g')
-                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "balances.svg")
-                        plt.close()
-    
-    
-    
-    
-    
-                        plt.figure()
-                        plt.title("Flips")
-                        nx.draw(graph,pos= {x:x for x in graph.nodes()},node_color=[graph.nodes[x]["num_flips"] for x in graph.nodes()],node_size=ns,node_shape='s',cmap="jet")
-                        plt.title("Flips")
-                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "flip.svg")
-                        plt.close()
-    
-    
-                        A2 = np.zeros([40,40])
-    
-                        for n in graph.nodes():
-                            A2[n[0],n[1]] = graph.nodes[n]["num_flips"]
-    
-    
-                        plt.figure()
-                        plt.imshow(A2,cmap='jet')
-                        plt.colorbar()
-                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "flip2.svg")
-                        plt.close()
-    
-    
-                        plt.figure()
-                        plt.title("Flips")
-                        nx.draw(graph,pos= {x:x for x in graph.nodes()},node_color=[graph.nodes[x]["lognum_flips"] for x in graph.nodes()],node_size=ns,node_shape='s',cmap="jet")
-                        plt.title("Flips")
-                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "logflip.svg")
-                        plt.close()
-    
-    
-                        A2 = np.zeros([40,40])
-    
-                        for n in graph.nodes():
-                            A2[n[0],n[1]] = graph.nodes[n]["lognum_flips"]
-    
-    
-                        plt.figure()
-                        plt.imshow(A2,cmap='jet')
-                        plt.colorbar()
-                        plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "logflip2.svg")
-                        plt.close()
-
-                        plt.close('all')
-                        '''
+                            
+                        draw_other_plots(balances, graph, alignment, identifier_string, base, pop1, part, ns)
