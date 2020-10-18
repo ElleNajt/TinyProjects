@@ -290,37 +290,37 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                         
                         
                         
-                    ##############For Debugging#############
-                    '''
-                    if total_waits > subsequence_timer + subsequence_step_size:
-    
-                        last_total_waits = total_waits
-    
-                        ends = boundary_ends(part)
-                        if ends:
-                            ends_vector = np.asarray(ends[1]) - np.asarray(ends[0])
-                            ends_vector_normalized = ends_vector / np.linalg.norm(ends_vector)
-                            
-                            if ends_vectors_normalized_bloated.last:
-                                # We choose the vector that preserves continuity
-                                previous = ends_vectors_normalized_bloated.last_value()
-                                d_previous = np.linalg.norm( ends_vector_normalized - previous)
-                                d_previous_neg = np.linalg.norm( ends_vector_normalized + previous )
-                                if d_previous < d_previous_neg:
-                                    continuous_lift_bloated = ends_vector_normalized
-                                else:
-                                    continuous_lift_bloated = -1* ends_vector_normalized
-    
-                            else:
-                                continuous_lift_bloated = ends_vector_normalized # *random.choice([-1,1])
-                                # just to debias it, in the regime of very unbalanced partitions
-                                # that touch the empty partition frequently
+                        ##############For Debugging#############
+                        '''
+                        if total_waits > subsequence_timer + subsequence_step_size:
+        
+                            last_total_waits = total_waits
+        
+                            ends = boundary_ends(part)
+                            if ends:
+                                ends_vector = np.asarray(ends[1]) - np.asarray(ends[0])
+                                ends_vector_normalized = ends_vector / np.linalg.norm(ends_vector)
                                 
-                        else:
-                            continuous_lift_bloated = [0,0]
-                            '''
-                    ################
-    
+                                if ends_vectors_normalized_bloated.last:
+                                    # We choose the vector that preserves continuity
+                                    previous = ends_vectors_normalized_bloated.last_value()
+                                    d_previous = np.linalg.norm( ends_vector_normalized - previous)
+                                    d_previous_neg = np.linalg.norm( ends_vector_normalized + previous )
+                                    if d_previous < d_previous_neg:
+                                        continuous_lift_bloated = ends_vector_normalized
+                                    else:
+                                        continuous_lift_bloated = -1* ends_vector_normalized
+        
+                                else:
+                                    continuous_lift_bloated = ends_vector_normalized # *random.choice([-1,1])
+                                    # just to debias it, in the regime of very unbalanced partitions
+                                    # that touch the empty partition frequently
+                                    
+                            else:
+                                continuous_lift_bloated = [0,0]
+                                '''
+                        ################
+        
                         # Pop balance stuff:
                         left_pop, right_pop = part["population"].values()
                         ideal_population = (left_pop + right_pop)/2
