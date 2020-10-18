@@ -87,7 +87,7 @@ class LinkedList:
         self.last = None
         self.len = 0 
         self.last_non_zero = None
-        
+        self.last_vector = [0,0]
     def __len__(self):
         return self.len
     def __repr__(self):

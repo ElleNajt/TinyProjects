@@ -266,13 +266,25 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                         last_total_waits = total_waits
     
                         ends = boundary_ends(part)
-                        if ends:
+                        if len(ends) == 2:
                             ends_vector = np.asarray(ends[1]) - np.asarray(ends[0])
                             ends_vector_normalized = ends_vector / np.linalg.norm(ends_vector)
                             
                             if ends_vectors_normalized.last:
                                 # We choose the vector that preserves continuity
-                                previous = ends_vectors_normalized.last_value()
+                                previous_angle = ends_vectors_normalized.last_value()
+                                previous = ends_vectors_normalized.last_vector
+                                #angle = np.arctan2( continuous_lift[1], continuous_lift[0]) + np.pi
+                                '''
+                                
+                                for i in range(100):
+                                    test_vector = np.random.normal(0,1,2)
+                                    angle = np.arctan2( test_vector[1], test_vector[0]) + np.pi
+                                    vector_recovered = [math.cos( angle), math.sin(angle)]
+                                    #if not (test_vector == vector_recovered).all():
+                                    print(test_vector, vector_recovered)
+                                '''
+                                
                                 d_previous = np.linalg.norm( ends_vector_normalized - previous)
                                 d_previous_neg = np.linalg.norm( ends_vector_normalized + previous )
                                 if d_previous < d_previous_neg:
@@ -338,7 +350,7 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                             else:
                                 lifted_angle = np.arctan2( continuous_lift[1], continuous_lift[0]) + np.pi
                             ends_vectors_normalized.append(lifted_angle)
-                            
+                            ends_vectors_normalized.last_vector = continuous_lift
                             
                             ###############For Debugging#########
                             '''
@@ -443,7 +455,8 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                                 plt.polar ( angles,times, lw = .1, color = 'b')
                                 
                                 
-                                next_point = x.next                            
+                                next_point = x.next     
+
                                 if x.next != None:
                                     if type(x.data) != bool:
                                         if np.abs( (x.data - x.next.data)) % (2 * np.pi)   < .1:
@@ -451,7 +464,7 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                                             # the big jumps that happen with
                                             # small size subcritical
                                             plt.polar ( [x.data, next_point.data],[x.end_time, next_point.start_time], lw = .1, color = 'b')
-                               
+
                         ########For Debugging########
                         '''
                         for x in ends_vectors_normalized_bloated:
@@ -500,7 +513,7 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                         # now clear the ends vectors list
                         last = ends_vectors_normalized.last
                         last_non_zero = ends_vectors_normalized.last_non_zero
-                        
+                        last_vector = ends_vectors_normalized.last_vector
                         # Explicit Garbage collection https://stackoverflow.com/questions/1316767/how-can-i-explicitly-free-memory-in-python
                         
                         print("finished boundary plot, doing garbage collection", time.time())
@@ -513,6 +526,7 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                         ends_vectors_normalized.head = last
                         ends_vectors_normalized.last = last
                         ends_vectors_normalized.last_non_zero = last_non_zero # can be ahead of head...
+                        ends_vectors_normalized.last_vector = last_vector
                         #print(last)
 
                         print("drawing other plots",  time.time())
