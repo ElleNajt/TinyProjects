@@ -423,7 +423,7 @@ def draw_other_plots(balances, graph, alignment, identifier_string, base, pop1, 
     plt.close()
 
 
-
+    
     plt.figure()
     nx.draw(graph, pos = {x:x for x in graph.nodes()}, node_color = [0 for x in graph.nodes()] ,node_size = 10, edge_color = [graph[edge[0]][edge[1]]["cut_times"] for edge in graph.edges()], node_shape ='s',cmap = 'jet',width =5)
     plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1))+identifier_string + "edges.svg")
