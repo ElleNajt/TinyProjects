@@ -143,8 +143,10 @@ class LinkedList:
                 new_node.start_time = self.last.end_time + 1
                 new_node.end_time = new_node.start_time + 1
                 
-                if data == False:
+                if data == False or self.last.data == False:
                     #the non-simply connected case
+                    # either adding a non-simply connected partition, 
+                    # or picking up from one
                     self.last.next = new_node
                     self.last = new_node
                     
@@ -187,7 +189,13 @@ class LinkedList:
             
     def last_value(self):
         return self.last_non_zero.data
-    
+
+def previous_point(llist, node):
+    for x in llist:
+        if x.next == node:
+            return x
+        
+        
 
 '''
 test = LinkedList()

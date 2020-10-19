@@ -40,7 +40,7 @@ from PhaseTransitionExperimentTools import *
 def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outputs = 10000,     total_run_length = 100000000000000  ):
     
     mu = 2.63815853
-    subsequence_step_size = 100000
+    subsequence_step_size = 10000
     balances_burn_in = 1000000 #ignore the first 10000 balances
     
     # creating the boundary figure plot
@@ -252,6 +252,7 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                 for b in np.linspace(0,2,100001):
                     balances[int(b*100)/100] = 0
                 
+                #first_partition = True
                 for part in exp_chain:
                     rce.append(len(part["cut_edges"]))
                     wait_time_rv = part.geom
@@ -259,8 +260,9 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                     total_waits += wait_time_rv
                     rbn.append(len(list(part["b_nodes"])))
     
-    
-                    #Calculating the slopes. Memory intensive so only take every N=50.
+
+                    
+                    
                     if total_waits > subsequence_timer + subsequence_step_size:
     
                         last_total_waits = total_waits
@@ -269,28 +271,23 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                         if len(ends) == 2:
                             ends_vector = np.asarray(ends[1]) - np.asarray(ends[0])
                             ends_vector_normalized = ends_vector / np.linalg.norm(ends_vector)
+                                
+                            #if first_partition == True:
+                            #    ends_vectors_normalized.last_vector = ends_vector_normalized
+                            #    first_partition = False
                             
                             if ends_vectors_normalized.last:
                                 # We choose the vector that preserves continuity
-                                previous_angle = ends_vectors_normalized.last_value()
+                                # previous_angle = ends_vectors_normalized.last_value()
                                 previous = ends_vectors_normalized.last_vector
-                                #angle = np.arctan2( continuous_lift[1], continuous_lift[0]) + np.pi
-                                '''
                                 
-                                for i in range(100):
-                                    test_vector = np.random.normal(0,1,2)
-                                    angle = np.arctan2( test_vector[1], test_vector[0]) + np.pi
-                                    vector_recovered = [math.cos( angle), math.sin(angle)]
-                                    #if not (test_vector == vector_recovered).all():
-                                    print(test_vector, vector_recovered)
-                                '''
-                                
-                                d_previous = np.linalg.norm( ends_vector_normalized - previous)
-                                d_previous_neg = np.linalg.norm( ends_vector_normalized + previous )
+                                d_previous = np.linalg.norm( previous - ends_vector_normalized )
+                                d_previous_neg = np.linalg.norm( previous + ends_vector_normalized )
                                 if d_previous < d_previous_neg:
                                     continuous_lift = ends_vector_normalized
                                 else:
                                     continuous_lift = -1* ends_vector_normalized
+                                    #print(previous, ends_vector_normalized)
     
                             else:
                                 continuous_lift = ends_vector_normalized # *random.choice([-1,1])
@@ -348,9 +345,11 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                                 #print("added false")
                                 #Flag to hold the exceptional case of the boundary vanishing
                             else:
-                                lifted_angle = np.arctan2( continuous_lift[1], continuous_lift[0]) + np.pi
+                                lifted_angle = np.arctan2( continuous_lift[1], continuous_lift[0])
+                                #+ np.pi
+                                ends_vectors_normalized.last_vector = continuous_lift    
                             ends_vectors_normalized.append(lifted_angle)
-                            ends_vectors_normalized.last_vector = continuous_lift
+                            
                             
                             ###############For Debugging#########
                             '''
@@ -441,8 +440,8 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                         
                         print("creating boundary plot, ",  time.time())
 
-        
-                        #non_simply_connected_intervals = [ [x.start_time , x.end_time ] for x in ends_vectors_normalized if type(x.data) == bool ]
+                        max_time = ends_vectors_normalized.last.end_time
+                        non_simply_connected_intervals = [ [x.start_time , x.end_time ] for x in ends_vectors_normalized if type(x.data) == bool ]
                         
                         for x in ends_vectors_normalized:
                             if type(x.data) != bool:
@@ -456,40 +455,15 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                                 
                                 
                                 next_point = x.next     
-
-                                if x.next != None:
-                                    if type(x.data) != bool:
-                                        if np.abs( (x.data - x.next.data)) % (2 * np.pi)   < .1:
+                                #'''
+                                if next_point != None:
+                                    if type(next_point.data) != bool:
+                                        if np.abs( (x.data - next_point.data)) % (2 * np.pi)   < .1:
                                             # added that last if to avoid
                                             # the big jumps that happen with
                                             # small size subcritical
                                             plt.polar ( [x.data, next_point.data],[x.end_time, next_point.start_time], lw = .1, color = 'b')
-
-                        ########For Debugging########
-                        '''
-                        for x in ends_vectors_normalized_bloated:
-                            if type(x.data) != bool:
-                                
-                                #times = np.linspace(x.start_time, x.end_time, 100)
-                                #times.append(x.end_time)
-                                
-                                times = [x.start_time, x.end_time]
-                                angles = [x.data] * len( times)
-                                plt.polar ( angles,times, lw = .1, color = 'b')
-                                
-                                
-                                next_point = x.next                            
-                                if x.next != None:
-                                    if type(x.data) != bool:
-                                        if np.abs( (x.data - x.next.data)) % (2 * np.pi)  < .1:
-                                            # added that last if to avoid
-                                            # the big jumps that happen with
-                                            # small size subcritical
-                                            plt.polar ( [x.data, next_point.data],[x.end_time, next_point.start_time], lw = .1, color = 'r')
-                        '''
-                        #############
-                        
-                        
+                                #'''
                         
                         
                         # Create the regular segments corresponding to time 
@@ -502,7 +476,7 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                         for interval in non_simply_connected_intervals:
                             start = interval[0]
                             end = interval[1]
-                            for s in np.linspace(start,end,plot_resolution):
+                            for s in np.linspace(start,end,10):
                                 plt.polar ( np.arange(0, (2 * np.pi), 0.01), s * np.ones(len( np.arange(0, (2 * np.pi), 0.01))), lw = .3, color = 'r' )
                         '''
                         
