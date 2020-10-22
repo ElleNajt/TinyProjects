@@ -46,10 +46,12 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
     # creating the boundary figure plot
     plt.figure()
     fig = plt.figure()
+    #fig_intervals = plt.figure()
     #ax2=fig.add_axes([0,0,1,1])
     ax = plt.subplot(111, projection='polar')
-    ax.set_axis_off()
-
+    #ax.set_axis_off()
+    #ax.xaxis.set_ticklabels([])
+    ax.yaxis.set_ticklabels([])
     
     
     for pop1 in pops:
@@ -111,7 +113,7 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                     else:
                         graph.nodes[n]["boundary_node"]=False
     
-                graph.add_edges_from([((0,1),(1,0)), ((0,38),(1,39)), ((38,0),(39,1)), ((38,39),(39,38))])
+                #graph.add_edges_from([((0,1),(1,0)), ((0,38),(1,39)), ((38,0),(39,1)), ((38,39),(39,38))])
     
                 for edge in graph.edges():
                     graph[edge[0]][edge[1]]['cut_times'] = 0
@@ -127,15 +129,15 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                 #            graph[(i,j)][(i+1,j-1)]["shared_perim"]=0
     
     
-                graph.remove_nodes_from([(0,0),(0,39),(39,0),(39,39)])
+                #graph.remove_nodes_from([(0,0),(0,39),(39,0),(39,39)])
     
-                del cddict[(0,0)]
+                #del cddict[(0,0)]
     
-                del cddict[(0,39)]
+                #del cddict[(0,39)]
     
-                del cddict[(39,0)]
+                # cddict[(39,0)]
     
-                del cddict[(39,39)]
+                #del cddict[(39,39)]
                 ######PLOT GRIDS
                 """
                 plt.figure()
@@ -342,7 +344,8 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                             subsequence_timer += subsequence_step_size
                             if (continuous_lift == np.asarray([0,0])).all():
                                 lifted_angle = False
-                                #print("added false")
+                                print("false")
+                                draw_other_plots(balances, graph, alignment, "NonSimplyConnected", base, pop1, part, ns)
                                 #Flag to hold the exceptional case of the boundary vanishing
                             else:
                                 lifted_angle = np.arctan2( continuous_lift[1], continuous_lift[0])
@@ -350,18 +353,6 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                                 ends_vectors_normalized.last_vector = continuous_lift    
                             ends_vectors_normalized.append(lifted_angle)
                             
-                            
-                            ###############For Debugging#########
-                            '''
-                            if (continuous_lift_bloated == np.asarray([0,0])).all():
-                                lifted_angle = False
-                                #print("added false")
-                                #Flag to hold the exceptional case of the boundary vanishing
-                            else:
-                                lifted_angle = np.arctan2( continuous_lift_bloated[1], continuous_lift_bloated[0]) + np.pi
-                            ends_vectors_normalized_bloated.append(lifted_angle)          
-                            '''
-                            #############################
                             
                             if subsequence_timer > balances_burn_in:
                                 left_bal_rounded = int( left_bal * 100)/100
@@ -467,18 +458,19 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                         
                         
                         # Create the regular segments corresponding to time 
-                        #for k in range(11):
-                        #    plt.polar ( np.arange(0, (2 * np.pi), 0.01), [int(max_time/10) * k ] * len( np.arange(0, (2 * np.pi), 0.01)), lw = .2, color = 'g' )
-                            
+                        '''
+                        for k in range(11):
+                            plt.polar ( np.arange(0, (2 * np.pi), 0.01), [int(max_time/10) * k ] * len( np.arange(0, (2 * np.pi), 0.01)), lw = .2, color = 'g' )
+                        '''  
                         # Create the intervals representing when the partition is null.
                         # Removing these might be just as good, and a little cleaner.
-                        '''
+                        #'''
                         for interval in non_simply_connected_intervals:
                             start = interval[0]
                             end = interval[1]
                             for s in np.linspace(start,end,10):
                                 plt.polar ( np.arange(0, (2 * np.pi), 0.01), s * np.ones(len( np.arange(0, (2 * np.pi), 0.01))), lw = .3, color = 'r' )
-                        '''
+                        #'''
                         
                         
                         #plt.savefig("./plots/"+str(alignment)+"B"+str(int(100*base))+"P"+str(int(100*pop1)) + str("proposals_") + str( max_time * subsequence_step_size ) + "boundary_slope.svg")
@@ -504,5 +496,5 @@ def run_experiment(bases = [2*  2.63815853], pops = [.1],     time_between_outpu
                         #print(last)
 
                         print("drawing other plots",  time.time())
-                        #draw_other_plots(balances, graph, alignment, identifier_string, base, pop1, part, ns)
+                        draw_other_plots(balances, graph, alignment, identifier_string, base, pop1, part, ns)
                         print("finished drawing other plots, " ,  time.time())
