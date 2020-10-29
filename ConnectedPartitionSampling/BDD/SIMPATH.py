@@ -42,8 +42,6 @@ class BDD_node:
 
 def simple_paths(graph, edge_list,s,t):
     """
-    
-
     Parameters
     ----------
     graph : TYPE
@@ -71,7 +69,12 @@ def simple_paths(graph, edge_list,s,t):
     # N is an auxiliary function that will create track of the layers
     
     BDD = nx.DiGraph()
-    
+    BDD.add_node(root)
+    BDD.nodes[root]["display_data"] = 'R'
+    BDD.add_node(0)
+    BDD.add_node(1)
+    BDD.nodes[0]["display_data"] = 0
+    BDD.nodes[1]["display_data"] = 1
     ## Create Frontier Sets
     frontiers = [] 
     # Note F_-1 = \emptyset -- if comparing to Kawahara et al., note that
@@ -82,29 +85,29 @@ def simple_paths(graph, edge_list,s,t):
         frontier_set = set ( left_subgraph.nodes() ).intersection( set( right_subgraph.nodes()))
         frontiers.append(frontier_set)
     ##
-    for layer in range(m+1): # i in reference
+    for layer in range(m): # i in reference
         for current_node in N[layer]:
             for arc_type in [0,1]: # choice of whether or not to include the edge
                 node_new = make_new_node(s,t,current_node, edge_list, frontiers, layer, arc_type) # returns a new node or a 0/1-terminal
                 if not ( node_new == 1) and not ( node_new == 0):
                     found_duplicate = False
                     for node_other in N[layer+1]:
-                        if identical(node_new, node_other, frontiers[layer]):
+                        if identical(node_new, node_other, frontiers[layer+1]):
                             node_new = node_other
                             found_duplicate = True
                     if found_duplicate == False:
                         N[layer+1].add( node_new) # add node to ith layer
                         BDD.add_node(node_new) # add the new node to BDD
+                        BDD.nodes[node_new]["display_data"] = BDD.nodes[current_node]["display_data"]+ str(arc_type)
                         BDD.add_edge(current_node, node_new)
-                        
+                if node_new == 1 or node_new == 0:
+                    BDD.add_edge(current_node, node_new)
                 current_node.arc[arc_type] = node_new #set the x pointer of node to node_new
     
     return BDD
 
 def make_new_node(s, t, current_node, edge_list, frontiers, layer, arc_type):
     """
-    
-
     Parameters
     ----------
     s : vertex
@@ -152,17 +155,18 @@ def make_new_node(s, t, current_node, edge_list, frontiers, layer, arc_type):
     for u in [v,w]:
         if u not in frontiers[layer + 1]:
             # u is never going to be touched again, so has to be in the 
-            # final form -- make sure this is 
-            # aligned correctly , maybe TODO need to be layer +- 1.
+            # final form -- needs to be +2, since the frontier is always
+            # one behind the layer
             if (u == s or u == t) and current_node_copy.virtual_degrees[u] != 1:
                 return 0
-            if (u != s or u != t) and current_node_copy.virtual_degrees[u] not in [0,2]:
-                return 0
+            if (u != s and u != t):
+                if current_node_copy.virtual_degrees[u] not in [0,2]:
+                    return 0
             
             # now since u leaves the frontier, we can do some memory management
             # does python handle this well?            
             #memory_manage(current_node_copy, u)
-    if layer == len(edge_list):
+    if layer == len(edge_list) - 1:
         # this was the last edge, and we found no contradictions
         return 1
     return current_node_copy
@@ -245,6 +249,10 @@ edge_list = list( graph.edges())
 
 simpath = simple_paths(graph, edge_list, s,t)
 
+display_labels = { x : simpath.nodes[x]["display_data"] for x in simpath.nodes()}
+
+
+nx.draw_planar(simpath, labels = display_labels, with_labels = True)
 def count_accepting_paths(BDD,root):
     """
     Parameters
