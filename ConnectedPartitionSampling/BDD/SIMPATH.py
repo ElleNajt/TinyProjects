@@ -26,6 +26,19 @@ A note on the data structures:
     Frontier set that is relevant! The rest is just junk, but allocated in
     memory anyway.
 
+
+
+### For reference, the correct values:
+  https://arxiv.org/pdf/cond-mat/0506341.pdf  
+1 2
+2 12
+3 184
+4 8512
+5 1262816
+6 575780564
+7 789360053252
+8 3266598486981642
+9 41044208702632496804
 """
 
 import networkx as nx
@@ -70,17 +83,22 @@ def simple_paths(graph, edge_list,s,t):
     # N is an auxiliary function that will create track of the layers
     
     BDD = nx.DiGraph()
+    BDD.graph["layers"] = m
+    BDD.graph["indexing"] = {}
+    BDD.graph["layer_widths"] = {}
     BDD.add_node(root)
     BDD.nodes[root]["display_data"] = 'R'
     BDD.nodes[root]["order"] = 0
     BDD.nodes[root]["layer"] = -1
-    
+    BDD.graph["indexing"][(-1, 0)] = root
+    BDD.graph["layer_widths"][-1] = 1
     for i in [0,1]:
         BDD.add_node(i)
         BDD.nodes[i]["display_data"] = i
         BDD.nodes[i]["order"] = i
-        BDD.nodes[i]["layer"] = m
-
+        BDD.nodes[i]["layer"] = m-1
+        BDD.graph["indexing"][(m-1,i)] = i
+    BDD.graph["layer_widths"][m-1] = 2
     ## Create Frontier Sets
     frontiers = [] 
     # Note F_-1 = \emptyset -- if comparing to Kawahara et al., note that
@@ -92,6 +110,7 @@ def simple_paths(graph, edge_list,s,t):
         frontiers.append(frontier_set)
     ##
     for layer in range(m): # i in reference
+        
         order = 0
         for current_node in N[layer]:
             for arc_type in [0,1]: # choice of whether or not to include the edge
@@ -110,11 +129,13 @@ def simple_paths(graph, edge_list,s,t):
                         BDD.nodes[node_new]["order"] = order
                         order += 1
                         BDD.nodes[node_new]["layer"] = layer
+                        BDD.graph["indexing"][ ( layer, order - 1)] = node_new
                         BDD.add_edge(current_node, node_new)
                 if node_new == 1 or node_new == 0:
                     BDD.add_edge(current_node, node_new)
                 current_node.arc[arc_type] = node_new #set the x pointer of node to node_new
-    
+        if layer != m - 1:
+            BDD.graph["layer_widths"][layer] = order
     return BDD
 
 def make_new_node(s, t, current_node, edge_list, frontiers, layer, arc_type):
@@ -255,7 +276,7 @@ R(n) is the set of edges sets corresponding to paths from n to 1.
     return True
 
 
-size = 6
+size = 3
 graph = nx.grid_graph([size,size])
 s = (0,0)
 t = (size-1,size-1)
@@ -270,9 +291,11 @@ display_coordinates = { x : (simpath.nodes[x]["order"] ,m - simpath.nodes[x]["la
 display_coordinates[0] = ( .3,m - simpath.nodes[0]["layer"] )
 display_coordinates[1] = ( .6,m - simpath.nodes[0]["layer"] )
 
-    
-nx.draw(simpath, pos = display_coordinates, labels = display_labels, with_labels = True)
-def count_accepting_paths(BDD,root):
+print(len(simpath))
+print(simpath.graph["layer_widths"])
+
+#nx.draw(simpath, pos = display_coordinates, labels = display_labels, with_labels = True)
+def count_accepting_paths(BDD):
     """
     Parameters
     ----------
@@ -286,4 +309,16 @@ def count_accepting_paths(BDD,root):
     Number of paths from root to 1.
 
     """
-    
+    simpath.nodes[0]["count"] = 0
+    simpath.nodes[1]["count"] = 1
+    m = BDD.graph["layers"]
+    for i in range(m-2, -2,-1):
+        for j in range(BDD.graph["layer_widths"][i]):
+            current_node = BDD.graph["indexing"][(i,j)]
+            left_child = current_node.arc[0]
+            right_child = current_node.arc[1]
+            BDD.nodes[current_node]["count"] = BDD.nodes[left_child]["count"]  + BDD.nodes[right_child]["count"] 
+        
+    return BDD.nodes[BDD.graph["indexing"][(-1, 0)]]["count"]
+
+print(count_accepting_paths(simpath))
