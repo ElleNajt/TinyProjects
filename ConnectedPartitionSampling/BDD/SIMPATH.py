@@ -39,10 +39,12 @@ A note on the data structures:
 7 789360053252
 8 3266598486981642
 9 41044208702632496804
+
 """
 
 import networkx as nx
 import copy
+from matplotlib import pyplot as plt
 
 class BDD_node:
     
@@ -121,6 +123,7 @@ def simple_paths(graph, edge_list,s,t):
                         if identical(node_new, node_other, frontiers[layer+1]):
                             node_new = node_other
                             found_duplicate = True
+                            BDD.add_edge(current_node, node_new)
                     if found_duplicate == False:
                         N[layer+1].add( node_new) # add node to ith layer
                         BDD.add_node(node_new) # add the new node to BDD
@@ -276,25 +279,6 @@ R(n) is the set of edges sets corresponding to paths from n to 1.
     return True
 
 
-size = 3
-graph = nx.grid_graph([size,size])
-s = (0,0)
-t = (size-1,size-1)
-edge_list = list( graph.edges())
-m = len(edge_list)
-simpath = simple_paths(graph, edge_list, s,t)
-
-display_labels = { x : simpath.nodes[x]["display_data"] for x in simpath.nodes()}
-
-display_coordinates = { x : (simpath.nodes[x]["order"] ,m - simpath.nodes[x]["layer"]) for x in simpath.nodes()}
-
-display_coordinates[0] = ( .3,m - simpath.nodes[0]["layer"] )
-display_coordinates[1] = ( .6,m - simpath.nodes[0]["layer"] )
-
-print(len(simpath))
-print(simpath.graph["layer_widths"])
-
-#nx.draw(simpath, pos = display_coordinates, labels = display_labels, with_labels = True)
 def count_accepting_paths(BDD):
     """
     Parameters
@@ -309,8 +293,8 @@ def count_accepting_paths(BDD):
     Number of paths from root to 1.
 
     """
-    simpath.nodes[0]["count"] = 0
-    simpath.nodes[1]["count"] = 1
+    BDD.nodes[0]["count"] = 0
+    BDD.nodes[1]["count"] = 1
     m = BDD.graph["layers"]
     for i in range(m-2, -2,-1):
         for j in range(BDD.graph["layer_widths"][i]):
@@ -321,4 +305,112 @@ def count_accepting_paths(BDD):
         
     return BDD.nodes[BDD.graph["indexing"][(-1, 0)]]["count"]
 
+
+def enumerate_accepting_paths(BDD):
+    
+    ## Goal of this is mostly to debug the path counting
+    
+    BDD.nodes[0]["set"] = set()
+    BDD.nodes[1]["set"] = set(['T'])
+    m = BDD.graph["layers"]
+    for i in range(m-2, -2,-1):
+        for j in range(BDD.graph["layer_widths"][i]):
+            current_node = BDD.graph["indexing"][(i,j)]
+            left_child = current_node.arc[0]
+            right_child = current_node.arc[1]
+            BDD.nodes[current_node]["set"] = set()
+            for c in [0,1]:
+                child = [left_child, right_child][c]
+                for x in BDD.nodes[child]["set"]:
+                    BDD.nodes[current_node]["set"].add( str(c) + x)
+            #print(BDD.nodes[current_node]["set"])
+    
+    return BDD.nodes[BDD.graph["indexing"][(-1, 0)]]["set"]
+
+scale= 0
+left_dim = 3 + scale
+right_dim = 3 + scale
+graph = nx.grid_graph([left_dim,right_dim])
+s = (0,0)
+t = (right_dim-1,left_dim-1)
+
+#graph = nx.barbell_graph(3,3)
+#s = 0
+#t = 8
+
+edge_list = list( graph.edges())
+m = len(edge_list)
+
+
+
+simpath = simple_paths(graph, edge_list, s,t)
+
+display_labels = { x : simpath.nodes[x]["display_data"] for x in simpath.nodes()}
+
+display_coordinates = { x : (simpath.nodes[x]["order"]*1000 ,m - simpath.nodes[x]["layer"]) for x in simpath.nodes()}
+
+display_coordinates[0] = ( .3,m - simpath.nodes[0]["layer"] )
+display_coordinates[1] = ( .6,m - simpath.nodes[0]["layer"] )
+
+print(len(simpath))
+print(simpath.graph["layer_widths"])
+
+
+
+
 print(count_accepting_paths(simpath))
+
+paths = enumerate_accepting_paths(simpath)
+
+paths_as_edgelists = []
+
+for x in paths:
+    path_edges = []
+    for i in range(len(edge_list)):
+        if x[i] == '1':
+            path_edges.append(edge_list[i])
+    paths_as_edgelists.append(path_edges)
+
+for path in paths_as_edgelists:
+    subgraph = nx.edge_subgraph(graph, path)
+    print(nx.is_tree(subgraph))
+    nx.draw(subgraph)
+    plt.close()
+    
+    
+bad_path = paths_as_edgelists[5]
+
+edge_color = {}
+for x in graph.edges():
+    edge_color[x] = 0
+for y in bad_path:
+    edge_color[y] = 1
+
+edge_colors = [edge_color[edge] for edge in edge_list]
+
+nx.draw(graph, edge_color= edge_colors)
+    
+    
+'''
+simpath.remove_node(0)
+
+arc_types = {}
+for edge in simpath.edges():
+    if edge[0].arc[0] == edge[1]:
+        arc_types[edge] = 'r'
+    if edge[0].arc[1] == edge[1]:
+        arc_types[edge] = 'b'
+    if edge[0].arc[0] == edge[1] and edge[0].arc[1] == edge[1]:
+        arc_types[edge] = 'g'
+
+
+for node in simpath.nodes():
+    if simpath.nodes[node]["display_data"] == 'R0':
+        strange_node = node
+(strange_node, strange_node.arc[1]) in simpath.edges()       
+        
+        
+arc_colors = [arc_types[edge] for edge in simpath.edges()]
+
+
+nx.draw(simpath, pos = display_coordinates, edge_color = arc_colors, labels = display_labels, with_labels = False, node_size = 100)'''
