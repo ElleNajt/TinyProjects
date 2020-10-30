@@ -33,10 +33,11 @@ import copy
 
 class BDD_node:
     
-    def __init__(self, layer, graph):
+    def __init__(self, layer, graph, order = 0):
         self.virtual_degrees = {x : 0 for x in graph.nodes()}
         self.virtual_components = { x : {y : False for y in graph.nodes()} for x in graph.nodes()}
         self.layer = layer
+        self.order = order # for plotting
         self.graph = graph
         self.arc = {} # stores the two arcs out
 
@@ -71,10 +72,15 @@ def simple_paths(graph, edge_list,s,t):
     BDD = nx.DiGraph()
     BDD.add_node(root)
     BDD.nodes[root]["display_data"] = 'R'
-    BDD.add_node(0)
-    BDD.add_node(1)
-    BDD.nodes[0]["display_data"] = 0
-    BDD.nodes[1]["display_data"] = 1
+    BDD.nodes[root]["order"] = 0
+    BDD.nodes[root]["layer"] = -1
+    
+    for i in [0,1]:
+        BDD.add_node(i)
+        BDD.nodes[i]["display_data"] = i
+        BDD.nodes[i]["order"] = i
+        BDD.nodes[i]["layer"] = m
+
     ## Create Frontier Sets
     frontiers = [] 
     # Note F_-1 = \emptyset -- if comparing to Kawahara et al., note that
@@ -86,6 +92,7 @@ def simple_paths(graph, edge_list,s,t):
         frontiers.append(frontier_set)
     ##
     for layer in range(m): # i in reference
+        order = 0
         for current_node in N[layer]:
             for arc_type in [0,1]: # choice of whether or not to include the edge
                 node_new = make_new_node(s,t,current_node, edge_list, frontiers, layer, arc_type) # returns a new node or a 0/1-terminal
@@ -98,7 +105,11 @@ def simple_paths(graph, edge_list,s,t):
                     if found_duplicate == False:
                         N[layer+1].add( node_new) # add node to ith layer
                         BDD.add_node(node_new) # add the new node to BDD
+                        
                         BDD.nodes[node_new]["display_data"] = BDD.nodes[current_node]["display_data"]+ str(arc_type)
+                        BDD.nodes[node_new]["order"] = order
+                        order += 1
+                        BDD.nodes[node_new]["layer"] = layer
                         BDD.add_edge(current_node, node_new)
                 if node_new == 1 or node_new == 0:
                     BDD.add_edge(current_node, node_new)
@@ -233,26 +244,34 @@ R(n) is the set of edges sets corresponding to paths from n to 1.
     """
     
     for vertex in frontier:
+
         if node_1.virtual_degrees[vertex] != node_2.virtual_degrees[vertex]:
             return False
-    for vertex_1, vertex_2 in frontier:
-        if node_1.virtual_components[vertex_1][vertex_2] != node_2.virtual_components[vertex_1][vertex_2]:
-            return False
+    for vertex_1 in frontier:
+        for vertex_2 in frontier:
+
+            if node_1.virtual_components[vertex_1][vertex_2] != node_2.virtual_components[vertex_1][vertex_2]:
+                return False
     return True
 
 
-
-graph = nx.grid_graph([2,2])
+size = 6
+graph = nx.grid_graph([size,size])
 s = (0,0)
-t = (1,1)
+t = (size-1,size-1)
 edge_list = list( graph.edges())
-
+m = len(edge_list)
 simpath = simple_paths(graph, edge_list, s,t)
 
 display_labels = { x : simpath.nodes[x]["display_data"] for x in simpath.nodes()}
 
+display_coordinates = { x : (simpath.nodes[x]["order"] ,m - simpath.nodes[x]["layer"]) for x in simpath.nodes()}
 
-nx.draw_planar(simpath, labels = display_labels, with_labels = True)
+display_coordinates[0] = ( .3,m - simpath.nodes[0]["layer"] )
+display_coordinates[1] = ( .6,m - simpath.nodes[0]["layer"] )
+
+    
+nx.draw(simpath, pos = display_coordinates, labels = display_labels, with_labels = True)
 def count_accepting_paths(BDD,root):
     """
     Parameters
