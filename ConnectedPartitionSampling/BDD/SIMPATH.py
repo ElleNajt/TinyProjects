@@ -137,6 +137,10 @@ def simple_paths(graph, edge_list,s,t):
                 if node_new == 1 or node_new == 0:
                     BDD.add_edge(current_node, node_new)
                 current_node.arc[arc_type] = node_new #set the x pointer of node to node_new
+                print(BDD.nodes[current_node]["display_data"])
+                for x in current_node.virtual_components.keys():
+                    print(x, current_node.virtual_components[x])
+                print('   ')
         if layer != m - 1:
             BDD.graph["layer_widths"][layer] = order
     return BDD
@@ -170,6 +174,7 @@ def make_new_node(s, t, current_node, edge_list, frontiers, layer, arc_type):
     
     v = edge[0]
     w = edge[1]
+
     if arc_type == 1:
         # this is the case of adding edge i
         if current_node.virtual_components[v][w] == True:
@@ -232,7 +237,7 @@ def update_node_info(node, edge_list, frontiers, layer, arc_type):
             #this means that u has entered the frontier for the first time
             #check indexing
             node.virtual_degrees[u] = 0 # this might be redundant
-            node.virtual_components[u][u] = 1
+            node.virtual_components[u][u] = True
     if arc_type == 1:
         for u in [v,w]:
             node.virtual_degrees[u] += 1
@@ -245,6 +250,10 @@ def update_node_info(node, edge_list, frontiers, layer, arc_type):
                 merge_set[x] = max( [v_component[x], w_component[x]] )
             node.virtual_components[v] = merge_set
             node.virtual_components[w] = merge_set
+            
+            for t in node.virtual_components.keys():
+                if node.virtual_components[u][t] == True:
+                    node.virtual_components[t][u] == True
     
     return 
 
@@ -327,9 +336,9 @@ def enumerate_accepting_paths(BDD):
     
     return BDD.nodes[BDD.graph["indexing"][(-1, 0)]]["set"]
 
-scale= 0
-left_dim = 3 + scale
-right_dim = 3 + scale
+scale= 1
+left_dim = 2 + scale
+right_dim = 2 + scale
 graph = nx.grid_graph([left_dim,right_dim])
 s = (0,0)
 t = (right_dim-1,left_dim-1)
@@ -355,12 +364,12 @@ display_coordinates[1] = ( .6,m - simpath.nodes[0]["layer"] )
 print(len(simpath))
 print(simpath.graph["layer_widths"])
 
-
+#101111001011T'
 
 
 print(count_accepting_paths(simpath))
 
-paths = enumerate_accepting_paths(simpath)
+paths = list(enumerate_accepting_paths(simpath))
 
 paths_as_edgelists = []
 
@@ -373,12 +382,14 @@ for x in paths:
 
 for path in paths_as_edgelists:
     subgraph = nx.edge_subgraph(graph, path)
-    print(nx.is_tree(subgraph))
+    if not (nx.is_tree(subgraph)):
+        bad_path_binary = paths[paths_as_edgelists.index(path)]
+        bad_path = path
     nx.draw(subgraph)
     plt.close()
     
     
-bad_path = paths_as_edgelists[5]
+#bad_path = paths_as_edgelists[5]
 
 edge_color = {}
 for x in graph.edges():
@@ -388,7 +399,7 @@ for y in bad_path:
 
 edge_colors = [edge_color[edge] for edge in edge_list]
 
-nx.draw(graph, edge_color= edge_colors)
+nx.draw(graph, edge_color= edge_colors, with_labels = True)
     
     
 '''
