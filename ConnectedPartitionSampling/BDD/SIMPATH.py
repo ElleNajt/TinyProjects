@@ -251,9 +251,11 @@ def update_node_info(node, edge_list, frontiers, layer, arc_type):
             node.virtual_components[v] = merge_set
             node.virtual_components[w] = merge_set
             
-            for t in node.virtual_components.keys():
+        ## Symmetrize
+        for t in node.virtual_components.keys():
+            for u in node.virtual_components.keys():
                 if node.virtual_components[u][t] == True:
-                    node.virtual_components[t][u] == True
+                    node.virtual_components[t][u] = True
     
     return 
 
