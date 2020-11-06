@@ -417,47 +417,47 @@ def enumerate_accepting_paths(BDD):
     
     return BDD.nodes[BDD.graph["indexing"][(-1, 0)]]["set"]
 
-scale= 4
-left_dim = 1+ scale
-right_dim = 1 + scale
-graph = nx.grid_graph([left_dim,right_dim])
-s = (0,0)
-t = (right_dim-1,left_dim-1)
+for scale in range(1,10):
+    print("size, " , scale + 1)
+    left_dim = 1+ scale
+    right_dim = 1 + scale
+    graph = nx.grid_graph([left_dim,right_dim])
+    s = (0,0)
+    t = (right_dim-1,left_dim-1)
+    
+    #graph = nx.barbell_graph(3,3)
+    #s = 0
+    #t = 8
+    
+    edge_list = list( graph.edges())
+    
+    #random.shuffle(edge_list)
+    # A random order is *much* worse!
+    
+    m = len(edge_list)
+    
+    
+    
+    simpath = simple_paths(graph, edge_list, s,t)
+    
+    display_labels = { x : simpath.nodes[x]["display_data"] for x in simpath.nodes()}
+    
+    display_coordinates = { x : (simpath.nodes[x]["order"]*1000 ,m - simpath.nodes[x]["layer"]) for x in simpath.nodes()}
+    
+    display_coordinates[0] = ( .3,m - simpath.nodes[0]["layer"] )
+    display_coordinates[1] = ( .6,m - simpath.nodes[0]["layer"] )
+    
+    print("size of BDD", len(simpath))
+    #print(simpath.graph["layer_widths"])
+    
+    #101111001011T'
+    
+    
+    # debugging_connectivity(simpath, graph)
+    
+    print("number of paths", count_accepting_paths(simpath))           
 
-#graph = nx.barbell_graph(3,3)
-#s = 0
-#t = 8
-
-edge_list = list( graph.edges())
-
-#random.shuffle(edge_list)
-## The failure of the connectivity check has something to do with the 
-## order of the edges. This suggests it has to do with the frontier set.
-
-
-m = len(edge_list)
-
-
-
-simpath = simple_paths(graph, edge_list, s,t)
-
-display_labels = { x : simpath.nodes[x]["display_data"] for x in simpath.nodes()}
-
-display_coordinates = { x : (simpath.nodes[x]["order"]*1000 ,m - simpath.nodes[x]["layer"]) for x in simpath.nodes()}
-
-display_coordinates[0] = ( .3,m - simpath.nodes[0]["layer"] )
-display_coordinates[1] = ( .6,m - simpath.nodes[0]["layer"] )
-
-print(len(simpath))
-print(simpath.graph["layer_widths"])
-
-#101111001011T'
-
-
-# debugging_connectivity(simpath, graph)
-
-print(count_accepting_paths(simpath))
-
+'''
 paths = list(enumerate_accepting_paths(simpath))
 
 
@@ -500,6 +500,7 @@ for path in paths_as_edgelists:
     
     
 #bad_path = paths_as_edgelists[5]
+'''
 '''
 edge_color = {}
 for x in graph.edges():
