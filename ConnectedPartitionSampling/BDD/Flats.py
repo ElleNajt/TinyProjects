@@ -38,6 +38,9 @@ class BDD_node:
     def __init__(self, layer, graph, order = 0):
         self.virtual_degrees = {x : 0 for x in graph.nodes()}
         self.virtual_components = { x : {y : False for y in graph.nodes()} for x in graph.nodes()}
+        for x in graph.nodes():
+            self.virtual_components[x][x] = True
+        self.virtual_discomponent = { x : {y : False for y in graph.nodes()} for x in graph.nodes()}
         self.layer = layer
         self.order = order # for plotting
         self.graph = graph
@@ -46,20 +49,15 @@ class BDD_node:
         self.current_subgraph = [] ## Just  used for debugging to store the current 
         ## set of edges. Only meaningful when we don't identify identical nodes.
 
-def simple_paths(graph, edge_list,s,t):
+def flats(graph, edge_list):
     """
     Parameters
     ----------
-    graph : TYPE
+    graph : graph
         DESCRIPTION.
-    edge_list : TYPE
+    edge_list : list
         DESCRIPTION.
-    s : vertex
-        start vertex
-    t : vertex
-        terminal vertex
-
-    Returns
+    Returns The BDD
     -------
     None.
 
@@ -93,10 +91,9 @@ def simple_paths(graph, edge_list,s,t):
         BDD.nodes[i]["layer"] = m-1
         BDD.graph["indexing"][(m-1,i)] = i
     BDD.graph["layer_widths"][m-1] = 2
+    
     ## Create Frontier Sets
     frontiers = [] 
-    # Note F_-1 = \emptyset -- if comparing to Kawahara et al., note that
-    # their edge indices start at 1.
     for i in range(m+1):
         left_subgraph = graph.edge_subgraph(edge_list[:i])
         right_subgraph = graph.edge_subgraph(edge_list[i:])
@@ -108,7 +105,7 @@ def simple_paths(graph, edge_list,s,t):
         order = 0
         for current_node in N[layer]:
             for arc_type in [0,1]: # choice of whether or not to include the edge
-                node_new = make_new_node(s,t,current_node, edge_list, frontiers, layer_ref, arc_type) # returns a new node or a 0/1-terminal
+                node_new = make_new_node(current_node, edge_list, frontiers, layer_ref, arc_type) # returns a new node or a 0/1-terminal
                 if not ( node_new == 1) and not ( node_new == 0):
                     found_duplicate = False
                     for node_other in N[layer+1]:
@@ -129,22 +126,15 @@ def simple_paths(graph, edge_list,s,t):
                 if node_new == 1 or node_new == 0:
                     BDD.add_edge(current_node, node_new)
                 current_node.arc[arc_type] = node_new #set the x pointer of node to node_new
-                #print(BDD.nodes[current_node]["display_data"])
-                #for x in current_node.virtual_components.keys():
-                #    print(x, current_node.virtual_components[x])
-                #print('   ')
+
         if layer != m - 1:
             BDD.graph["layer_widths"][layer] = order
     return BDD
 
-def make_new_node(s, t, current_node, edge_list, frontiers, layer_ref, arc_type):
+def make_new_node(current_node, edge_list, frontiers, layer_ref, arc_type):
     """
     Parameters
     ----------
-    s : vertex
-        start vertex
-    t : vertex
-        terminal vertex
     current_node : TYPE
         DESCRIPTION.
     edge_list : TYPE
@@ -166,40 +156,21 @@ def make_new_node(s, t, current_node, edge_list, frontiers, layer_ref, arc_type)
     
     v = edge[0]
     w = edge[1]
-    #print(edge, frontiers[layer + 1])
-    if arc_type == 1:
-        # this is the case of adding edge i
+    
+    if arc_type == 0:
         if current_node.virtual_components[v][w] == True:
-            # There already was a path from v to w, so we would create a cycle
-            # by including 
-            #print("REJECTED")
+            # v and w are connected, so must have
+            # the edge between them.
             return 0
     current_node_copy = copy.deepcopy(current_node)
     update_node_info(current_node_copy, edge_list, frontiers, layer_ref, arc_type)
+
+    if arc_type == 1:
+        if current_node.virtual_discomponent[v][w] == True:
+            # v and w are not connected, so adding
+            # an edge between them would be a contradiction
+            return 0
     
-    for u in [v,w]:
-        if (u == s or u == t) and current_node_copy.virtual_degrees[u] > 1:
-            #print(0)
-            return 0
-        if current_node_copy.virtual_degrees[u] > 2:
-            #print(0)
-            return 0
-        # two more termination conditions
-    for u in [v,w]:
-        if u not in frontiers[layer_ref]:
-            # u is never going to be touched again, so has to be in the 
-            # final form -- needs to be +2, since the frontier is always
-            # one behind the layer
-            if (u in [s,t]) and current_node_copy.virtual_degrees[u] != 1:
-                return 0
-            if (u not in [s,t]):
-                #print(u, current_node_copy.virtual_degrees[u])
-                if current_node_copy.virtual_degrees[u] not in [0,2]:
-                    #print("returned")
-                    return 0
-            
-            # now since u leaves the frontier, we can do some memory management
-            # jsut by removing it from the dictionary, python will handle rest
     if layer_ref - 1== len(edge_list) - 1:
         # this was the last edge, and we found no contradictions
         return 1
@@ -226,34 +197,32 @@ def update_node_info(node, edge_list, frontiers, layer_ref, arc_type):
     edge = edge_list[layer_ref - 1]
     v = edge[0]
     w = edge[1]
-    for u in [v,w]:
-        if u not in frontiers[layer_ref - 1]:
-            #this means that u has entered the frontier for the first time
-            #check indexing
-            node.virtual_degrees[u] = 0 # this might be redundant
-            node.virtual_components[u][u] = True
+
+    if arc_type == 0:
+        
+        ## everything in component C_v becomes disconnected from component C_w -- need to be careful here about Frontier set... so everythign in F intersect C_v ?
+        
+        print("anti1")
+
     if arc_type == 1:
-        
         node.current_subgraph.append(edge)
-        for u in [v,w]:
-            node.virtual_degrees[u] += 1
-            
-        merge_set = dict({})
         
+        
+        
+
+
+        # Extending Connectivity:
+        
+        merge_set = dict({})
         v_component = node.virtual_components[v]
         w_component = node.virtual_components[w]            
-        #print("before", v, w)
-        #print([t for t in v_component.keys() if v_component[t] == 1])
-        #print([t for t in w_component.keys() if w_component[t] == 1])
         for x in node.virtual_components.keys():
             merge_set[x] =  v_component[x] or w_component[x]
             
         for t in node.virtual_components.keys():
             node.virtual_components[v][t] = merge_set[t]
             node.virtual_components[w][t] = merge_set[t]
-        #print("after)")
-        #print([t for t in v_component.keys() if node.virtual_components[v][t] == 1])
-        #print([t for t in w_component.keys() if node.virtual_components[w][t] == 1])
+
         ## Symmetrize
         for t in node.virtual_components.keys():
             for u in node.virtual_components.keys():
@@ -262,13 +231,17 @@ def update_node_info(node, edge_list, frontiers, layer_ref, arc_type):
     
     
         ## Now take the transitive closure!
-        
         merged_component = [ t  for t in node.virtual_components.keys() if node.virtual_components[v][t] == True]
         
         for x in merged_component:
             for y in merged_component:
                 node.virtual_components[x][y] = True
         
+        
+        
+        ## Now use the extended connectivity to update the anti-connectedness.
+        
+        print("anti2")
     return 
 
 def identical(node_1, node_2, frontier, graph):
