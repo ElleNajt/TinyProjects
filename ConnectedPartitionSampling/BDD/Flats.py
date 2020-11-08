@@ -202,8 +202,17 @@ def update_node_info(node, edge_list, frontiers, layer_ref, arc_type):
         
         ## everything in component C_v becomes disconnected from component C_w -- need to be careful here about Frontier set... so everythign in F intersect C_v ?
         
-        print("anti1")
-
+        v_component = [ t  for t in node.virtual_components.keys() if node.virtual_components[v][t] == True]
+        for x in v_component:
+            node.virtual_discomponent[x][w] = True
+            node.virtual_discomponent[w][x] = True
+        
+        
+        w_component = [ t  for t in node.virtual_components.keys() if node.virtual_components[w][t] == True]
+        for x in v_component:
+            node.virtual_discomponent[x][v] = True
+            node.virtual_discomponent[v][x] = True
+        
     if arc_type == 1:
         node.current_subgraph.append(edge)
         
@@ -241,7 +250,17 @@ def update_node_info(node, edge_list, frontiers, layer_ref, arc_type):
         
         ## Now use the extended connectivity to update the anti-connectedness.
         
-        print("anti2")
+        for t in node.virtual_components.keys():
+            anti_connected = False
+            for x in merged_component:
+                if node.virtual_discomponent[t][x] == True:
+                    # need to make sure it is symmetric
+                    anti_connected = True
+            if anti_connected == True:
+                for x in merged_component:
+                    node.virtual_discomponent[t][x] = True
+                    node.virtual_discomponent[x][t] = True
+        
     return 
 
 def identical(node_1, node_2, frontier, graph):
@@ -322,7 +341,7 @@ def enumerate_accepting_paths(BDD):
     
     return BDD.nodes[BDD.graph["indexing"][(-1, 0)]]["set"]
 
-for scale in range(1,10):
+for scale in range(0,10):
     print("size, " , scale + 1)
     left_dim = 1+ scale
     right_dim = 1 + scale
@@ -343,19 +362,18 @@ for scale in range(1,10):
     
     
     
-    simpath = simple_paths(graph, edge_list, s,t)
+    BDD = flats(graph, edge_list)
     
-    display_labels = { x : simpath.nodes[x]["display_data"] for x in simpath.nodes()}
+    display_labels = { x : BDD.nodes[x]["display_data"] for x in BDD.nodes()}
     
-    display_coordinates = { x : (simpath.nodes[x]["order"]*1000 ,m - simpath.nodes[x]["layer"]) for x in simpath.nodes()}
+    display_coordinates = { x : (BDD.nodes[x]["order"]*1000 ,m - BDD.nodes[x]["layer"]) for x in BDD.nodes()}
     
-    display_coordinates[0] = ( .3,m - simpath.nodes[0]["layer"] )
-    display_coordinates[1] = ( .6,m - simpath.nodes[0]["layer"] )
+    display_coordinates[0] = ( .3,m - BDD.nodes[0]["layer"] )
+    display_coordinates[1] = ( .6,m - BDD.nodes[0]["layer"] )
     
-    print("size of BDD", len(simpath))
-    #print(simpath.graph["layer_widths"])
+    print("size of BDD", len(BDD))
     
     #101111001011T'
     
 
-    print("number of flats", count_accepting_paths(simpath))           
+    print("number of flats", count_accepting_paths(BDD))           

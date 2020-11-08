@@ -40,6 +40,26 @@ A note on the data structures:
 8 3266598486981642
 9 41044208702632496804
 
+size,  3
+size of BDD 61
+number of paths 12
+size,  4
+size of BDD 321
+number of paths 184
+size,  5
+size of BDD 1435
+number of paths 8512
+size,  6
+size of BDD 5777
+number of paths 1262816
+size,  7
+size of BDD 21793
+number of paths 575780564
+size,  8
+size of BDD 78592
+number of paths 789360053252
+size,  9
+
 """
 import time
 import networkx as nx
