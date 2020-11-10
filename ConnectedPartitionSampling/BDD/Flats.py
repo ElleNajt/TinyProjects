@@ -195,25 +195,28 @@ def make_new_node(current_node, edge_list, frontiers, layer_ref, arc_type):
             # an edge between them would be a contradiction
             return 0
     
-    if layer_ref - 1== len(edge_list) - 1:
-        # this was the last edge, and we found no contradictions
-        return 1
-    
     current_node_copy = copy.deepcopy(current_node)
     update_node_info(current_node_copy, edge_list, frontiers, layer_ref, arc_type)
     
+
     if contradictory(current_node_copy):
+        print("found contradiction -- should never happen")
         return 0
+    
+    if layer_ref - 1== len(edge_list) - 1:
+    # this was the last edge, and we found no contradictions
+        return 1
+    
     return current_node_copy
 
 def contradictory(node):
     for s in node.virtual_components.keys():
         for t in node.virtual_components.keys():
             if node.virtual_components[s][t] == True and node.virtual_discomponent[s][t] == True:
-                print(node.current_subgraph,s,t)
-                print(node.virtual_components)
-                for z in node.virtual_discomponent.keys():
-                    print(z, node.virtual_discomponent[z])
+                #print(node.current_subgraph,s,t)
+                #print(node.virtual_components)
+                #for z in node.virtual_discomponent.keys():
+                    #print(z, node.virtual_discomponent[z])
                 #print(node.virtual_discomponent)
                 return True
     return False
@@ -295,7 +298,7 @@ def update_node_info(node, edge_list, frontiers, layer_ref, arc_type):
         for t in node.virtual_components.keys():
             anti_connected = False
             for x in merged_component:
-                if node.virtual_discomponent[t][x] == True:
+                if node.virtual_discomponent[t][x] == True or node.virtual_discomponent[x][t] == True:
                     # need to make sure it is symmetric
                     anti_connected = True
             if anti_connected == True:
@@ -323,7 +326,7 @@ def identical(node_1, node_2, frontier, graph):
 R(n) is the set of edges sets corresponding to paths from n to 1. 
 
     """
-    frontier= graph.nodes() # Just for debugging
+    # frontier= graph.nodes() # Just for debugging
 
     for vertex_1 in frontier:
         for vertex_2 in frontier:
@@ -382,16 +385,16 @@ def enumerate_accepting_paths(BDD):
     
     return BDD.nodes[BDD.graph["indexing"][(-1, 0)]]["set"]
 
-for scale in range(1,2):
+for scale in range(1,5):
     print("size, " , scale + 1)
     left_dim = 1+ scale
     right_dim = 1 + scale
     
-    graph = nx.grid_graph([2, 3])
+    graph = nx.grid_graph([left_dim, right_dim])
 
     edge_list = list( graph.edges())
     
-    random.shuffle(edge_list)
+    #random.shuffle(edge_list)
     # A random order is *much* worse!
     
     m = len(edge_list)
@@ -416,10 +419,12 @@ for scale in range(1,2):
 
 
         
-    paths = list(enumerate_accepting_paths(BDD))
-    
+    #paths = list(enumerate_accepting_paths(BDD))
     
 
+print("BIG WARNING: You haven't worked out why this was giving the wrong answer for a random edge order! Even in the 2x3 case! And indeed this comes to bite you in the 4x4 case. It's over counting, which suggests that somewhere there is an error in how discomponents are propagated...")
+
+'''
 paths_as_edgelists = []
 bad_path = []
 
@@ -494,3 +499,4 @@ for path in missing_parts:
     plt.close()
 
 
+'''
