@@ -10,7 +10,7 @@ import copy
 import random
 import numpy as np
 import math
-import mpmath
+#import mpmath
 import time
 import matplotlib.pyplot as plt
 def partition_extendable(graph, in_set):
@@ -61,7 +61,7 @@ def back_tracking_recursion(input_graph, layer, in_set, out_set, new_in = set(),
 
     if layer == len(graph.edges()):
         graph.graph["coloring"] = old_coloring
-        return [in_set]
+        return [out_set]
 
     processed_edge= graph.graph["ordered_edges"][layer]
     layer += 1
@@ -81,7 +81,7 @@ def backtracking(graph):
 
     #print(graph.graph["ordered_edges"])
     graph.graph["coloring"] = {x : x for x in graph.nodes()}
-    #Each node will start in its own block, when we declare an edge to be in the outset, will will update the colors of the blocks contianing those two nodes to be the same. THis is done by having the smallest color win.
+    #Each node will start in its own block, when we declare an edge to be in the inset, will will update the colors of the blocks contianing those two nodes to be the same. THis is done by having the smallest color win.
 
     in_set = []
     out_set = []
@@ -99,10 +99,13 @@ def number_partitions_backtracking(input_graph):
     return counter
 
 
-#input_graph = nx.grid_graph([3,3])
-#number_partitions_backtracking(input_graph)
+input_graph = nx.grid_graph([2,3])
+number_partitions_backtracking(input_graph)
+#This appears to be in error -- it will give a 3 element set on the 2x2 grid graph
 
-
+list_of_partitions = backtracking(input_graph)
+cleaned_partitions = [x for x in list_of_partitions if x != False]
+print(cleaned_partitions)
 '''
 
 

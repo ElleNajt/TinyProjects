@@ -27,6 +27,32 @@ A note on the data structures:
     node.virtual_discomponent[v][w] -- maintains whether v cannot be connected to w. Symmetric, but not transitive. If v~w (connected) and w ~_a u then v ~_a u ... in other words, is propagated by the connected components 
 
 
+
+###Known Results from naive backtracking:
+https://oeis.org/A145835 gives "1, 12, 1434, 1691690, 19719299768, 2271230282824746, 2584855762327078145444, 29068227444022728740767607050, 3230042572278849047360048508956727420, 3546545075986984198328715750838554116235343894"
+    2x2: 12
+
+    3x3: 1,434
+    
+    2x3 : 74
+
+    5x3: 538,150
+
+    4x4: 1,691,690 (about an hour of computation)
+    Lower bound from spanning tree: 32768
+    Compare to the upper bound from edge subsets: 16,777,216
+
+    (Weird -- this suggests that there's a decent probability of just picking a connected partition??)
+
+    ---
+
+    For 3D graphs:
+
+    2x2x2: 958 ( < 1 second, .058)
+    3x2x2: 81,224 ( about 7 seconds)
+    3x3x2 : 975,00,024   [ 16397.374621391296 seconds - 4.5 hours]
+
+
 """
 import time
 import networkx as nx
@@ -36,7 +62,6 @@ import random
 class BDD_node:
     
     def __init__(self, layer, graph, order = 0):
-        self.virtual_degrees = {x : 0 for x in graph.nodes()}
         self.virtual_components = { x : {y : False for y in graph.nodes()} for x in graph.nodes()}
         for x in graph.nodes():
             self.virtual_components[x][x] = True
@@ -110,6 +135,7 @@ def flats(graph, edge_list):
                     found_duplicate = False
                     for node_other in N[layer+1]:
                         if identical(node_new, node_other, frontiers[layer_ref], graph):
+                        #if False:
                             node_new = node_other
                             found_duplicate = True
                             BDD.add_edge(current_node, node_new)
@@ -162,8 +188,6 @@ def make_new_node(current_node, edge_list, frontiers, layer_ref, arc_type):
             # v and w are connected, so must have
             # the edge between them.
             return 0
-    current_node_copy = copy.deepcopy(current_node)
-    update_node_info(current_node_copy, edge_list, frontiers, layer_ref, arc_type)
 
     if arc_type == 1:
         if current_node.virtual_discomponent[v][w] == True:
@@ -174,7 +198,25 @@ def make_new_node(current_node, edge_list, frontiers, layer_ref, arc_type):
     if layer_ref - 1== len(edge_list) - 1:
         # this was the last edge, and we found no contradictions
         return 1
+    
+    current_node_copy = copy.deepcopy(current_node)
+    update_node_info(current_node_copy, edge_list, frontiers, layer_ref, arc_type)
+    
+    if contradictory(current_node_copy):
+        return 0
     return current_node_copy
+
+def contradictory(node):
+    for s in node.virtual_components.keys():
+        for t in node.virtual_components.keys():
+            if node.virtual_components[s][t] == True and node.virtual_discomponent[s][t] == True:
+                print(node.current_subgraph,s,t)
+                print(node.virtual_components)
+                for z in node.virtual_discomponent.keys():
+                    print(z, node.virtual_discomponent[z])
+                #print(node.virtual_discomponent)
+                return True
+    return False
 
 def update_node_info(node, edge_list, frontiers, layer_ref, arc_type):
     """
@@ -209,7 +251,7 @@ def update_node_info(node, edge_list, frontiers, layer_ref, arc_type):
         
         
         w_component = [ t  for t in node.virtual_components.keys() if node.virtual_components[w][t] == True]
-        for x in v_component:
+        for x in w_component:
             node.virtual_discomponent[x][v] = True
             node.virtual_discomponent[v][x] = True
         
@@ -281,15 +323,14 @@ def identical(node_1, node_2, frontier, graph):
 R(n) is the set of edges sets corresponding to paths from n to 1. 
 
     """
-    # frontier= graph.nodes() # Just for debugging
-    for vertex in frontier:
+    frontier= graph.nodes() # Just for debugging
 
-        if node_1.virtual_degrees[vertex] != node_2.virtual_degrees[vertex]:
-            return False
     for vertex_1 in frontier:
         for vertex_2 in frontier:
 
             if node_1.virtual_components[vertex_1][vertex_2] != node_2.virtual_components[vertex_1][vertex_2]:
+                return False
+            if node_1.virtual_discomponent[vertex_1][vertex_2] != node_2.virtual_discomponent[vertex_1][vertex_2]:
                 return False
     return True
 
@@ -341,21 +382,16 @@ def enumerate_accepting_paths(BDD):
     
     return BDD.nodes[BDD.graph["indexing"][(-1, 0)]]["set"]
 
-for scale in range(0,10):
+for scale in range(1,2):
     print("size, " , scale + 1)
     left_dim = 1+ scale
     right_dim = 1 + scale
-    graph = nx.grid_graph([left_dim,right_dim])
-    s = (0,0)
-    t = (right_dim-1,left_dim-1)
     
-    #graph = nx.barbell_graph(3,3)
-    #s = 0
-    #t = 8
-    
+    graph = nx.grid_graph([2, 3])
+
     edge_list = list( graph.edges())
     
-    #random.shuffle(edge_list)
+    random.shuffle(edge_list)
     # A random order is *much* worse!
     
     m = len(edge_list)
@@ -377,3 +413,84 @@ for scale in range(0,10):
     
 
     print("number of flats", count_accepting_paths(BDD))           
+
+
+        
+    paths = list(enumerate_accepting_paths(BDD))
+    
+    
+
+paths_as_edgelists = []
+bad_path = []
+
+coords = {}
+
+for x in graph.nodes():
+    coords[x] = x
+for x in paths:
+    path_edges = []
+    for i in range(len(edge_list)):
+        if x[i] == '1':
+            path_edges.append(edge_list[i])
+    paths_as_edgelists.append(path_edges)
+
+
+    
+
+    
+paths_as_sets = [ set(x) for x in paths_as_edgelists]
+cleaned_parts = [ set(x) for x in cleaned_partitions]
+missing_parts = []
+for x in cleaned_parts:
+    found = False
+    for y in paths_as_sets:
+        passed = False
+        if len(x) == len(y):
+            passed = True
+            for edge in x:
+                if (edge not in y) and ((edge[1], edge[0]) not in y):
+                    passed = False
+        if passed == True:
+            found = True
+    if found == False:
+        missing_parts.append(x)
+        
+print(len(missing_parts))
+
+
+missing_parts = []
+for x in paths_as_sets:
+    found = False
+    for y in cleaned_parts:
+        passed = False
+        if len(x) == len(y):
+            passed = True
+            for edge in x:
+                if edge not in y and (edge[1], edge[0]) not in y:
+                    passed = False
+        if passed == True:
+            found = True
+    if found == False:
+        missing_parts.append(x)
+        
+print(len(missing_parts))
+
+
+
+for path in missing_parts:
+    subgraph = nx.edge_subgraph(graph, path)
+
+            
+    edge_color = {}
+    for x in graph.edges():
+        edge_color[x] = 1
+    for y in path:
+        edge_color[y] = 0
+    
+    edge_colors = [edge_color[edge] for edge in graph.edges()]
+    
+    nx.draw(graph,pos = coords, edge_color= edge_colors, with_labels = True, width = 4)
+    plt.savefig(str(time.time()) + ".png")
+    plt.close()
+
+
