@@ -100,12 +100,11 @@ def number_partitions_backtracking(input_graph):
 
 
 input_graph = nx.grid_graph([2,3])
-number_partitions_backtracking(input_graph)
+print(number_partitions_backtracking(input_graph))
 #This appears to be in error -- it will give a 3 element set on the 2x2 grid graph
 
 list_of_partitions = backtracking(input_graph)
 cleaned_partitions = [x for x in list_of_partitions if x != False]
-print(cleaned_partitions)
 '''
 
 

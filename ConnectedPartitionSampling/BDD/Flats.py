@@ -213,11 +213,6 @@ def contradictory(node):
     for s in node.virtual_components.keys():
         for t in node.virtual_components.keys():
             if node.virtual_components[s][t] == True and node.virtual_discomponent[s][t] == True:
-                #print(node.current_subgraph,s,t)
-                #print(node.virtual_components)
-                #for z in node.virtual_discomponent.keys():
-                    #print(z, node.virtual_discomponent[z])
-                #print(node.virtual_discomponent)
                 return True
     return False
 
@@ -245,18 +240,16 @@ def update_node_info(node, edge_list, frontiers, layer_ref, arc_type):
 
     if arc_type == 0:
         
-        ## everything in component C_v becomes disconnected from component C_w -- need to be careful here about Frontier set... so everythign in F intersect C_v ?
         
-        v_component = [ t  for t in node.virtual_components.keys() if node.virtual_components[v][t] == True]
-        for x in v_component:
-            node.virtual_discomponent[x][w] = True
-            node.virtual_discomponent[w][x] = True
+        for m,n in [(v,w), (w,v)]:
         
-        
-        w_component = [ t  for t in node.virtual_components.keys() if node.virtual_components[w][t] == True]
-        for x in w_component:
-            node.virtual_discomponent[x][v] = True
-            node.virtual_discomponent[v][x] = True
+            component_m = [ t  for t in node.virtual_components.keys() if node.virtual_components[m][t] == True]
+            component_n = [ t  for t in node.virtual_components.keys() if node.virtual_components[n][t] == True]
+            for x in component_m:
+                for y in component_n:
+                    node.virtual_discomponent[x][y] = True
+                    node.virtual_discomponent[y][x] = True
+            
         
     if arc_type == 1:
         node.current_subgraph.append(edge)
@@ -385,16 +378,16 @@ def enumerate_accepting_paths(BDD):
     
     return BDD.nodes[BDD.graph["indexing"][(-1, 0)]]["set"]
 
-for scale in range(1,5):
-    print("size, " , scale + 1)
-    left_dim = 1+ scale
-    right_dim = 1 + scale
+for scale in range(2,6):
+    print("size, " , scale)
+    left_dim = scale
+    right_dim = scale
     
     graph = nx.grid_graph([left_dim, right_dim])
 
     edge_list = list( graph.edges())
     
-    #random.shuffle(edge_list)
+    # random.shuffle(edge_list)
     # A random order is *much* worse!
     
     m = len(edge_list)
@@ -418,9 +411,39 @@ for scale in range(1,5):
     print("number of flats", count_accepting_paths(BDD))           
 
 
-        
-    #paths = list(enumerate_accepting_paths(BDD))
+    '''
+    paths = list(enumerate_accepting_paths(BDD))
     
+    paths_as_edgelists = []
+
+    coords = {}
+    
+    for x in graph.nodes():
+        coords[x] = x
+    for x in paths:
+        path_edges = []
+        for i in range(len(edge_list)):
+            if x[i] == '1':
+                path_edges.append(edge_list[i])
+        paths_as_edgelists.append(path_edges)
+    
+    for path in paths_as_edgelists:
+        subgraph = nx.edge_subgraph(graph, path)
+    
+                
+        edge_color = {}
+        for x in graph.edges():
+            edge_color[x] = 1
+            if x in path or (x[1], x[0]) in path:
+                edge_color[x] = 0
+        
+        edge_colors = [edge_color[edge] for edge in graph.edges()]
+        
+        nx.draw(graph,pos = coords, edge_color= edge_colors, with_labels = True, width = 4)
+        plt.savefig(str(time.time()) + ".png")
+        plt.close()
+    
+    '''
 
 print("BIG WARNING: You haven't worked out why this was giving the wrong answer for a random edge order! Even in the 2x3 case! And indeed this comes to bite you in the 4x4 case. It's over counting, which suggests that somewhere there is an error in how discomponents are propagated...")
 
