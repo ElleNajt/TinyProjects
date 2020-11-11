@@ -59,6 +59,8 @@ import networkx as nx
 import copy
 from matplotlib import pyplot as plt
 import random
+
+import pickle 
 class BDD_node:
     
     def __init__(self, layer, graph, order = 0):
@@ -135,7 +137,6 @@ def flats(graph, edge_list):
                     found_duplicate = False
                     for node_other in N[layer+1]:
                         if identical(node_new, node_other, frontiers[layer_ref], graph):
-                        #if False:
                             node_new = node_other
                             found_duplicate = True
                             BDD.add_edge(current_node, node_new)
@@ -378,12 +379,13 @@ def enumerate_accepting_paths(BDD):
     
     return BDD.nodes[BDD.graph["indexing"][(-1, 0)]]["set"]
 
-for scale in range(2,6):
-    print("size, " , scale)
+for scale in range(1,3):
     left_dim = scale
     right_dim = scale
     
-    graph = nx.grid_graph([left_dim, right_dim])
+    dimensions = [left_dim, right_dim]
+    print("dimensions: ", dimensions)
+    graph = nx.grid_graph(dimensions)
 
     edge_list = list( graph.edges())
     
@@ -408,8 +410,11 @@ for scale in range(2,6):
     #101111001011T'
     
 
-    print("number of flats", count_accepting_paths(BDD))           
+    print("number of flats", count_accepting_paths(BDD))    
 
+    BDD_name = str(dimensions) + ".p"       
+
+    pickle.dump( BDD, open( BDD_name, "wb"))
 
     '''
     paths = list(enumerate_accepting_paths(BDD))
@@ -444,8 +449,6 @@ for scale in range(2,6):
         plt.close()
     
     '''
-
-print("BIG WARNING: You haven't worked out why this was giving the wrong answer for a random edge order! Even in the 2x3 case! And indeed this comes to bite you in the 4x4 case. It's over counting, which suggests that somewhere there is an error in how discomponents are propagated...")
 
 '''
 paths_as_edgelists = []
