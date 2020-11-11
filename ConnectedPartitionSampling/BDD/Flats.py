@@ -379,7 +379,7 @@ def enumerate_accepting_paths(BDD):
     
     return BDD.nodes[BDD.graph["indexing"][(-1, 0)]]["set"]
 
-for scale in range(1,3):
+for scale in range(1,5):
     left_dim = scale
     right_dim = scale
     
@@ -414,7 +414,7 @@ for scale in range(1,3):
 
     BDD_name = str(dimensions) + ".p"       
 
-    pickle.dump( BDD, open( BDD_name, "wb"))
+    #pickle.dump( BDD, open( BDD_name, "wb"))
 
     '''
     paths = list(enumerate_accepting_paths(BDD))
