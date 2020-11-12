@@ -59,7 +59,8 @@ import networkx as nx
 import copy
 from matplotlib import pyplot as plt
 import random
-
+import gc
+#from memory_profiler import profile
 import pickle 
 class BDD_node:
     
@@ -75,8 +76,19 @@ class BDD_node:
         
         self.current_subgraph = [] ## Just  used for debugging to store the current 
         ## set of edges. Only meaningful when we don't identify identical nodes.
+        
+def copy_BDD_node(node):
+    # copies the things necessary for the BDD algorithm
+    new_node = BDD_node(node.layer, node.graph, node.order)
+    for x in node.graph.nodes():
+        for y in node.graph.nodes():
+            new_node.virtual_components[x][y] = node.virtual_components[x][y]
+            new_node.virtual_discomponent[x][y] = node.virtual_discomponent[x][y]
+            
+    return new_node  
 
 def flats(graph, edge_list):
+    
     """
     Parameters
     ----------
@@ -130,6 +142,7 @@ def flats(graph, edge_list):
     for layer in range(m): 
         layer_ref = layer + 1 # just to comport with the reference
         order = 0
+        gc.collect()
         for current_node in N[layer]:
             for arc_type in [0,1]: # choice of whether or not to include the edge
                 node_new = make_new_node(current_node, edge_list, frontiers, layer_ref, arc_type) # returns a new node or a 0/1-terminal
@@ -137,9 +150,13 @@ def flats(graph, edge_list):
                     found_duplicate = False
                     for node_other in N[layer+1]:
                         if identical(node_new, node_other, frontiers[layer_ref], graph):
+                            del node_new
+                            
                             node_new = node_other
                             found_duplicate = True
                             BDD.add_edge(current_node, node_new)
+
+
                     if found_duplicate == False:
                         N[layer+1].add( node_new) # add node to ith layer
                         BDD.add_node(node_new) # add the new node to BDD
@@ -196,13 +213,8 @@ def make_new_node(current_node, edge_list, frontiers, layer_ref, arc_type):
             # an edge between them would be a contradiction
             return 0
     
-    current_node_copy = copy.deepcopy(current_node)
+    current_node_copy = copy_BDD_node(current_node)
     update_node_info(current_node_copy, edge_list, frontiers, layer_ref, arc_type)
-    
-
-    if contradictory(current_node_copy):
-        print("found contradiction -- should never happen")
-        return 0
     
     if layer_ref - 1== len(edge_list) - 1:
     # this was the last edge, and we found no contradictions
@@ -210,12 +222,7 @@ def make_new_node(current_node, edge_list, frontiers, layer_ref, arc_type):
     
     return current_node_copy
 
-def contradictory(node):
-    for s in node.virtual_components.keys():
-        for t in node.virtual_components.keys():
-            if node.virtual_components[s][t] == True and node.virtual_discomponent[s][t] == True:
-                return True
-    return False
+
 
 def update_node_info(node, edge_list, frontiers, layer_ref, arc_type):
     """
@@ -225,7 +232,11 @@ def update_node_info(node, edge_list, frontiers, layer_ref, arc_type):
     ----------
     node : TYPE
         DESCRIPTION.
-    edge : TYPE
+    edge_list : TYPE
+        DESCRIPTION.
+    frontiers : TYPE
+        DESCRIPTION.
+    layer_ref : TYPE
         DESCRIPTION.
     arc_type : TYPE
         DESCRIPTION.
@@ -235,6 +246,7 @@ def update_node_info(node, edge_list, frontiers, layer_ref, arc_type):
     None.
 
     """
+    
     edge = edge_list[layer_ref - 1]
     v = edge[0]
     w = edge[1]
@@ -335,14 +347,14 @@ def count_accepting_paths(BDD):
     """
     Parameters
     ----------
-    BDD : TYPE
-        DESCRIPTION.
-    root : TYPE
-        DESCRIPTION.
+    BDD : BDD Object
+        The BDD encoding the function in question
 
     Returns
     -------
-    Number of paths from root to 1.
+    integer
+        Number of paths from root to 1. The number of elements in the set system
+        defined by the BDD.
 
     """
     BDD.nodes[0]["count"] = 0
@@ -359,9 +371,21 @@ def count_accepting_paths(BDD):
 
 
 def enumerate_accepting_paths(BDD):
+    """
     
-    ## Goal of this is mostly to debug the path counting
-    
+
+    Parameters
+    ----------
+    BDD : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    list
+        returns the list of succesful paths.
+
+    """
+
     BDD.nodes[0]["set"] = set()
     BDD.nodes[1]["set"] = set(['T'])
     m = BDD.graph["layers"]
@@ -375,16 +399,16 @@ def enumerate_accepting_paths(BDD):
                 child = [left_child, right_child][c]
                 for x in BDD.nodes[child]["set"]:
                     BDD.nodes[current_node]["set"].add( str(c) + x)
-            #print(BDD.nodes[current_node]["set"])
     
     return BDD.nodes[BDD.graph["indexing"][(-1, 0)]]["set"]
 
-for scale in range(1,5):
+for scale in range(6,8):
     left_dim = scale
     right_dim = scale
     
     dimensions = [left_dim, right_dim]
-    print("dimensions: ", dimensions)
+    #dimensions = [2,2,2]
+    print("working on: ", dimensions)
     graph = nx.grid_graph(dimensions)
 
     edge_list = list( graph.edges())
@@ -394,7 +418,7 @@ for scale in range(1,5):
     
     m = len(edge_list)
     
-    
+
     
     BDD = flats(graph, edge_list)
     
@@ -405,124 +429,12 @@ for scale in range(1,5):
     display_coordinates[0] = ( .3,m - BDD.nodes[0]["layer"] )
     display_coordinates[1] = ( .6,m - BDD.nodes[0]["layer"] )
     
+    #("dimensions: ", dimensions)
     print("size of BDD", len(BDD))
-    
-    #101111001011T'
-    
-
     print("number of flats", count_accepting_paths(BDD))    
 
     BDD_name = str(dimensions) + ".p"       
 
-    #pickle.dump( BDD, open( BDD_name, "wb"))
-
-    '''
-    paths = list(enumerate_accepting_paths(BDD))
-    
-    paths_as_edgelists = []
-
-    coords = {}
-    
-    for x in graph.nodes():
-        coords[x] = x
-    for x in paths:
-        path_edges = []
-        for i in range(len(edge_list)):
-            if x[i] == '1':
-                path_edges.append(edge_list[i])
-        paths_as_edgelists.append(path_edges)
-    
-    for path in paths_as_edgelists:
-        subgraph = nx.edge_subgraph(graph, path)
-    
-                
-        edge_color = {}
-        for x in graph.edges():
-            edge_color[x] = 1
-            if x in path or (x[1], x[0]) in path:
-                edge_color[x] = 0
-        
-        edge_colors = [edge_color[edge] for edge in graph.edges()]
-        
-        nx.draw(graph,pos = coords, edge_color= edge_colors, with_labels = True, width = 4)
-        plt.savefig(str(time.time()) + ".png")
-        plt.close()
-    
-    '''
-
-'''
-paths_as_edgelists = []
-bad_path = []
-
-coords = {}
-
-for x in graph.nodes():
-    coords[x] = x
-for x in paths:
-    path_edges = []
-    for i in range(len(edge_list)):
-        if x[i] == '1':
-            path_edges.append(edge_list[i])
-    paths_as_edgelists.append(path_edges)
-
-
-    
-
-    
-paths_as_sets = [ set(x) for x in paths_as_edgelists]
-cleaned_parts = [ set(x) for x in cleaned_partitions]
-missing_parts = []
-for x in cleaned_parts:
-    found = False
-    for y in paths_as_sets:
-        passed = False
-        if len(x) == len(y):
-            passed = True
-            for edge in x:
-                if (edge not in y) and ((edge[1], edge[0]) not in y):
-                    passed = False
-        if passed == True:
-            found = True
-    if found == False:
-        missing_parts.append(x)
-        
-print(len(missing_parts))
-
-
-missing_parts = []
-for x in paths_as_sets:
-    found = False
-    for y in cleaned_parts:
-        passed = False
-        if len(x) == len(y):
-            passed = True
-            for edge in x:
-                if edge not in y and (edge[1], edge[0]) not in y:
-                    passed = False
-        if passed == True:
-            found = True
-    if found == False:
-        missing_parts.append(x)
-        
-print(len(missing_parts))
-
-
-
-for path in missing_parts:
-    subgraph = nx.edge_subgraph(graph, path)
-
-            
-    edge_color = {}
-    for x in graph.edges():
-        edge_color[x] = 1
-    for y in path:
-        edge_color[y] = 0
-    
-    edge_colors = [edge_color[edge] for edge in graph.edges()]
-    
-    nx.draw(graph,pos = coords, edge_color= edge_colors, with_labels = True, width = 4)
-    plt.savefig(str(time.time()) + ".png")
-    plt.close()
-
-
-'''
+    pickle.dump( BDD, open( BDD_name, "wb"))
+    del BDD
+    gc.collect()

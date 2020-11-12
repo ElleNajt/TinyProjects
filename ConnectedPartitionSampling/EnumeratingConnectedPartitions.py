@@ -13,6 +13,9 @@ import math
 #import mpmath
 import time
 import matplotlib.pyplot as plt
+import gc
+
+
 def partition_extendable(graph, in_set):
     coloring = graph.graph["coloring"]
     for e in in_set:

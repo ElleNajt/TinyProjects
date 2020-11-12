@@ -1,6 +1,10 @@
 # Images
 *.png
 *.eps
+
+#PickledThings
+*.p
+
 plots/
 PhasteTransitionExperiments/Plots/
 Lattices/
