@@ -11,48 +11,39 @@ Adapted from Kawahara et al.
 Notational changes
 
 Kawahara:
-
+    
     i -> layer
     x -> arc_type
-
-
-
+    
+    
+    
 A note on the data structures:
-
+    
     node.virtual_components[v][w] is a dictionary that tells you if is connected. (Needs to be maintained as symmetric and transitive closed.)
-    to w -- it is only maintained and guaranteed correct for the particular
+    to w -- it is only maintained and guaranteed correct for the particular 
     Frontier set that is relevant! The rest is just junk, but allocated in
     memory anyway.
 
-    node.virtual_discomponent[v][w] -- maintains whether v cannot be connected to w. Symmetric, but not transitive. If v~w (connected) and w ~_a u then v ~_a u ... in other words, is propagated by the connected components
+    node.virtual_discomponent[v][w] -- maintains whether v cannot be connected to w. Symmetric, but not transitive. If v~w (connected) and w ~_a u then v ~_a u ... in other words, is propagated by the connected components 
 
+========
 
+Regarding 'the contradictions' : allowing in some edges that violate the
+connected/anti_connected relations. Allowing in all contradictions gives 
+all subsets -- which has a trivial BDD.
 
-###Known Results from naive backtracking:
-https://oeis.org/A145835 gives "1, 12, 1434, 1691690, 19719299768, 2271230282824746, 2584855762327078145444, 29068227444022728740767607050, 3230042572278849047360048508956727420, 3546545075986984198328715750838554116235343894"
-    2x2: 12
+The hope is that one can interpolate between no contradictions and unlimited
+contradictions in order to find a BDD from which one can do rejection sampling
+to get a uniform partition.
 
-    3x3: 1,434
+The problem with this is that the current way of identified nodes does not 
+seem to collapse nodes that define equal functions -- for instance, if you allow
+unlimited contradictions, you end up with more than E nodes...
 
-    2x3 : 74
-
-    5x3: 538,150
-
-    4x4: 1,691,690 (about an hour of computation)
-    Lower bound from spanning tree: 32768
-    Compare to the upper bound from edge subsets: 16,777,216
-
-    (Weird -- this suggests that there's a decent probability of just picking a connected partition??)
-
-    ---
-
-    For 3D graphs:
-
-    2x2x2: 958 ( < 1 second, .058)
-    3x2x2: 81,224 ( about 7 seconds)
-    3x3x2 : 975,00,024   [ 16397.374621391296 seconds - 4.5 hours]
-
-
+I'm not sure this is fixable -- the identity nodes remember the anti-connected/
+connected data about the Frontier... and allowing some number of contradictions
+allows flexibility there, but that flexibility has to be directly incorporated
+I think.
 """
 import time
 import networkx as nx
@@ -61,9 +52,9 @@ from matplotlib import pyplot as plt
 import random
 import gc
 #from memory_profiler import profile
-import pickle
+import pickle 
 class BDD_node:
-
+    
     def __init__(self, layer, graph, order = 0):
         self.virtual_components = { x : {y : False for y in graph.nodes()} for x in graph.nodes()}
         for x in graph.nodes():
@@ -73,10 +64,10 @@ class BDD_node:
         self.order = order # for plotting
         self.graph = graph
         self.arc = {} # stores the two arcs out
-
-        self.current_subgraph = [] ## Just  used for debugging to store the current
+        self.number_of_contradictions =  0 # used for the relaxation
+        self.current_subgraph = [] ## Just  used for debugging to store the current 
         ## set of edges. Only meaningful when we don't identify identical nodes.
-
+        
 def copy_BDD_node(node):
     # copies the things necessary for the BDD algorithm
     new_node = BDD_node(node.layer, node.graph, node.order)
@@ -84,11 +75,12 @@ def copy_BDD_node(node):
         for y in node.graph.nodes():
             new_node.virtual_components[x][y] = node.virtual_components[x][y]
             new_node.virtual_discomponent[x][y] = node.virtual_discomponent[x][y]
-
-    return new_node
+    new_node.number_of_contradictions = node.number_of_contradictions
+    
+    return new_node  
 
 def flats(graph, edge_list):
-
+    
     """
     Parameters
     ----------
@@ -101,8 +93,8 @@ def flats(graph, edge_list):
     None.
 
     """
-
-
+    
+    
     root = BDD_node("root", graph)
 
     m = len(edge_list)
@@ -112,7 +104,7 @@ def flats(graph, edge_list):
     # N is an auxiliary function that will create track of the layers
     for x in graph.nodes():
         root.virtual_components[x][x] = True
-
+    
     BDD = nx.DiGraph()
     BDD.graph["layers"] = m
     BDD.graph["indexing"] = {}
@@ -130,17 +122,16 @@ def flats(graph, edge_list):
         BDD.nodes[i]["layer"] = m-1
         BDD.graph["indexing"][(m-1,i)] = i
     BDD.graph["layer_widths"][m-1] = 2
-
+    
     ## Create Frontier Sets
-    frontiers = []
+    frontiers = [] 
     for i in range(m+1):
         left_subgraph = graph.edge_subgraph(edge_list[:i])
         right_subgraph = graph.edge_subgraph(edge_list[i:])
         frontier_set = set ( left_subgraph.nodes() ).intersection( set( right_subgraph.nodes()))
         frontiers.append(frontier_set)
     ##
-    print( [ len(x) for x in frontiers])
-    for layer in range(m):
+    for layer in range(m): 
         layer_ref = layer + 1 # just to comport with the reference
         order = 0
         gc.collect()
@@ -152,7 +143,7 @@ def flats(graph, edge_list):
                     for node_other in N[layer+1]:
                         if identical(node_new, node_other, frontiers[layer_ref], graph):
                             del node_new
-
+                            
                             node_new = node_other
                             found_duplicate = True
                             BDD.add_edge(current_node, node_new)
@@ -161,7 +152,7 @@ def flats(graph, edge_list):
                     if found_duplicate == False:
                         N[layer+1].add( node_new) # add node to ith layer
                         BDD.add_node(node_new) # add the new node to BDD
-
+                        
                         BDD.nodes[node_new]["display_data"] = BDD.nodes[current_node]["display_data"]+ str(arc_type)
                         BDD.nodes[node_new]["order"] = order
                         order += 1
@@ -176,7 +167,7 @@ def flats(graph, edge_list):
             BDD.graph["layer_widths"][layer] = order
     return BDD
 
-def make_new_node(current_node, edge_list, frontiers, layer_ref, arc_type):
+def make_new_node(current_node, edge_list, frontiers, layer_ref, arc_type, contradiction_limit = 1):
     """
     Parameters
     ----------
@@ -193,15 +184,16 @@ def make_new_node(current_node, edge_list, frontiers, layer_ref, arc_type):
 
     Returns
     -------
-    This populates the new nodes info, nand does checks to see if it should
+    This populates the new nodes info, nand does checks to see if it should 
     return 0 or 1 instead.
 
     """
     edge = edge_list[layer_ref - 1]
-
+    
     v = edge[0]
     w = edge[1]
-
+    
+    '''
     if arc_type == 0:
         if current_node.virtual_components[v][w] == True:
             # v and w are connected, so must have
@@ -213,21 +205,28 @@ def make_new_node(current_node, edge_list, frontiers, layer_ref, arc_type):
             # v and w are not connected, so adding
             # an edge between them would be a contradiction
             return 0
-
+    '''
+    
     current_node_copy = copy_BDD_node(current_node)
     update_node_info(current_node_copy, edge_list, frontiers, layer_ref, arc_type)
-
+    
+    if current_node_copy.virtual_discomponent[v][w] == True and current_node_copy.virtual_components[v][w] == True:
+        current_node_copy.number_of_contradictions += 1
+    
+    if current_node_copy.number_of_contradictions > contradiction_limit:
+        return 0
+    
     if layer_ref - 1== len(edge_list) - 1:
     # this was the last edge, and we found no contradictions
         return 1
-
+    
     return current_node_copy
 
 
 
 def update_node_info(node, edge_list, frontiers, layer_ref, arc_type):
     """
-
+    
 
     Parameters
     ----------
@@ -247,39 +246,39 @@ def update_node_info(node, edge_list, frontiers, layer_ref, arc_type):
     None.
 
     """
-
+    
     edge = edge_list[layer_ref - 1]
     v = edge[0]
     w = edge[1]
 
     if arc_type == 0:
-
-
+        
+        
         for m,n in [(v,w), (w,v)]:
-
+        
             component_m = [ t  for t in node.virtual_components.keys() if node.virtual_components[m][t] == True]
             component_n = [ t  for t in node.virtual_components.keys() if node.virtual_components[n][t] == True]
             for x in component_m:
                 for y in component_n:
                     node.virtual_discomponent[x][y] = True
                     node.virtual_discomponent[y][x] = True
-
-
+            
+        
     if arc_type == 1:
         node.current_subgraph.append(edge)
-
-
-
+        
+        
+        
 
 
         # Extending Connectivity:
-
+        
         merge_set = dict({})
         v_component = node.virtual_components[v]
-        w_component = node.virtual_components[w]
+        w_component = node.virtual_components[w]            
         for x in node.virtual_components.keys():
             merge_set[x] =  v_component[x] or w_component[x]
-
+            
         for t in node.virtual_components.keys():
             node.virtual_components[v][t] = merge_set[t]
             node.virtual_components[w][t] = merge_set[t]
@@ -289,19 +288,19 @@ def update_node_info(node, edge_list, frontiers, layer_ref, arc_type):
             for u in node.virtual_components.keys():
                 if node.virtual_components[u][t] == True:
                     node.virtual_components[t][u] = True
-
-
+    
+    
         ## Now take the transitive closure!
         merged_component = [ t  for t in node.virtual_components.keys() if node.virtual_components[v][t] == True]
-
+        
         for x in merged_component:
             for y in merged_component:
                 node.virtual_components[x][y] = True
-
-
-
+        
+        
+        
         ## Now use the extended connectivity to update the anti-connectedness.
-
+        
         for t in node.virtual_components.keys():
             anti_connected = False
             for x in merged_component:
@@ -312,12 +311,12 @@ def update_node_info(node, edge_list, frontiers, layer_ref, arc_type):
                 for x in merged_component:
                     node.virtual_discomponent[t][x] = True
                     node.virtual_discomponent[x][t] = True
-
-    return
+        
+    return 
 
 def identical(node_1, node_2, frontier, graph):
     """
-
+   
     Parameters
     ----------
     node_1 : BDD node
@@ -330,7 +329,7 @@ def identical(node_1, node_2, frontier, graph):
     Returns a boolean
     -------
     Returns True if R(node_1) == R(node_2), where
-R(n) is the set of edges sets corresponding to paths from n to 1.
+R(n) is the set of edges sets corresponding to paths from n to 1. 
 
     """
     # frontier= graph.nodes() # Just for debugging
@@ -342,6 +341,8 @@ R(n) is the set of edges sets corresponding to paths from n to 1.
                 return False
             if node_1.virtual_discomponent[vertex_1][vertex_2] != node_2.virtual_discomponent[vertex_1][vertex_2]:
                 return False
+    if node_1.number_of_contradictions != node_2.number_of_contradictions:
+        return False
     return True
 
 def count_accepting_paths(BDD):
@@ -366,14 +367,14 @@ def count_accepting_paths(BDD):
             current_node = BDD.graph["indexing"][(i,j)]
             left_child = current_node.arc[0]
             right_child = current_node.arc[1]
-            BDD.nodes[current_node]["count"] = BDD.nodes[left_child]["count"]  + BDD.nodes[right_child]["count"]
-
+            BDD.nodes[current_node]["count"] = BDD.nodes[left_child]["count"]  + BDD.nodes[right_child]["count"] 
+        
     return BDD.nodes[BDD.graph["indexing"][(-1, 0)]]["count"]
 
 
 def enumerate_accepting_paths(BDD):
     """
-
+    
 
     Parameters
     ----------
@@ -400,46 +401,42 @@ def enumerate_accepting_paths(BDD):
                 child = [left_child, right_child][c]
                 for x in BDD.nodes[child]["set"]:
                     BDD.nodes[current_node]["set"].add( str(c) + x)
-
+    
     return BDD.nodes[BDD.graph["indexing"][(-1, 0)]]["set"]
 
-for scale in range(1,7):
+for scale in range(1,6):
     left_dim = scale
     right_dim = scale
-
+    
     dimensions = [left_dim, right_dim]
-    dimensions = [3,3,3]
-    #print("working on: ", dimensions)
+    #dimensions = [2,2,2]
+    print("working on: ", dimensions)
     graph = nx.grid_graph(dimensions)
 
     edge_list = list( graph.edges())
-    #print(edge_list)
-    
-    
-    edge_list.sort() # This seems to help...
     
     # random.shuffle(edge_list)
     # A random order is *much* worse!
-
+    
     m = len(edge_list)
+    
 
-
-
+    
     BDD = flats(graph, edge_list)
-
+    
     display_labels = { x : BDD.nodes[x]["display_data"] for x in BDD.nodes()}
-
+    
     display_coordinates = { x : (BDD.nodes[x]["order"]*1000 ,m - BDD.nodes[x]["layer"]) for x in BDD.nodes()}
-
+    
     display_coordinates[0] = ( .3,m - BDD.nodes[0]["layer"] )
     display_coordinates[1] = ( .6,m - BDD.nodes[0]["layer"] )
-
-    print("dimensions: ", dimensions)
+    
+    #("dimensions: ", dimensions)
     print("size of BDD", len(BDD))
-    print("number of flats", count_accepting_paths(BDD))
+    print("number of flats", count_accepting_paths(BDD))    
 
-    BDD_name = str(dimensions) + ".p"
+    BDD_name = str(dimensions) + ".p"       
 
-    pickle.dump( BDD, open( BDD_name, "wb"))
-    del BDD
+    #pickle.dump( BDD, open( BDD_name, "wb"))
+    #del BDD
     gc.collect()
