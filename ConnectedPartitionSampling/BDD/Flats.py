@@ -74,9 +74,6 @@ class BDD_node:
         self.graph = graph
         self.arc = {} # stores the two arcs out
 
-        self.current_subgraph = [] ## Just  used for debugging to store the current
-        ## set of edges. Only meaningful when we don't identify identical nodes.
-
 def copy_BDD_node(node):
     # copies the things necessary for the BDD algorithm
     new_node = BDD_node(node.layer, node.graph, node.order)
@@ -144,7 +141,13 @@ def flats(graph, edge_list):
         layer_ref = layer + 1 # just to comport with the reference
         order = 0
         gc.collect()
+        print("on layer: ",  layer, "out of ", m-1)
+        if layer > 0:
+            print(" previous layer size was : ", len( N[layer]))
         for current_node in N[layer]:
+            
+            if order > 0 and order % 100 == 0:
+                gc.collect()
             for arc_type in [0,1]: # choice of whether or not to include the edge
                 node_new = make_new_node(current_node, edge_list, frontiers, layer_ref, arc_type) # returns a new node or a 0/1-terminal
                 if not ( node_new == 1) and not ( node_new == 0):
@@ -266,11 +269,6 @@ def update_node_info(node, edge_list, frontiers, layer_ref, arc_type):
 
 
     if arc_type == 1:
-        node.current_subgraph.append(edge)
-
-
-
-
 
         # Extending Connectivity:
 
@@ -403,7 +401,7 @@ def enumerate_accepting_paths(BDD):
 
     return BDD.nodes[BDD.graph["indexing"][(-1, 0)]]["set"]
 
-for scale in range(1,7):
+for scale in range(6,7):
     left_dim = scale
     right_dim = scale
 
