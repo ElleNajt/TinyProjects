@@ -58,10 +58,12 @@ import pickle
 class BDD_node:
     
     def __init__(self, layer, graph, order = 0):
-        self.virtual_components = { x : {y : False for y in graph.nodes()} for x in graph.nodes()}
+        self.virtual_components = { x : {y : False for y in graph.nodes()} 
+                                   for x in graph.nodes()}
         for x in graph.nodes():
             self.virtual_components[x][x] = True
-        self.virtual_discomponent = { x : {y : False for y in graph.nodes()} for x in graph.nodes()}
+        self.virtual_discomponent = { x : {y : False for y in graph.nodes()} 
+                                     for x in graph.nodes()}
         self.layer = layer
         self.order = order # for plotting
         self.graph = graph
@@ -72,24 +74,28 @@ class BDD_node:
         new_node = BDD_node(self.layer, self.graph, self.order)
         for x in self.graph.nodes():
             for y in self.graph.nodes():
-                new_node.virtual_components[x][y] = self.virtual_components[x][y]
-                new_node.virtual_discomponent[x][y] = self.virtual_discomponent[x][y]
+                new_node.virtual_components[x][y] = \
+                    self.virtual_components[x][y]
+                new_node.virtual_discomponent[x][y] = \
+                    self.virtual_discomponent[x][y]
 
         return new_node
 
 
 def flats(graph, edge_list):
-
     """
     Parameters
     ----------
-    graph : graph
-        DESCRIPTION.
+
+    graph : networkx graph
+        the graph whose connected partitions owe want.
     edge_list : list
-        DESCRIPTION.
-    Returns The BDD
+        list of edges of graph, to fix and order in which to process them.
+    
+    Returns
     -------
-    None.
+    BDD : networkx digraph
+        The BDD for flats of graph.
 
     """
 
@@ -97,10 +103,10 @@ def flats(graph, edge_list):
     root = BDD_node("root", graph)
 
     m = len(edge_list)
-    N = [set( [root])]  # change to layer nodes or something
+    N = [set( [root])]
     for i in range(1, m+1):
         N.append( set() )
-    # N is an auxiliary function that will create track of the layers
+    # N is an auxiliary function that will keep  track of the layers
     for x in graph.nodes():
         root.virtual_components[x][x] = True
 
@@ -127,27 +133,34 @@ def flats(graph, edge_list):
     for i in range(m+1):
         left_subgraph = graph.edge_subgraph(edge_list[:i])
         right_subgraph = graph.edge_subgraph(edge_list[i:])
-        frontier_set = set ( left_subgraph.nodes() ).intersection( set( right_subgraph.nodes()))
+        frontier_set = set ( left_subgraph.nodes() ).intersection( 
+            set( right_subgraph.nodes()))
         frontiers.append(frontier_set)
     ##
     print( [ len(x) for x in frontiers])
     for layer in range(m):
-        layer_ref = layer + 1 # just to comport with the reference
+        layer_ref = layer + 1 # to comport with the reference
         order = 0
         gc.collect()
-        print("on layer: ",  layer, "out of ", m-1)
-        if layer > 0:
-            print(" previous layer size was : ", len( N[layer]))
+        #print("on layer: ",  layer, "out of ", m-1)
+        #if layer > 0:
+        #    print(" previous layer size was : ", len( N[layer]))
         for current_node in N[layer]:
             
             if order > 0 and order % 100 == 0:
-                gc.collect()
-            for arc_type in [0,1]: # choice of whether or not to include the edge
-                node_new = make_new_node(current_node, edge_list, frontiers, layer_ref, arc_type) # returns a new node or a 0/1-terminal
+                gc.collect() # Not sure if this is necessary or useful.
+                
+            for arc_type in [0,1]: 
+                # choice of whether or not to include the edge
+                node_new = make_new_node(current_node, 
+                                         edge_list, frontiers, 
+                                         layer_ref, arc_type) 
+                # returns a new node or a 0/1-terminal
                 if not ( node_new == 1) and not ( node_new == 0):
                     found_duplicate = False
                     for node_other in N[layer+1]:
-                        if identical(node_new, node_other, frontiers[layer_ref], graph):
+                        if identical(node_new, node_other, 
+                                     frontiers[layer_ref], graph):
                             del node_new
 
                             node_new = node_other
@@ -159,7 +172,9 @@ def flats(graph, edge_list):
                         N[layer+1].add( node_new) # add node to ith layer
                         BDD.add_node(node_new) # add the new node to BDD
 
-                        BDD.nodes[node_new]["display_data"] = BDD.nodes[current_node]["display_data"]+ str(arc_type)
+                        BDD.nodes[node_new]["display_data"] = ( 
+                            BDD.nodes[current_node]["display_data"]
+                            + str(arc_type))
                         BDD.nodes[node_new]["order"] = order
                         order += 1
                         BDD.nodes[node_new]["layer"] = layer
@@ -167,7 +182,9 @@ def flats(graph, edge_list):
                         BDD.add_edge(current_node, node_new)
                 if node_new == 1 or node_new == 0:
                     BDD.add_edge(current_node, node_new)
-                current_node.arc[arc_type] = node_new #set the x pointer of node to node_new
+                
+                current_node.arc[arc_type] = node_new 
+                #sets the x pointer of node to node_new
 
         if layer != m - 1:
             BDD.graph["layer_widths"][layer] = order
@@ -190,7 +207,7 @@ def make_new_node(current_node, edge_list, frontiers, layer_ref, arc_type):
 
     Returns
     -------
-    This populates the new nodes info, nand does checks to see if it should
+    This populates the new nodes info, and checks to see if it should
     return 0 or 1 instead.
 
     """
@@ -212,7 +229,8 @@ def make_new_node(current_node, edge_list, frontiers, layer_ref, arc_type):
             return 0
 
     current_node_copy = copy.copy(current_node)
-    update_node_info(current_node_copy, edge_list, frontiers, layer_ref, arc_type)
+    update_node_info(current_node_copy, edge_list, frontiers, 
+                     layer_ref, arc_type)
 
     if layer_ref - 1== len(edge_list) - 1:
     # this was the last edge, and we found no contradictions
@@ -254,8 +272,10 @@ def update_node_info(node, edge_list, frontiers, layer_ref, arc_type):
 
         for m,n in [(v,w), (w,v)]:
 
-            component_m = [ t  for t in node.virtual_components.keys() if node.virtual_components[m][t] == True]
-            component_n = [ t  for t in node.virtual_components.keys() if node.virtual_components[n][t] == True]
+            component_m = [ t  for t in node.virtual_components.keys() 
+                           if node.virtual_components[m][t] == True]
+            component_n = [ t  for t in node.virtual_components.keys() 
+                           if node.virtual_components[n][t] == True]
             for x in component_m:
                 for y in component_n:
                     node.virtual_discomponent[x][y] = True
@@ -284,7 +304,8 @@ def update_node_info(node, edge_list, frontiers, layer_ref, arc_type):
 
 
         ## Now take the transitive closure!
-        merged_component = [ t  for t in node.virtual_components.keys() if node.virtual_components[v][t] == True]
+        merged_component = [ t  for t in node.virtual_components.keys() 
+                            if node.virtual_components[v][t] == True]
 
         for x in merged_component:
             for y in merged_component:
@@ -297,7 +318,8 @@ def update_node_info(node, edge_list, frontiers, layer_ref, arc_type):
         for t in node.virtual_components.keys():
             anti_connected = False
             for x in merged_component:
-                if node.virtual_discomponent[t][x] == True or node.virtual_discomponent[x][t] == True:
+                if (node.virtual_discomponent[t][x] == True or
+                    node.virtual_discomponent[x][t] == True):
                     # need to make sure it is symmetric
                     anti_connected = True
             if anti_connected == True:
@@ -330,9 +352,11 @@ R(n) is the set of edges sets corresponding to paths from n to 1.
     for vertex_1 in frontier:
         for vertex_2 in frontier:
 
-            if node_1.virtual_components[vertex_1][vertex_2] != node_2.virtual_components[vertex_1][vertex_2]:
+            if (node_1.virtual_components[vertex_1][vertex_2] != 
+                node_2.virtual_components[vertex_1][vertex_2]):
                 return False
-            if node_1.virtual_discomponent[vertex_1][vertex_2] != node_2.virtual_discomponent[vertex_1][vertex_2]:
+            if (node_1.virtual_discomponent[vertex_1][vertex_2] != 
+                node_2.virtual_discomponent[vertex_1][vertex_2]):
                 return False
     return True
 
@@ -346,8 +370,8 @@ def count_accepting_paths(BDD):
     Returns
     -------
     integer
-        Number of paths from root to 1. The number of elements in the set system
-        defined by the BDD.
+        Number of paths from root to 1. The number of elements in 
+        the set system defined by the BDD.
 
     """
     BDD.nodes[0]["count"] = 0
@@ -358,7 +382,9 @@ def count_accepting_paths(BDD):
             current_node = BDD.graph["indexing"][(i,j)]
             left_child = current_node.arc[0]
             right_child = current_node.arc[1]
-            BDD.nodes[current_node]["count"] = BDD.nodes[left_child]["count"]  + BDD.nodes[right_child]["count"]
+            BDD.nodes[current_node]["count"] \
+                = (BDD.nodes[left_child]["count"]
+                 + BDD.nodes[right_child]["count"])
 
     return BDD.nodes[BDD.graph["indexing"][(-1, 0)]]["count"]
 
@@ -421,7 +447,8 @@ for scale in range(3,7):
 
     display_labels = { x : BDD.nodes[x]["display_data"] for x in BDD.nodes()}
 
-    display_coordinates = { x : (BDD.nodes[x]["order"]*1000 ,m - BDD.nodes[x]["layer"]) for x in BDD.nodes()}
+    display_coordinates = { x : (BDD.nodes[x]["order"]*1000 ,
+                                 m - BDD.nodes[x]["layer"]) for x in BDD.nodes()}
 
     display_coordinates[0] = ( .3,m - BDD.nodes[0]["layer"] )
     display_coordinates[1] = ( .6,m - BDD.nodes[0]["layer"] )
