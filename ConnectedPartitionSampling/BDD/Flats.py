@@ -137,7 +137,7 @@ def flats(graph, edge_list):
             set( right_subgraph.nodes()))
         frontiers.append(frontier_set)
     ##
-    print( [ len(x) for x in frontiers])
+    print("Frontier Sizes: ",  [ len(x) for x in frontiers])
     for layer in range(m):
         layer_ref = layer + 1 # to comport with the reference
         order = 0
@@ -243,19 +243,18 @@ def make_new_node(current_node, edge_list, frontiers, layer_ref, arc_type):
 def update_node_info(node, edge_list, frontiers, layer_ref, arc_type):
     """
 
-
     Parameters
     ----------
-    node : TYPE
-        DESCRIPTION.
-    edge_list : TYPE
-        DESCRIPTION.
-    frontiers : TYPE
-        DESCRIPTION.
-    layer_ref : TYPE
-        DESCRIPTION.
-    arc_type : TYPE
-        DESCRIPTION.
+    node : bdd node
+        the current node.
+    edge_list : list of edges
+        list of edges in the graph.
+    frontiers : list
+        list of frontier sets.
+    layer_ref : integer
+        current layer.
+    arc_type : integer
+        0/1 depending on whether including this edge
 
     Returns
     -------
@@ -331,21 +330,20 @@ def update_node_info(node, edge_list, frontiers, layer_ref, arc_type):
 
 def identical(node_1, node_2, frontier, graph):
     """
-
     Parameters
     ----------
     node_1 : BDD node
         DESCRIPTION.
     node_2 : BDD node
         DESCRIPTION.
-    frontier : TYPE
-        DESCRIPTION.
+    frontier : set of edges
+        current frontier set.
 
-    Returns a boolean
+    Returns
     -------
-    Returns True if R(node_1) == R(node_2), where
-R(n) is the set of edges sets corresponding to paths from n to 1.
-
+    boolean : 
+        True if R(node_1) == R(node_2), where
+        R(n) is the set of edges sets corresponding to paths from n to 1.
     """
     # frontier= graph.nodes() # Just for debugging
 
@@ -391,12 +389,10 @@ def count_accepting_paths(BDD):
 
 def enumerate_accepting_paths(BDD):
     """
-
-
     Parameters
     ----------
-    BDD : TYPE
-        DESCRIPTION.
+    BDD : networkx graph with bdd_nodes
+        the bdd.
 
     Returns
     -------
@@ -421,44 +417,50 @@ def enumerate_accepting_paths(BDD):
 
     return BDD.nodes[BDD.graph["indexing"][(-1, 0)]]["set"]
 
-for scale in range(3,7):
-    left_dim = scale
-    right_dim = scale
 
-    dimensions = [left_dim, right_dim]
-    #dimensions = [3,3,3]
-    #print("working on: ", dimensions)
-    graph = nx.grid_graph(dimensions)
 
-    edge_list = list( graph.edges())
-    #print(edge_list)
+def test():
+    
+    for scale in range(2,7):
+        left_dim = scale
+        right_dim = scale
+    
+        dimensions = [left_dim, right_dim]
+        #dimensions = [3,3,3]
+        #print("working on: ", dimensions)
+        graph = nx.grid_graph(dimensions)
+    
+        edge_list = list( graph.edges())
+        #print(edge_list)
+        
+        
+        edge_list.sort() # This seems to help...
+        
+        # random.shuffle(edge_list)
+        # A random order is *much* worse!
+    
+        m = len(edge_list)
     
     
-    edge_list.sort() # This seems to help...
     
-    # random.shuffle(edge_list)
-    # A random order is *much* worse!
+        BDD = flats(graph, edge_list)
+    
+        display_labels = { x : BDD.nodes[x]["display_data"] for x in BDD.nodes()}
+    
+        display_coordinates = { x : (BDD.nodes[x]["order"]*1000 ,
+                                     m - BDD.nodes[x]["layer"]) for x in BDD.nodes()}
+    
+        display_coordinates[0] = ( .3,m - BDD.nodes[0]["layer"] )
+        display_coordinates[1] = ( .6,m - BDD.nodes[0]["layer"] )
+    
+        print("dimensions: ", dimensions)
+        print("size of BDD", len(BDD))
+        print("number of flats", count_accepting_paths(BDD))
+    
+        BDD_name = str(dimensions) + ".p"
+    
+        pickle.dump( BDD, open( BDD_name, "wb"))
+        del BDD
+        gc.collect()
 
-    m = len(edge_list)
-
-
-
-    BDD = flats(graph, edge_list)
-
-    display_labels = { x : BDD.nodes[x]["display_data"] for x in BDD.nodes()}
-
-    display_coordinates = { x : (BDD.nodes[x]["order"]*1000 ,
-                                 m - BDD.nodes[x]["layer"]) for x in BDD.nodes()}
-
-    display_coordinates[0] = ( .3,m - BDD.nodes[0]["layer"] )
-    display_coordinates[1] = ( .6,m - BDD.nodes[0]["layer"] )
-
-    print("dimensions: ", dimensions)
-    print("size of BDD", len(BDD))
-    print("number of flats", count_accepting_paths(BDD))
-
-    BDD_name = str(dimensions) + ".p"
-
-    pickle.dump( BDD, open( BDD_name, "wb"))
-    del BDD
-    gc.collect()
+test()
