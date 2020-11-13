@@ -33,6 +33,9 @@ The frontier data to be maintained for BDD for flats
     then node.virtual_discomponent[v][a].
 
 
+Disclaimer/Todo: I have not yet written down a formal proof that this works, but should
+be doable.
+
 ###Known Results:
     
 https://oeis.org/A145835 gives "1, 12, 1434, 1691690, 19719299768, 
