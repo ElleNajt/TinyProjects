@@ -4,53 +4,45 @@ Created on Wed Sep 30 21:51:26 2020
 
 @author: lnajt
 
-An implementation of Kawahara et al. Frontier search algorithm specialized to flats.
+An implementation of Kawahara et al. Frontier search algorithm specialized to 
+flats.
 
-Adapted from Kawahara et al.
+Here flats of a graph refer to the flats of the graphic matroid.
+For a given connected partition of the vertices, the associated flat is
+the set of edges that have both endpoints in the same block. So this is 
+equivalent to building a BDD for connected partitions.
 
-Notational changes
 
-Kawahara:
+Adapted from Kawahara et al. "Frontier-Based Search for Enumerating All
+ Constrained Subgraphs with Compressed Representation"
+
+Notational changes from reference:
 
     i -> layer
     x -> arc_type
 
 
+The frontier data to be maintained for BDD for flats
 
-A note on the data structures:
-
-    node.virtual_components[v][w] is a dictionary that tells you if is connected. (Needs to be maintained as symmetric and transitive closed.)
-    to w -- it is only maintained and guaranteed correct for the particular
-    Frontier set that is relevant! The rest is just junk, but allocated in
-    memory anyway.
-
-    node.virtual_discomponent[v][w] -- maintains whether v cannot be connected to w. Symmetric, but not transitive. If v~w (connected) and w ~_a u then v ~_a u ... in other words, is propagated by the connected components
-
+    node.virtual_components[v][w] is a dictionary that tells you if v,w are 
+    connected. (Needs to be maintained as symmetric and transitive closed.)
+    
+    node.virtual_discomponent[v][w] -- maintains whether v cannot be connected 
+    to w. Symmetric, but not transitive. 
+    If node.virtual_components[v][w] and node.virtual_discomponent[w][a] 
+    then node.virtual_discomponent[v][a].
 
 
-###Known Results from naive backtracking:
-https://oeis.org/A145835 gives "1, 12, 1434, 1691690, 19719299768, 2271230282824746, 2584855762327078145444, 29068227444022728740767607050, 3230042572278849047360048508956727420, 3546545075986984198328715750838554116235343894"
-    2x2: 12
+###Known Results:
+    
+https://oeis.org/A145835 gives "1, 12, 1434, 1691690, 19719299768, 
+2271230282824746, 2584855762327078145444, 29068227444022728740767607050, 
+3230042572278849047360048508956727420, 
+3546545075986984198328715750838554116235343894"
 
-    3x3: 1,434
-
-    2x3 : 74
-
-    5x3: 538,150
-
-    4x4: 1,691,690 (about an hour of computation)
-    Lower bound from spanning tree: 32768
-    Compare to the upper bound from edge subsets: 16,777,216
-
-    (Weird -- this suggests that there's a decent probability of just picking a connected partition??)
-
-    ---
-
-    For 3D graphs:
-
-    2x2x2: 958 ( < 1 second, .058)
-    3x2x2: 81,224 ( about 7 seconds)
-    3x3x2 : 975,00,024   [ 16397.374621391296 seconds - 4.5 hours]
+2x2x2: 958 
+3x2x2: 81,224 
+3x3x2 : 975,00,024 
 
 
 """
@@ -62,8 +54,9 @@ import random
 import gc
 #from memory_profiler import profile
 import pickle
-class BDD_node:
 
+class BDD_node:
+    
     def __init__(self, layer, graph, order = 0):
         self.virtual_components = { x : {y : False for y in graph.nodes()} for x in graph.nodes()}
         for x in graph.nodes():
@@ -74,15 +67,16 @@ class BDD_node:
         self.graph = graph
         self.arc = {} # stores the two arcs out
 
-def copy_BDD_node(node):
-    # copies the things necessary for the BDD algorithm
-    new_node = BDD_node(node.layer, node.graph, node.order)
-    for x in node.graph.nodes():
-        for y in node.graph.nodes():
-            new_node.virtual_components[x][y] = node.virtual_components[x][y]
-            new_node.virtual_discomponent[x][y] = node.virtual_discomponent[x][y]
+    def __copy__(self):
+        
+        new_node = BDD_node(self.layer, self.graph, self.order)
+        for x in self.graph.nodes():
+            for y in self.graph.nodes():
+                new_node.virtual_components[x][y] = self.virtual_components[x][y]
+                new_node.virtual_discomponent[x][y] = self.virtual_discomponent[x][y]
 
-    return new_node
+        return new_node
+
 
 def flats(graph, edge_list):
 
@@ -217,7 +211,7 @@ def make_new_node(current_node, edge_list, frontiers, layer_ref, arc_type):
             # an edge between them would be a contradiction
             return 0
 
-    current_node_copy = copy_BDD_node(current_node)
+    current_node_copy = copy.copy(current_node)
     update_node_info(current_node_copy, edge_list, frontiers, layer_ref, arc_type)
 
     if layer_ref - 1== len(edge_list) - 1:
@@ -401,12 +395,12 @@ def enumerate_accepting_paths(BDD):
 
     return BDD.nodes[BDD.graph["indexing"][(-1, 0)]]["set"]
 
-for scale in range(6,7):
+for scale in range(3,7):
     left_dim = scale
     right_dim = scale
 
     dimensions = [left_dim, right_dim]
-    dimensions = [3,3,3]
+    #dimensions = [3,3,3]
     #print("working on: ", dimensions)
     graph = nx.grid_graph(dimensions)
 
