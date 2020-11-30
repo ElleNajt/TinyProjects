@@ -101,13 +101,14 @@ def number_partitions_backtracking(input_graph):
             counter += 1
     return counter
 
+'''
 
-input_graph = nx.grid_graph([2,3])
+input_graph = nx.grid_graph([2,2])
 print(number_partitions_backtracking(input_graph))
-#This appears to be in error -- it will give a 3 element set on the 2x2 grid graph
 
 list_of_partitions = backtracking(input_graph)
 cleaned_partitions = [x for x in list_of_partitions if x != False]
+'''
 '''
 
 
@@ -206,6 +207,14 @@ def test_rejection_sample(graph, goal = 1):
 
     return samples
 
+def estimate_ratio(graph, trials = 100000):
+    number = 0
+    
+    for i in range(trials):
+        new = rejection_sample(graph)
+        if new != False:
+            number += 1
+    return number, trials, number/trials
 '''
 
 This works pretty well for 6x6
@@ -616,3 +625,13 @@ Whatabout number of colors?
 
 --
 '''
+
+samples_list = []
+for i in range(1):
+    
+    input_graph = nx.grid_graph([3,3,3])
+    sample = test_rejection_sample(input_graph,1)
+    print( len(sample[0][0]))
+    samples_list.append(sample)
+    
+print(estimate_ratio(input_graph, 1000000))
