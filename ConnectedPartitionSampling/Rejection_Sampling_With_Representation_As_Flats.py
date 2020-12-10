@@ -57,6 +57,26 @@ def rejection_sample(graph):
             return False
     return [J, coloring]
 
+def update_coloring(graph, edge):
+    #Here we add edge to the set of non-cut edges, meaning that the two endpoints are now definately in the same connected compoennt. WE update the coloring to reflect that.
+    coloring = graph.graph["coloring"]
+    a = coloring[edge[0]]
+    b = coloring[edge[1]]
+    if a == b:
+        return graph
+        #If already in the same component, do nothing.
+    else:
+        #Update the component coloring by the smallest label.
+        #TODO: I think there's a way to speed this up, by redefining "b" to be "a" in some way (or vica versa)
+        if a < b:
+            for x in graph.nodes():
+                if coloring[x] == b:
+                    coloring[x] = a
+        else:
+            for x in graph.nodes():
+                if coloring[x] == a:
+                    coloring[x] = b
+    return graph
 
 def test_rejection_sample(graph, goal = 1):
     """

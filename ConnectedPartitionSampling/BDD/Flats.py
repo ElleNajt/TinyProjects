@@ -145,9 +145,9 @@ def flats(graph, edge_list):
         layer_ref = layer + 1 # to comport with the reference
         order = 0
         gc.collect()
-        #print("on layer: ",  layer, "out of ", m-1)
-        #if layer > 0:
-        #    print(" previous layer size was : ", len( N[layer]))
+        print("on layer: ",  layer, "out of ", m-1)
+        if layer > 0:
+            print(" previous layer size was : ", len( N[layer]))
         for current_node in N[layer]:
             
             if order > 0 and order % 100 == 0:
@@ -424,12 +424,12 @@ def enumerate_accepting_paths(BDD):
 
 def test():
     
-    for scale in range(2,7):
+    for scale in range(2,3):
         left_dim = scale
         right_dim = scale
     
-        dimensions = [left_dim, right_dim]
-        #dimensions = [3,3,3]
+        #dimensions = [left_dim, right_dim]
+        dimensions = [3,3,1]
         #print("working on: ", dimensions)
         graph = nx.grid_graph(dimensions)
     

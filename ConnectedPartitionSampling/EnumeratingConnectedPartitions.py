@@ -178,9 +178,12 @@ def viz(graph, edge_set, coloring, name):
     values = [1 - int(x in edge_set) for x in graph.edges()]
     node_values = [convert[coloring[x]] for x in graph.nodes()]
     f = plt.figure()
+    print("drawing now")
     nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_color = node_values, edge_color = values, labels = coloring_convert, width = 4, node_size= 65, font_size = 7)
-    f.savefig(name + str(int(time.time())) + ".png")
+    print("saving now")
+    f.savefig(name + "at_time_" + str(int(time.time())) + ".png")
 
+    return 
 def test_rejection_sample(graph, goal = 1):
 
     samples = []
@@ -364,6 +367,7 @@ def coloring_split(graph, non_cut_edges, edge):
                 color_subgraph.remove_edge(f[0], f[1])
 
     #color_subgraph.remove_edge(edge[0], edge[1])
+    # I don't understand why this was commented out. Maybe it is not in non_cut_edges? Yes.
 
     components = list(nx.connected_components(color_subgraph))
 
@@ -407,25 +411,26 @@ def step(graph, cut_edges, non_cut_edges, temperature):
     if coin < 1/2:
         return non_cut_edges, cut_edges
 
-    old_non_cut_edges = copy.deepcopy(non_cut_edges)
-    old_cut_edges = copy.deepcopy(cut_edges)
-    old_coloring = copy.deepcopy(graph.graph["coloring"])
+    #old_non_cut_edges = copy.deepcopy(non_cut_edges)
+    #old_cut_edges = copy.deepcopy(cut_edges)
+    #old_coloring = copy.deepcopy(graph.graph["coloring"])
 
     current_contradictions = contradictions(graph, cut_edges)
 
     e = random.choice(graph.graph["ordered_edges"])
 
     if e in non_cut_edges:
-        #print(e, " is now in cut set!")
+        add_edge = False
         non_cut_edges.remove(e)
         cut_edges.add(e)
+        
         graph = coloring_split(graph, non_cut_edges, e)
         #This is the update coloring that potentially reassigns the colors, because when making e cut some new components might emerge...
-        #Be sure to use if else here, otherwise it just undoes itself :-D
     else:
-        #print(e, "is now in merge set!")
+        add_edge = True
         non_cut_edges.add(e)
         cut_edges.remove(e)
+        
         graph = update_coloring(graph, e)
         #This is the update coloring that merges the two colors, based on moving e into non-cut.
 
@@ -440,10 +445,15 @@ def step(graph, cut_edges, non_cut_edges, temperature):
     coin = random.uniform(0,1)
 
     if temperature**(new_contradictions - current_contradictions) <= coin:
-        #print("reset, at threshold:", temperature**(new_contradictions - current_contradictions) )
-        non_cut_edges = old_non_cut_edges
-        cut_edges = old_cut_edges
-        graph.graph["coloring"] = old_coloring
+        
+        if add_edge == True:
+            non_cut_edges.remove(e)
+            cut_edges.add(e)
+            graph = coloring_split(graph, non_cut_edges, e)
+        if add_edge == False:
+            non_cut_edges.add(e)
+            cut_edges.remove(e)
+            graph = update_coloring(graph, e)
         return non_cut_edges, cut_edges
     else:
         return non_cut_edges, cut_edges
@@ -542,6 +552,8 @@ def test_complete_graph():
         true_samples = sample_partitions(list(range(size_of_graph)), 7000)
         true_samples_num_components = [len (x) for x in true_samples]
         print("true:",np.mean(true_samples_num_components))
+
+
 def test_grid_graph():
 
     size = 15
@@ -625,7 +637,7 @@ Whatabout number of colors?
 
 --
 '''
-
+'''
 samples_list = []
 for i in range(1):
     
@@ -635,3 +647,4 @@ for i in range(1):
     samples_list.append(sample)
     
 print(estimate_ratio(input_graph, 1000000))
+'''

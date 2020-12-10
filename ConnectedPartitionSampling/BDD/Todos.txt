@@ -1,0 +1,16 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Dec  8 13:09:39 2020
+
+@author: lnajt
+"""
+
+
+Todo:
+    
+    1. Laplace approximatino
+    2. Typical size for max block in spanning tree distribution
+    3. Statistics via rejection sampling using uniform distribution?
+    4. Evaluate mixing in the [3]^3 case.
+3 requires 1.
+
