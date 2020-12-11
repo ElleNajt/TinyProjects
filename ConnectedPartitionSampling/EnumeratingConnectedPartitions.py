@@ -175,11 +175,11 @@ def viz(graph, edge_set, coloring, name):
 
     for x in graph.nodes():
         graph.nodes[x]["pos"] = [x[0], x[1]]
-    values = [1 - int(x in edge_set) for x in graph.edges()]
+    values = [1 - int(x in edge_set or (x[1], x[0]) in edge_set) for x in graph.edges()]
     node_values = [convert[coloring[x]] for x in graph.nodes()]
     f = plt.figure()
     print("drawing now")
-    nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_color = node_values, edge_color = values, labels = coloring_convert, width = 4, node_size= 65, font_size = 7)
+    nx.draw(graph, pos=nx.get_node_attributes(graph, 'pos'), node_color = 'w', edge_color = values, labels = coloring_convert, width = 4, node_size= 65, font_size = 10)
     print("saving now")
     f.savefig(name + "at_time_" + str(int(time.time())) + ".png")
 

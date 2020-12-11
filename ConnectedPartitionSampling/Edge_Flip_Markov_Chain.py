@@ -17,10 +17,11 @@ import matplotlib.pyplot as plt
 import gc
 from heapq import nsmallest
 from scipy import sparse
-
+import scipy as sc
 from EnumeratingConnectedPartitions import viz
 
-
+def binom(n, k):
+    return math.factorial(n) // math.factorial(k) // math.factorial(n - k)
 
 def update_coloring(graph, edge):
     #Here we add edge to the set of non-cut edges, meaning that the two endpoints are now definately in the same connected compoennt. WE update the coloring to reflect that.
@@ -32,7 +33,6 @@ def update_coloring(graph, edge):
         #If already in the same component, do nothing.
     else:
         #Update the component coloring by the smallest label.
-        #TODO: I think there's a way to speed this up, by redefining "b" to be "a" in some way (or vica versa)
         if a < b:
             for x in graph.nodes():
                 if coloring[x] == b:
@@ -44,20 +44,6 @@ def update_coloring(graph, edge):
         graph.graph["num_colors"] += -1
     return graph
 
-def fast_connectivity(incidence_matrix):
-    # Writing my own connectivity check , given the incidence matrix.
-    # The one built into networkx seems to require instantiation of a graph
-    # That is slow. This one uses numerical linear algebra instead.
-    
-    laplacian = np.matmul(incidence_matrix.A, incidence_matrix.A.transpose())
-    spectral_gap = nsmallest(2,np.linalg.eigvals(laplacian))[-1]
-    #eigval, eigvec = sparse.linalg.eigsh(laplacian, 2, sigma=0, which='LM') 
-    
-    if spectral_gap > .0001:
-        # Replace with correct lower bound later
-        return True #, eigvec
-    else:
-        return False #, eigvec
     
 def component(graph, component_superset, node, edge_subset):
     # Return the set of nodes of graph that are in the same connected component
@@ -67,13 +53,9 @@ def component(graph, component_superset, node, edge_subset):
     known_component =set( [node])
     frontier = set([node])
     component_superset.remove(node)
-    #print("in component")
-    #print("frontier = ", frontier)
-    #rint(" component_superset = " , component_superset)
-    #print("edge_subset = " , edge_subset)
+
     while frontier:
-        #print("frontier: ", frontier)
-        #print(" super_set:" , component_superset)
+
         new_frontier = set()
         remaining_nodes = set()
         for z in component_superset:
@@ -87,21 +69,7 @@ def component(graph, component_superset, node, edge_subset):
                 remaining_nodes.add(z)
         frontier = new_frontier
         component_superset = remaining_nodes
-    #print("out component'")
     return known_component
-
-def test_component():
-    # Code to test the custom component function
-    
-    graph = nx.grid_graph([5,5])
-    graph = nx.erdos_renyi_graph(10,.1)
-    graph_nodes = list(graph.nodes())
-    graph_edges = list(graph.edges())
-    node = graph_nodes[0]
-    print(node)
-    nx.draw(graph, with_labels = True)
-    print(component(graph, graph_nodes, node, graph_edges))
-    print(nx.is_connected(graph))
 
 def coloring_split(graph, non_cut_edges, edge):
 
@@ -122,10 +90,6 @@ def coloring_split(graph, non_cut_edges, edge):
         if coloring[f[1]] == a:
             color_subgraph_edge_list.append(f)
 
-    # sub_incidence_matrix = nx.linalg.graphmatrix.incidence_matrix(graph, nodelist = color_component, edgelist = color_subgraph_edge_list, oriented = True)
-    #We pull out the submatrix of the incidence matrix corresponding to these edges and columns.
-    
-    # is_connected = fast_connectivity(sub_incidence_matrix)
     b_component = component(graph, color_component, edge[1], color_subgraph_edge_list)
 
 
@@ -223,24 +187,68 @@ def step(graph, cut_edges, non_cut_edges, temperature, fugacity):
             non_cut_edges.add(e)
             cut_edges.remove(e)
             graph = update_coloring(graph, e)
-        graph.graph["num_colors"] = current_num_colors
+        if current_num_colors != graph.graph["num_colors"]:
+            print('dif')
+            graph.graph["num_colors"] = current_num_colors
+
         return non_cut_edges, cut_edges
     else:
         return non_cut_edges, cut_edges
 
-def is_connected_subgraph(graph, set_of_nodes):
+def is_connected_subgraph(graph, set_of_nodes, node):
     
-    return 
+    size_of_set = len(set_of_nodes)
+    known_component =set( [node])
+    frontier = set([node])
+    component_superset = set_of_nodes
+    component_superset.remove(node)
+
+    while frontier:
+
+        new_frontier = set()
+        remaining_nodes = set()
+        for z in component_superset:
+            connected = False
+            for w in frontier:
+                if z in graph.neighbors(w):
+                    known_component.add(z)
+                    new_frontier.add(z)
+                    connected = True
+            if connected == False:
+                remaining_nodes.add(z)
+        frontier = new_frontier
+        component_superset = remaining_nodes
+    return len(known_component) == size_of_set
+
+
+def flip_node(graph, proposed_node, old_color, new_color, non_cut_edges, cut_edges):
+    proposed_node_neighbors = graph.neighbors(proposed_node)    
+    for z in proposed_node_neighbors:
+        if graph.graph["coloring"][z] == old_color:
+            cut_edges.add( (proposed_node,z) )
+            if (proposed_node, z) in non_cut_edges:
+                non_cut_edges.remove( (proposed_node, z))
+            if (z, proposed_node) in non_cut_edges:
+                non_cut_edges.remove( (z, proposed_node))
+        if graph.graph["coloring"][z] == new_color:
+            non_cut_edges.add( (proposed_node,z) )
+            if (proposed_node, z) in cut_edges:
+                cut_edges.remove( (proposed_node, z))
+            if (z, proposed_node) in cut_edges:
+                cut_edges.remove( (z, proposed_node))
+    return non_cut_edges, cut_edges
 
 def potts_step(graph, cut_edges, non_cut_edges, temperature, fugacity):
     
     proposed_node = random.choice(list(graph.nodes()))
     proposed_color = random.choice(list(graph.nodes()))
+    #print(proposed_node, proposed_color)
     old_color = graph.graph["coloring"][proposed_node]
     current_contradictions = contradictions(graph, cut_edges)
     current_edge_cuts = len(cut_edges)
     old_num_colors = graph.graph["num_colors"]
-    
+    old_num_colors = len( set ( [graph.graph["coloring"][x] for x in graph.nodes()]))
+                         
     # First, check that if there is a block of proposed color, it is adjacent
     # to proposed node
     
@@ -253,59 +261,66 @@ def potts_step(graph, cut_edges, non_cut_edges, temperature, fugacity):
                 adjacent = True
         if adjacent == False:
             # proposal was rejected
-            return graph
+            return non_cut_edges, cut_edges
+        
     # Set color proposal
     
     graph.graph["coloring"][proposed_node] = proposed_color
     
     # Next, check that the old_color block is still connected
-    color_block = set ( [ y for y in graph.nodes() if graph.graph["coloring"][y] == old_color])
+    color_block = [ y for y in graph.nodes() if graph.graph["coloring"][y] == old_color]
     
-    is_connected = is_connected_subgraph(graph, color_block)
-    
-    if not is_connected:
-        # proposal was rejected
-        graph.graph["coloring"][proposed_node] = old_color
-    
-    if is_connected:
-        # proposal was accepted. Now we move to the Metropolis-Hasting's steps
-    
-        # first, update the edge cut sets:
-            
-            
-            
-        # Update the  number of colors used
-        
-        new_num_colors = graph.graph["num_colors"]
-            
-        # calculate the parameters and do MH:
-        
-        new_contradictions = contradictions(graph, cut_edges)
-        new_edge_cuts = len(cut_edges)
-    
-        if new_contradictions <= current_contradictions:
+    if color_block != []:
+        a_node = color_block[0]
+        is_connected = is_connected_subgraph(graph, color_block, a_node)
+        if not is_connected:
+            # proposal was rejected
+            graph.graph["coloring"][proposed_node] = old_color
             return non_cut_edges, cut_edges
-    
-        coin = random.uniform(0,1)
-    
-        # Todo: Calculate coloring ratio
-        N = len(graph.nodes())
+
+    # proposal was accepted. Now we move to the Metropolis-Hasting's steps
+
+    # first, update the edge cut sets:
+    non_cut_edges, cut_edges = flip_node(graph, proposed_node, old_color, proposed_color, non_cut_edges, cut_edges)
         
-        coloring_ratio = math.comb(N, old_num_colors) / math.com(N, new_num_colors)
-        # Get ratio right
-        
-        #
+    # Update the  number of colors used
     
-        if (temperature**(new_contradictions - current_contradictions))* (fugacity**(new_edge_cuts - current_edge_cuts))*coloring_ratio <= coin:    
+    # new_num_colors = graph.graph["num_colors"]
+    new_num_colors = len( set ( [graph.graph["coloring"][x] for x in graph.nodes()]))
+    
+    # calculate the parameters and do MH:
+    
+    new_contradictions = contradictions(graph, cut_edges)
+    new_edge_cuts = len(cut_edges)
+
+    if new_contradictions <= current_contradictions:
+        return non_cut_edges, cut_edges
+
+    coin = random.uniform(0,1)
+
+    # Calculate ratio that reweights according to the coloring options
+    # We want to weight by f(P) = math.comb(N, num_colors)^{-1}
+    
+    N = len(graph.nodes())
+    old_energy = binom(N, old_num_colors)**(-1)
+    new_energy = binom(N, new_num_colors)**(-1)
+    coloring_ratio = new_energy / old_energy
+ 
+    #
+
+    if (temperature**(new_contradictions - current_contradictions))* (fugacity**(new_edge_cuts - current_edge_cuts))*coloring_ratio <= coin:    
+        
+        # Reset changes here:
             
-            # Reset changes here:
-                
-                
-                
             
-            return non_cut_edges, cut_edges
-        else:
-            return non_cut_edges, cut_edges
+        graph.graph["coloring"][proposed_node] = old_color     
+        non_cut_edges, cut_edges  = flip_node(graph, proposed_node, proposed_color, old_color, non_cut_edges, cut_edges)
+    
+            
+        
+        return non_cut_edges, cut_edges
+    else:
+        return non_cut_edges, cut_edges
         
 def run_markov_chain(graph, steps = 100, temperature = .5, fugacity = 1):
     #Return a sample as [Cutedges, non_cutedges, coloring]
@@ -324,8 +339,8 @@ def run_markov_chain(graph, steps = 100, temperature = .5, fugacity = 1):
     # non_cut_edges = set ( [ x for x in edges if x not in cut_edges])
     # If you do this you need to update the coloring
     
-    for i in range(10 * len(graph.edges())):
-        non_cut_edges, cut_edges = step(graph, cut_edges, non_cut_edges, 1, 1)
+    #for i in range(10 * len(graph.edges())):
+    #    non_cut_edges, cut_edges = step(graph, cut_edges, non_cut_edges, 1, 1)
         # A burn in. We should replace this with a step that produces a random 
         # sample and updates the coloroing.
         # Do this to avoid over counting the number of successes from earlier
@@ -337,12 +352,17 @@ def run_markov_chain(graph, steps = 100, temperature = .5, fugacity = 1):
     contradictions_histogram = {x : 0 for x in range(len(graph.edges()) + 1)}
     
     for i in range(steps):
-        non_cut_edges, cut_edges = step(graph, cut_edges, non_cut_edges, temperature, fugacity)
+        #non_cut_edges, cut_edges = step(graph, cut_edges, non_cut_edges, temperature, fugacity)
+        non_cut_edges, cut_edges = potts_step(graph, cut_edges, non_cut_edges, temperature, fugacity)
+        #viz(graph, non_cut_edges, graph.graph["coloring"], name)
+        
         num_contradictions = contradictions(graph, cut_edges) 
         contradictions_histogram[num_contradictions] += 1
         if num_contradictions == 0:
             num_found += 1
             sample = [copy.deepcopy(cut_edges),copy.deepcopy(non_cut_edges), copy.deepcopy(graph.graph["coloring"])]
+            #print(graph.graph["num_colors"])
+            #print(len( set(graph.graph["coloring"].values())))
             #print('found one')
     plt.bar(list(contradictions_histogram.keys()), contradictions_histogram.values())
     plt.show()
@@ -353,13 +373,14 @@ def run_markov_chain(graph, steps = 100, temperature = .5, fugacity = 1):
 
 
 def test_grid_graph():
+    print("reminder -- need to understand the potts step on the contradictory ones")
 
     #for fugacity in [.2,.4,.5,.6,.8,1,2,3,4,5]:
     for fugacity in [1]:
-        size = 3
+        size = 4
         graph = nx.grid_graph([size, size])
-        MC_steps = 100
-        MC_temperature = .4
+        MC_steps = 100000
+        MC_temperature = 1
         print("Running with numsteps:", MC_steps ," and temperature: " , MC_temperature)
         print(str(fugacity))
         sample = run_markov_chain(graph, MC_steps, MC_temperature, fugacity)
@@ -369,7 +390,7 @@ def test_grid_graph():
             viz(graph, sample[1], sample[2], name)
         else:
             print("no sample found")
-        print(graph.graph["num_colors"])
+
 test_grid_graph()
 
 #started 7:11
