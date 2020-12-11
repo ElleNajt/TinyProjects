@@ -149,31 +149,35 @@ def step(graph, cut_edges, non_cut_edges, temperature, fugacity):
     if coin < 1/2:
         return non_cut_edges, cut_edges
 
-    current_contradictions = contradictions(graph, cut_edges)
+    # current_contradictions = contradictions(graph, cut_edges)
+    current_contradictions = graph.graph["contradictions"]
+    # if current_contradictions != contradictions(graph, cut_edges):
+    #    print("misalignmnent occurred")
     current_edge_cuts = len(cut_edges)
     current_num_colors = graph.graph["num_colors"]
-    
+    # original_cut_edges = copy.copy(cut_edges)
+    original_coloring = copy.copy(graph.graph["coloring"])
+    original_num_colors = graph.graph["num_colors"]
     e = random.choice(graph.graph["ordered_edges"])
 
     if e in non_cut_edges:
         add_edge = False
         non_cut_edges.remove(e)
         cut_edges.add(e)
-        
         graph = coloring_split(graph, non_cut_edges, e)
-        #This is the update coloring that potentially reassigns the colors, because when making e cut some new components might emerge...
     else:
         add_edge = True
         non_cut_edges.add(e)
         cut_edges.remove(e)
-        
         graph = update_coloring(graph, e)
-        #This is the update coloring that merges the two colors, based on moving e into non-cut.
 
     new_contradictions = contradictions(graph, cut_edges)
     new_edge_cuts = len(cut_edges)
 
     if new_contradictions <= current_contradictions:
+        graph.graph["contradictions"] = new_contradictions
+        # if graph.graph["contradictions"] != contradictions(graph, cut_edges):
+        #     print("misalignmnent occurred _ edgeA")
         return non_cut_edges, cut_edges
 
     coin = random.uniform(0,1)
@@ -182,17 +186,27 @@ def step(graph, cut_edges, non_cut_edges, temperature, fugacity):
         if add_edge == True:
             non_cut_edges.remove(e)
             cut_edges.add(e)
-            graph = coloring_split(graph, non_cut_edges, e)
+            # graph = coloring_split(graph, non_cut_edges, e)
         if add_edge == False:
             non_cut_edges.add(e)
             cut_edges.remove(e)
-            graph = update_coloring(graph, e)
+            # graph = update_coloring(graph, e)
+            # graph = update_coloring(graph, e)
+        graph.graph["coloring"] = original_coloring
+        graph.graph["num_colors"] = original_num_colors
         if current_num_colors != graph.graph["num_colors"]:
             print('dif')
             graph.graph["num_colors"] = current_num_colors
-
+        # if graph.graph["contradictions"] != contradictions(graph, cut_edges):
+        #    print(graph.graph["contradictions"], current_contradictions, new_contradictions,  contradictions(graph, cut_edges))
+        #    print((cut_edges) == (original_cut_edges))
+        #    print( original_coloring == graph.graph["coloring"])
+        #    print("misalignmnent occurred _ edgeB")
         return non_cut_edges, cut_edges
     else:
+        graph.graph["contradictions"] = new_contradictions
+        # if graph.graph["contradictions"] != contradictions(graph, cut_edges):
+        #    print("misalignmnent occurred _ edgeC")
         return non_cut_edges, cut_edges
 
 def is_connected_subgraph(graph, set_of_nodes, node):
@@ -225,13 +239,21 @@ def flip_node(graph, proposed_node, old_color, new_color, non_cut_edges, cut_edg
     proposed_node_neighbors = graph.neighbors(proposed_node)    
     for z in proposed_node_neighbors:
         if graph.graph["coloring"][z] == old_color:
-            cut_edges.add( (proposed_node,z) )
+            if (proposed_node, z) in graph.graph["ordered_edges"]:
+                # We want to keep the set of ordered edges the same,
+                # so that the edge flip chain works correctly.
+                cut_edges.add( (proposed_node,z) )
+            elif (z, proposed_node) in graph.graph["ordered_edges"]:
+                cut_edges.add( (z,proposed_node) )
             if (proposed_node, z) in non_cut_edges:
                 non_cut_edges.remove( (proposed_node, z))
             if (z, proposed_node) in non_cut_edges:
                 non_cut_edges.remove( (z, proposed_node))
         if graph.graph["coloring"][z] == new_color:
-            non_cut_edges.add( (proposed_node,z) )
+            if (proposed_node, z) in graph.graph["ordered_edges"]:
+                non_cut_edges.add( (proposed_node,z) )
+            elif (z, proposed_node) in graph.graph["ordered_edges"]:
+                non_cut_edges.add( (z,proposed_node) )
             if (proposed_node, z) in cut_edges:
                 cut_edges.remove( (proposed_node, z))
             if (z, proposed_node) in cut_edges:
@@ -244,7 +266,8 @@ def potts_step(graph, cut_edges, non_cut_edges, temperature, fugacity):
     proposed_color = random.choice(list(graph.nodes()))
     #print(proposed_node, proposed_color)
     old_color = graph.graph["coloring"][proposed_node]
-    current_contradictions = contradictions(graph, cut_edges)
+    current_contradictions = graph.graph["contradictions"]
+    # current_contradictions =  contradictions(graph, cut_edges)
     current_edge_cuts = len(cut_edges)
     old_num_colors = graph.graph["num_colors"]
     old_num_colors = len( set ( [graph.graph["coloring"][x] for x in graph.nodes()]))
@@ -276,6 +299,8 @@ def potts_step(graph, cut_edges, non_cut_edges, temperature, fugacity):
         if not is_connected:
             # proposal was rejected
             graph.graph["coloring"][proposed_node] = old_color
+            # if graph.graph["contradictions"] != contradictions(graph, cut_edges):
+            #     print("misalignmnent occurred A")
             return non_cut_edges, cut_edges
 
     # proposal was accepted. Now we move to the Metropolis-Hasting's steps
@@ -294,6 +319,9 @@ def potts_step(graph, cut_edges, non_cut_edges, temperature, fugacity):
     new_edge_cuts = len(cut_edges)
 
     if new_contradictions <= current_contradictions:
+        graph.graph["contradictions"] = new_contradictions
+        # if graph.graph["contradictions"] != contradictions(graph, cut_edges):
+        #     print("misalignmnent occurred B")
         return non_cut_edges, cut_edges
 
     coin = random.uniform(0,1)
@@ -317,9 +345,13 @@ def potts_step(graph, cut_edges, non_cut_edges, temperature, fugacity):
         non_cut_edges, cut_edges  = flip_node(graph, proposed_node, proposed_color, old_color, non_cut_edges, cut_edges)
     
             
-        
+        # if graph.graph["contradictions"] != contradictions(graph, cut_edges):
+        #     print("misalignmnent occurred C")
         return non_cut_edges, cut_edges
     else:
+        graph.graph["contradictions"] = new_contradictions
+        # if graph.graph["contradictions"] != contradictions(graph, cut_edges):
+        #     print("misalignmnent occurred D")
         return non_cut_edges, cut_edges
         
 def run_markov_chain(graph, steps = 100, temperature = .5, fugacity = 1):
@@ -333,65 +365,65 @@ def run_markov_chain(graph, steps = 100, temperature = .5, fugacity = 1):
     
     cut_edges = set( graph.graph["ordered_edges"])
     non_cut_edges = set([])
-    
+    graph.graph["contradictions"] = 0
     
     # cut_edges = set ([x for x in edges if np.random.binomial(1,.5) == 1])
     # non_cut_edges = set ( [ x for x in edges if x not in cut_edges])
     # If you do this you need to update the coloring
     
-    #for i in range(10 * len(graph.edges())):
-    #    non_cut_edges, cut_edges = step(graph, cut_edges, non_cut_edges, 1, 1)
+    for i in range(10 * len(graph.edges())):
+        non_cut_edges, cut_edges = step(graph, cut_edges, non_cut_edges, 1, 1)
         # A burn in. We should replace this with a step that produces a random 
         # sample and updates the coloroing.
         # Do this to avoid over counting the number of successes from earlier
         # parts of the run.
 
+    
     sample = False
     num_found = 0
     
     contradictions_histogram = {x : 0 for x in range(len(graph.edges()) + 1)}
     
     for i in range(steps):
-        #non_cut_edges, cut_edges = step(graph, cut_edges, non_cut_edges, temperature, fugacity)
+        # graph.graph["contradictions"] = contradictions(graph, cut_edges)
+        non_cut_edges, cut_edges = step(graph, cut_edges, non_cut_edges, temperature, fugacity)
+        # graph.graph["contradictions"] = contradictions(graph, cut_edges)
         non_cut_edges, cut_edges = potts_step(graph, cut_edges, non_cut_edges, temperature, fugacity)
+        #
         #viz(graph, non_cut_edges, graph.graph["coloring"], name)
         
-        num_contradictions = contradictions(graph, cut_edges) 
+        num_contradictions = graph.graph["contradictions"] # contradictions(graph, cut_edges) 
         contradictions_histogram[num_contradictions] += 1
         if num_contradictions == 0:
             num_found += 1
-            sample = [copy.deepcopy(cut_edges),copy.deepcopy(non_cut_edges), copy.deepcopy(graph.graph["coloring"])]
+            sample = [copy.copy(cut_edges),copy.copy(non_cut_edges), copy.copy(graph.graph["coloring"])]
             #print(graph.graph["num_colors"])
             #print(len( set(graph.graph["coloring"].values())))
             #print('found one')
-    plt.bar(list(contradictions_histogram.keys()), contradictions_histogram.values())
-    plt.show()
-    print(contradictions_histogram)
+    #plt.bar(list(contradictions_histogram.keys()), contradictions_histogram.values())
+    #plt.show()
     print("found this many samples:" , num_found)
 
     return sample
 
 
-def test_grid_graph():
+def test_grid_graph(size = 10, MC_steps = 100000, MC_temperature = .8, fugacities = [1]):
     print("reminder -- need to understand the potts step on the contradictory ones")
 
     #for fugacity in [.2,.4,.5,.6,.8,1,2,3,4,5]:
-    for fugacity in [1]:
-        size = 4
+    for fugacity in fugacities:
         graph = nx.grid_graph([size, size])
-        MC_steps = 100000
-        MC_temperature = 1
-        print("Running with numsteps:", MC_steps ," and temperature: " , MC_temperature)
-        print(str(fugacity))
+        print("Running on n = ", str(size), " with numsteps:", MC_steps ," and temperature: " , MC_temperature, "and fugacity: ", 
+        str(fugacity))
         sample = run_markov_chain(graph, MC_steps, MC_temperature, fugacity)
-        name = "markov_chain_with_fugacity" + str(fugacity)
-        print(name)
+        name = "markov_chain_ on n = " + str(size) + "with_fugacity" + str(fugacity) + "temp_" + str(MC_temperature) + "_steps_" +str(MC_steps) +"___"
+        #print(name)
         if sample != False:
             viz(graph, sample[1], sample[2], name)
         else:
             print("no sample found")
 
-test_grid_graph()
+test_grid_graph(10, 10000, .6, [1])
 
 #started 7:11
 
