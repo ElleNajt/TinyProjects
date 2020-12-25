@@ -26,6 +26,8 @@ import scipy.stats
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import multivariate_normal
+import random
+from numba import njit
 
 def visualizing_wishart():
     
@@ -56,7 +58,73 @@ def visualizing_wishart():
             img = zz.reshape((xres,yres))
             plt.imshow(img); plt.show()
 
-def generate_data(graph, partition):
+# @njit            
+def A_matrix(data_matrix, mu):
+    
+    #The whole thing should be vectorized
+    A = np.zeros([len(mu), len(mu)])
+    
+    for x in data_matrix:
+        A += np.outer(x - mu, x - mu)
+        
+    return A
+
+# @njit
+def integrate(data_matrix, Phi, allocation_matrix, mu_partition, tau_sq, df, num_observations, num_samples):
+
+    """
+    
+
+    Parameters
+    ----------
+    Phi : TYPE
+        DESCRIPTION.
+    L : matrix
+        the allocation matrix -- determines which block each node belongs to
+        if u is a vector of blockwise values, Lu spreads it to each node
+        DESCRIPTION.
+    mu_0 : TYPE
+        DESCRIPTION.
+    nu : TYPE
+        DESCRIPTION.
+    n : TYPE
+        DESCRIPTION.
+    num_samples : integer
+    
+    Returns
+    -------
+    None.
+
+    """
+    total_value = 0
+    
+    D = np.linalg.inv(Phi +np.cov(data_matrix.T))
+    x_bar = np.mean(data_matrix,0)
+    for i in range(num_samples):
+        mu = np.random.normal(mu_partition, tau_sq)
+        # A = A_matrix(data_matrix, np.matmul(allocation_matrix, mu))
+        # integrand = np.linalg.det( Phi + A)**( -.5 * (df + num_observations))
+        L_mu = np.matmul(allocation_matrix, mu)
+        integrand = (1 + num_observations * np.matmul(( x_bar - L_mu), np.matmul(D, (x_bar - L_mu))) )**( -.5 * (df + num_observations))
+        total_value += integrand
+    
+    return total_value / num_samples
+
+
+def generate_allocation_matrix(nodes, partition):
+    
+    # nodes = [1,2,3,4]
+    # partition = [[1,2], [3],[4]]
+    
+    L = np.zeros([len(nodes), len(partition)])
+    for i in range(len(nodes)):
+        for j in range(len(partition)):
+            if nodes[i] in partition[j]:
+                L[i][j] = 1
+    return L
+    
+
+def generate_data(nodes, partition):
     """
     
 
@@ -76,19 +144,33 @@ def generate_data(graph, partition):
     p_0 = .1
     mu_0 = 0
     tau_sq = 1
-    df = 4
-    A = np.identity(3)
+    df = 10
+    num_observations = 5
+    
+    
+    nodes = list(range(10))
+    partition = [frozenset([0,1,2]), frozenset([3]),frozenset([4,5,6,7,8,9])]
+    allocation_matrix = generate_allocation_matrix(nodes, partition)
+    
     
     num_blocks = len(partition)
-    ## Generate Delta
-    Delta = {}
-    for x in partition:
-        Delta[x] = random.Bernoulli(p_0)
+    num_nodes  = len(nodes)
+    
+    
+    Phi = np.identity(num_nodes)
+    
     ## Generate mu
-    mu = {}
+    mu_partition = []
     for x in partition:
-        mu[x] = random.normalvariate(mu_0, tau_sq)
+        mu_partition.append( random.normalvariate(mu_0, tau_sq))
     
     ## Generate covariance matrices
-        U = scipy.stats.invwishart(df, A)
+    U = scipy.stats.invwishart(df, Phi).rvs(1)
+    mu_X = np.matmul(allocation_matrix, mu_partition)
+    data_matrix = np.random.multivariate_normal(mu_X, U, num_observations)
     
+    integrate(data_matrix, Phi, allocation_matrix, mu_0 * np.zeros(num_blocks), tau_sq, df, num_observations, 1000)
+    
+    print("try importance sampling?")
+    
+generate_data()

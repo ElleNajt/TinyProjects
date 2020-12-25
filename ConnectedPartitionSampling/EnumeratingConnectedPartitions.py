@@ -161,7 +161,7 @@ def rejection_sample(graph):
             return False
     return [J, coloring]
 
-def viz(graph, edge_set, coloring, name):
+def viz(graph, edge_set, coloring, name, location_mapping):
 
 
     convert = {}
@@ -174,7 +174,7 @@ def viz(graph, edge_set, coloring, name):
 
 
     for x in graph.nodes():
-        graph.nodes[x]["pos"] = [x[0], x[1]]
+        graph.nodes[x]["pos"] = location_mapping[x]
     values = [1 - int(x in edge_set or (x[1], x[0]) in edge_set) for x in graph.edges()]
     node_values = [convert[coloring[x]] for x in graph.nodes()]
     f = plt.figure()
