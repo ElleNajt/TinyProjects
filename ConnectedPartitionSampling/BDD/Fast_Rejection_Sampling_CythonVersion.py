@@ -68,14 +68,6 @@ def rejection_sample(incidence_matrix, num_edges):
 
     
 @nb.njit()
-def test_rejection_sample(edge_list,num_edges):
-    while True:
-        new, success = rejection_sample(edge_list, num_edges)
-        if success:
-            return new
-
-    
-@nb.njit()
 def produce_rejection_sample(incidence_matrix,num_edges):
     while True:
         new, success = rejection_sample(incidence_matrix, num_edges)
@@ -149,64 +141,30 @@ def convert_and_viz(edge_list, sample, graph):
 
     coloring = graph.graph["coloring"]
     
-    name = "./plots/" + str(len(graph.nodes())) + str( time.time())
+    name = str(len(graph.nodes())) + str( time.time())
     viz(graph, on_edges, coloring, name)
-    
-def calculate_max_block_size(edge_list, sample, graph):
-    
-    on_edges = list(compress(edge_list, [bool(x) for x in sample]))
-    
-    graph.graph["coloring"] = {x : x for x in graph.nodes()}
-
-    for e in on_edges:
-        graph = update_coloring(graph, e)
-        
-    values = list(graph.graph["coloring"].values())
-    
-    largest_block_size = 0
-    for value in values:
-        size_of_block = 0
-        for key in graph.nodes():
-            size_of_block += int(graph.graph["coloring"][key] == value)
-        if size_of_block > largest_block_size:
-            largest_block_size = size_of_block
-    
-    return largest_block_size
-    
 
 '''
 End of visualization code
 '''
     
-
 #Compile:
-graph = nx.grid_graph([3,3])
+graph = nx.grid_graph([4,4])
 incidence_matrix = nx.incidence_matrix(graph).A.T
 edge_list = list(graph.edges())
 num_edges = len(graph.edges())
-sample = get_n_samples(incidence_matrix,num_edges,1)[0]
-###
+sample = get_n_samples(incidence_matrix,num_edges,1)
 
-num_samples = 20
-for graph_size in range(3,10):
-    samples_list = []
-    for i in range(1):
-        graph = nx.grid_graph([graph_size,graph_size])
-        incidence_matrix = nx.incidence_matrix(graph).A.T
-        edge_list = list(graph.edges())
-        num_edges = len(graph.edges())
-        samples = get_n_samples(incidence_matrix,num_edges,num_samples)
-        samples_list.append(samples)
+
+
+num_samples = 100
+samples_list = []
+for i in range(1):
+    graph = nx.grid_graph([4,4])
+    incidence_matrix = nx.incidence_matrix(graph).A.T
+    edge_list = list(graph.edges())
+    num_edges = len(graph.edges())
+    samples = get_n_samples(incidence_matrix,num_edges,num_samples)
+    samples_list.append(sample)
     
-    total_max_block = 0
-    block_sizes = []
-    for sample in samples:
-        block_sizes.append(calculate_max_block_size(edge_list, sample, graph))
-        
-    
-    
-    
-    print("average max_block size for size", graph_size, " is : ", np.mean(block_sizes), " with std", np.std(block_sizes)) 
-    
-    for sample in samples[0:3]:
-        convert_and_viz(edge_list, sample, graph)
+convert_and_viz(edge_list, sample, graph)
