@@ -6,8 +6,11 @@ Created on Wed Sep 30 21:51:26 2020
 
 An implementation of the simple path algorithm using BDDs
 
-Adapted from Kawahara et al.
 
+Adapted from Kawahara et al. "Frontier-Based Search for Enumerating All
+ Constrained Subgraphs with Compressed Representation" 
+ ( https://github.com/takemaru/graphillion/files/5179684/kawahara17frontier-based.pdf )
+ 
 Notational changes
 
 Kawahara:
