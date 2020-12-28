@@ -14,7 +14,8 @@ equivalent to building a BDD for connected partitions.
 
 
 Adapted from Kawahara et al. "Frontier-Based Search for Enumerating All
- Constrained Subgraphs with Compressed Representation"
+ Constrained Subgraphs with Compressed Representation" 
+ ( https://github.com/takemaru/graphillion/files/5179684/kawahara17frontier-based.pdf )
 
 Notational changes from reference:
 
